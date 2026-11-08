@@ -528,6 +528,11 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
         <button id="priceSave">Apply</button>
       </div>
       <div class="row">
+        <label class="sub" for="tvLayout">Your TradingView layout link (paste any chart link from TradingView; "Open on TradingView" will use it)</label>
+        <input id="tvLayout" style="max-width:420px" placeholder="https://www.tradingview.com/chart/Ft86Ulnx/">
+        <button id="tvLayoutSave">Save</button>
+      </div>
+      <div class="row">
         <label class="sub" for="avKey">Alpha Vantage key, for call transcripts (stored only in this browser)</label>
         <input id="avKey" type="password" style="max-width:260px" autocomplete="off">
         <button id="avSave">Save</button>
@@ -548,7 +553,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
   <div class="rd-box" style="max-width:1280px">
     <div class="rd-head">
       <div><h2 id="tvTitle">Advanced chart</h2><div class="sub">Chart by TradingView. Indicators and drawings here aren't saved; open on TradingView to use your own layouts.</div></div>
-      <div class="row" style="margin:0"><a id="tvOpen" class="btn" target="_blank" rel="noopener">Open on TradingView ↗</a><button id="tvClose" aria-label="Close">✕</button></div>
+      <div class="row" style="margin:0"><a id="tvOpen" class="btn" target="_blank" rel="noopener">Open on TradingView ↗</a><a id="tvLayoutHint" href="#" class="sub" data-settings-tv>Use my layout</a><button id="tvClose" aria-label="Close">✕</button></div>
     </div>
     <div id="tvWrap" style="flex:1;min-height:520px;padding:0 12px 12px"></div>
   </div>

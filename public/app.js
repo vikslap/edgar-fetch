@@ -938,7 +938,10 @@
     if (!ticker) return;
     const sym = tvSymbol();
     $("tvTitle").textContent = `${title(result ? result.name : ticker)} · advanced chart`;
-    $("tvOpen").href = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}`;
+    const layout = store.get("edgar.tvlayout", "");
+    $("tvOpen").href = `https://www.tradingview.com/chart/${layout ? layout + "/" : ""}?symbol=${encodeURIComponent(sym)}`;
+    $("tvOpen").textContent = layout ? "Open in my TradingView layout ↗" : "Open on TradingView ↗";
+    $("tvLayoutHint").hidden = !!layout;
     const dark = matchMedia("(prefers-color-scheme: dark)").matches && document.documentElement.dataset.theme !== "light";
     const wrap = $("tvWrap");
     wrap.innerHTML = `<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
@@ -952,6 +955,15 @@
   }
   function closeTV() { $("tvBox").hidden = true; $("tvWrap").innerHTML = ""; document.body.style.overflow = ""; }
   $("advChart").onclick = openTV;
+  // saved TradingView layout: accept a full chart link or just the layout ID
+  const parseLayout = (v) => { const m = String(v).trim().match(/tradingview\.com\/chart\/([A-Za-z0-9]{6,12})/) || String(v).trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1] : ""; };
+  $("tvLayout").value = store.get("edgar.tvlayout", "") ? `https://www.tradingview.com/chart/${store.get("edgar.tvlayout", "")}/` : "";
+  $("tvLayoutSave").onclick = () => {
+    const v = $("tvLayout").value.trim(), id = parseLayout(v);
+    if (v && !id) { status("That doesn't look like a TradingView chart link (expected …tradingview.com/chart/XXXXXXXX/…).", true); return; }
+    store.set("edgar.tvlayout", id); status(id ? `TradingView layout ${id} saved.` : "TradingView layout cleared.");
+  };
+  $("tvLayoutHint").onclick = (e) => { e.preventDefault(); closeTV(); $("settingsBox").open = true; $("settingsBox").scrollIntoView({ block: "center" }); setTimeout(() => $("tvLayout").focus(), 300); };
   $("tvClose").onclick = closeTV;
   $("tvBox").onclick = (e) => { if (e.target === $("tvBox")) closeTV(); };
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("tvBox").hidden) closeTV(); });
