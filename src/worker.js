@@ -192,7 +192,10 @@ async function transcript(env, ctx, ticker, year, q) {
   if (!r.ok) return json({ error: `Alpha Vantage HTTP ${r.status}` }, 502);
   const j = await r.json();
   const msg = j.Information || j.Note || j["Error Message"];
-  if (msg) return json({ error: /rate limit|requests per day|premium/i.test(msg) ? "limit" : "provider", detail: msg }, /rate limit|per day/i.test(msg) ? 429 : 502);
+  if (msg) {
+    const kind = /requests per day|rate limit|per minute|call frequency/i.test(msg) ? "limit" : /premium/i.test(msg) ? "premium" : /invalid|apikey|api key/i.test(msg) ? "badkey" : "provider";
+    return json({ error: kind, detail: msg }, kind === "limit" ? 429 : 502);
+  }
   const parts = Array.isArray(j.transcript) ? j.transcript.map((x) => ({ speaker: x.speaker || "", title: x.title || "", content: x.content || "" })) : [];
   const body = { symbol: ticker, quarter: j.quarter || `${year}Q${q}`, source: "Alpha Vantage", fetched: new Date().toISOString(), transcript: parts };
   if (!parts.length) {

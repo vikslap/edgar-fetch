@@ -769,8 +769,11 @@
       const r = await fetch(`/api/transcript/${encodeURIComponent(ticker)}/${quarter}`, { headers: headers() });
       const j = await r.json().catch(() => ({}));
       if (j.error === "nokey") { msg.innerHTML = "In-page transcripts need a free Alpha Vantage key on the Worker (see README). Use the search link for now."; return; }
-      if (j.error === "limit") { msg.innerHTML = "Today's free transcript limit (about 25) is used up. It resets tomorrow; saved transcripts still open. Use the search link meanwhile."; return; }
-      if (!r.ok) { msg.textContent = `Couldn't fetch: ${j.detail || j.error || r.status}`; return; }
+      const said = j.detail ? `<br><span class="muted">Alpha Vantage said: “${esc(j.detail.slice(0, 300))}”</span>` : "";
+      if (j.error === "limit") { msg.innerHTML = "Alpha Vantage's request limit has been reached (free keys allow about 25 a day). Saved transcripts still open. Use the search link meanwhile." + said; return; }
+      if (j.error === "premium") { msg.innerHTML = "Alpha Vantage says transcripts need a premium plan for this key. Use the search link instead." + said; return; }
+      if (j.error === "badkey") { msg.innerHTML = "Alpha Vantage didn't accept the API key. Check the ALPHAVANTAGE_KEY secret on the Worker." + said; return; }
+      if (!r.ok) { msg.innerHTML = `Couldn't fetch the transcript.` + (said || ` (${esc(String(j.error || r.status))})`); return; }
       if (j.empty || !j.transcript || !j.transcript.length) { msg.textContent = "No transcript available from the provider for this quarter. Try the search link."; return; }
       msg.textContent = j.stored ? "✓ Saved in your library" : j.storeError ? "Shown, but couldn't be saved (storage full?)" : "";
       showReader(j, label);
