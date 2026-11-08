@@ -241,6 +241,11 @@
       const same = arr.filter((f) => f.accn === top.accn && f.end === top.end);
       sharesLatest = { val: same.reduce((a, f) => a + f.val, 0) / scale, end: top.end, classes: same.length };
     } else if (latestBS.shares_out) sharesLatest = { ...latestBS.shares_out, classes: 1 };
+    if (!sharesLatest || !(sharesLatest.val > 0)) {          // last resort: latest diluted weighted-average shares
+      const pick = (title, ends) => { const b = blocks.find((x) => x.title === title), r = b && b.rows.find((x) => x.key === "shares_diluted");
+        if (!r) return null; for (let i = r.values.length - 1; i >= 0; i--) if (r.values[i] > 0) return { val: r.values[i], end: ends[i], classes: 1, approx: true }; return null; };
+      sharesLatest = pick("QUARTERS", qEnds) || pick("PROFIT & LOSS", aEnds) || sharesLatest;
+    }
 
     return { name: facts.entityName || ticker, ticker, scale, aEnds, qEnds, blocks, raw,
              warnings, notes, quiet, latestBS, sharesLatest };

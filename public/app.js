@@ -485,7 +485,14 @@
       $("dcfOut").innerHTML = `<p class="err">Free cash flow is negative or missing, so a cash-flow DCF doesn't apply. For lenders and early-stage companies, value on earnings or book value instead.</p>`;
       $("dcfGrid").innerHTML = ""; return;
     }
-    const d = dcfResult(), rv = d.rv;
+    const d = dcfResult();
+    if (!d) {
+      const why = !(val.shares > 0) ? "The company's latest share count isn't in its SEC data, so a per-share value can't be worked out."
+        : !(dcfIn.r > dcfIn.gT) ? "The discount rate must be higher than terminal growth. Raise the discount rate or lower terminal growth."
+        : "Not enough data for a DCF.";
+      $("dcfOut").innerHTML = `<p class="err">${why}</p>`; $("dcfGrid").innerHTML = ""; return;
+    }
+    const rv = d.rv;
     const up = price ? (d.perShare / price - 1) * 100 : null;
     const rvTxt = !rv ? "–" : rv.below ? "below −50% a year" : rv.above ? "above 150% a year" : `${(rv.g * 100).toFixed(1)}% a year`;
     $("dcfOut").innerHTML = [
