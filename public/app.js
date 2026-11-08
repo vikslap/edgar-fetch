@@ -61,33 +61,55 @@
   $("home").onclick = () => { history.replaceState(null, "", location.pathname); location.reload(); };
 
   // ---------------- search with company-name typeahead ----------------
+  // Company list for suggestions. First the static file the nightly build writes (no access key or
+  // live SEC call needed), then the API. A failure is not remembered, so the next keystroke retries.
+  let tickersErr = "", tickersTry = 0, tickersP = null;
   async function loadTickers() {
-    if (tickers) return tickers;
-    const c = store.get("edgar.tickers", null);
-    if (c && c.at > Date.now() - 7 * 86400000) return (tickers = c.list);
-    try { const { j } = await api("/api/tickers"); tickers = j; store.set("edgar.tickers", { at: Date.now(), list: j }); }
-    catch { tickers = []; }
-    return tickers;
+    if (tickers && tickers.length) return tickers;
+    const c = store.get("edgar.tickers2", null);
+    if (c && c.at > Date.now() - 3 * 86400000 && c.list && c.list.length) return (tickers = c.list);
+    if (tickersP) return tickersP;
+    if (Date.now() - tickersTry < 5000) return tickers;
+    tickersTry = Date.now();
+    tickersP = (async () => {
+      let list = null;
+      try { const r = await fetch("/data/tickers.json"); if (r.ok) { const j = await r.json(); if (j.rows && j.rows.length) list = j.rows; } } catch {}
+      if (!list) { try { const { j } = await api("/api/tickers"); if (Array.isArray(j) && j.length) list = j; } catch (e) { tickersErr = String(e.message || e); } }
+      if (list) { tickers = list; tickersErr = ""; store.set("edgar.tickers2", { at: Date.now(), list }); }
+      tickersP = null;
+      return tickers;
+    })();
+    return tickersP;
   }
   let ddSel = -1, ddItems = [];
   function search(q) {
     q = q.trim().toUpperCase();
     if (!q || !tickers) return [];
-    const a = [], b = [], c = [];
-    for (const [t, n] of tickers) {
-      const N = n.toUpperCase();
-      if (t === q) a.unshift([t, n]);
-      else if (t.startsWith(q)) a.push([t, n]);
-      else if (N.startsWith(q)) b.push([t, n]);
-      else if (q.length > 2 && N.includes(q)) c.push([t, n]);
+    const qt = q.replace(/[.\/^ ]/g, "-");                        // BRK.B / BRK B → BRK-B
+    const a = [], b = [], w = [], c = [];
+    for (const row of tickers) {
+      const [t, n] = row, N = String(n).toUpperCase();
+      if (t === qt) a.unshift(row);
+      else if (t.startsWith(qt)) a.push(row);
+      else if (N.startsWith(q)) b.push(row);
+      else if (q.length > 1 && N.includes(" " + q)) w.push(row);   // any word of the name
+      else if (q.length > 2 && N.includes(q)) c.push(row);
       if (a.length + b.length > 40) break;
     }
-    return [...a, ...b, ...c].slice(0, 8);
+    return [...a, ...b, ...w, ...c].slice(0, 8);
   }
   function drawDd() {
     const dd = $("dd");
-    if (!ddItems.length) { dd.classList.remove("on"); return; }
-    dd.innerHTML = ddItems.map(([t, n], i) => `<div data-t="${esc(t)}" class="${i === ddSel ? "sel" : ""}" role="option"><b>${esc(t)}</b><span>${esc(n)}</span></div>`).join("");
+    const q = $("ticker").value.trim();
+    if (!ddItems.length) {
+      if (q && (!tickers || !tickers.length) && document.activeElement === $("ticker")) {
+        dd.innerHTML = `<p class="sub" style="padding:8px 12px;margin:0">Company list didn't load${tickersErr ? ` (${esc(tickersErr.slice(0, 80))})` : ""}. Type the exact ticker and press Enter.</p>`;
+        dd.classList.add("on");
+      } else dd.classList.remove("on");
+      return;
+    }
+    const cap = (m) => (m >= 1e6 ? `$${(m / 1e6).toFixed(1)}T` : m >= 1e3 ? `$${(m / 1e3).toFixed(1)}B` : m > 0 ? `$${m}M` : "");
+    dd.innerHTML = ddItems.map(([t, n, ex, m], i) => `<div data-t="${esc(t)}" class="${i === ddSel ? "sel" : ""}" role="option"><b>${esc(t)}</b><span>${esc(n)}</span>${ex || m ? `<small class="muted" style="margin-left:auto;white-space:nowrap;padding-left:8px">${esc([ex, cap(m)].filter(Boolean).join(" · "))}</small>` : ""}</div>`).join("");
     dd.classList.add("on");
     dd.querySelectorAll("div").forEach((d) => (d.onmousedown = (e) => { e.preventDefault(); pick(d.dataset.t); }));
   }

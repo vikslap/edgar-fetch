@@ -53,10 +53,12 @@ const readJSON = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
 const normSym = (s) => String(s).trim().toUpperCase().replace(/[\/^.]/g, "-");
 
 /* ---------- 1. listed companies ---------- */
+let SEC_ROWS = [];   // every ticker (all share classes, incl. OTC) for the search box
 async function listedCompanies() {
   const j = env.TICKERS_FILE ? readJSON(env.TICKERS_FILE)
     : await getJSON("https://www.sec.gov/files/company_tickers_exchange.json", { "User-Agent": UA });
   const ix = Object.fromEntries(j.fields.map((f, i) => [f, i]));
+  SEC_ROWS = j.data.map((r) => [normSym(r[ix.ticker]), r[ix.name], r[ix.exchange] || ""]);
   const byCik = new Map();
   for (const r of j.data) {
     const cik = r[ix.cik], ex = r[ix.exchange];
@@ -261,6 +263,13 @@ async function main() {
   fs.mkdirSync(path.join(ROOT, "public/data"), { recursive: true });
   fs.writeFileSync(path.join(ROOT, "public/data/screener.json"), JSON.stringify(out));
   log(`Wrote public/data/screener.json (${(fs.statSync(path.join(ROOT, "public/data/screener.json")).size / 1e6).toFixed(1)} MB)`);
+  // search-box list: static file, so suggestions work without the access key or a live SEC call
+  const rank = (ex) => (LISTED.has(ex) ? 0 : 1), seenT = new Set();
+  const tick = SEC_ROWS.filter(([t]) => t && !seenT.has(t) && seenT.add(t))
+    .map(([t, n, ex]) => { const m = prices.get(t) && prices.get(t).mcapNasdaq; return [t, n, ex, m ? Math.round(m / 1e6) : 0]; })
+    .sort((a, b) => rank(a[2]) - rank(b[2]) || b[3] - a[3]);
+  fs.writeFileSync(path.join(ROOT, "public/data/tickers.json"), JSON.stringify({ built: out.built, rows: tick }));
+  log(`Wrote public/data/tickers.json (${tick.length} tickers)`);
   fs.mkdirSync(path.join(ROOT, "state"), { recursive: true });
   const byReason = {};
   for (const [t, why] of failures) { const k = why.replace(/\. Use the tag explorer.*$/, "").slice(0, 80); (byReason[k] = byReason[k] || []).push(t); }
