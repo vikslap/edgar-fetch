@@ -608,6 +608,7 @@
     const gm = (i) => (has(SALES[i]) && has(COGS[i]) ? 1 - COGS[i] / SALES[i] : null);
     const at = (i) => (has(TA[i]) && SALES[i] != null ? SALES[i] / TA[i] : null);
     const pct = (v) => (v == null ? "n/a" : (v * 100).toFixed(1) + "%");
+    const f2 = (v) => (v == null ? "n/a" : v.toFixed(2));
     const test = (group, name, a, b, ok, detail) => ({ group, name, pass: a == null || (b !== undefined && b == null) ? null : ok, detail });
     const tests = [
       test("Profitability", "Positive return on assets", roa(t1), undefined, roa(t1) > 0, `ROA ${pct(roa(t1))}`),
@@ -615,10 +616,10 @@
       test("Profitability", "ROA improved", roa(t1), roa(t0), roa(t1) > roa(t0), `${pct(roa(t0))} → ${pct(roa(t1))}`),
       test("Profitability", "Cash flow exceeds profit (quality of earnings)", CFO[t1], ni(t1), CFO[t1] > ni(t1), `CFO ${fmtM(CFO[t1])} vs net profit ${fmtM(ni(t1))}`),
       test("Leverage & liquidity", "Long-term debt / assets fell", lev(t1), lev(t0), lev(t1) <= lev(t0), `${pct(lev(t0))} → ${pct(lev(t1))}`),
-      test("Leverage & liquidity", "Current ratio improved", cr(t1), cr(t0), cr(t1) > cr(t0), cr(t1) == null ? "not reported" : `${cr(t0).toFixed(2)} → ${cr(t1).toFixed(2)}`),
+      test("Leverage & liquidity", "Current ratio improved", cr(t1), cr(t0), cr(t1) > cr(t0), cr(t1) == null ? "not reported" : `${f2(cr(t0))} → ${f2(cr(t1))}`),
       test("Leverage & liquidity", "No share dilution", SH[t1], SH[t0], SH[t1] <= SH[t0], SH[t1] && SH[t0] ? `diluted shares ${((SH[t1] / SH[t0] - 1) * 100).toFixed(1)}%` : "n/a"),
       test("Operating efficiency", "Gross margin improved", gm(t1), gm(t0), gm(t1) > gm(t0), gm(t1) == null ? "no COGS reported" : `${pct(gm(t0))} → ${pct(gm(t1))}`),
-      test("Operating efficiency", "Asset turnover improved", at(t1), at(t0), at(t1) > at(t0), at(t1) == null ? "n/a" : `${at(t0).toFixed(2)} → ${at(t1).toFixed(2)}`),
+      test("Operating efficiency", "Asset turnover improved", at(t1), at(t0), at(t1) > at(t0), at(t1) == null ? "n/a" : `${f2(at(t0))} → ${f2(at(t1))}`),
     ];
     const scored = tests.filter((x) => x.pass != null);
     out.piotroski = { score: scored.filter((x) => x.pass).length, of: scored.length, tests,

@@ -243,7 +243,13 @@ async function main() {
   fs.writeFileSync(path.join(ROOT, "public/data/screener.json"), JSON.stringify(out));
   log(`Wrote public/data/screener.json (${(fs.statSync(path.join(ROOT, "public/data/screener.json")).size / 1e6).toFixed(1)} MB)`);
   fs.mkdirSync(path.join(ROOT, "state"), { recursive: true });
-  fs.writeFileSync(path.join(ROOT, "state/build_log.json"), JSON.stringify({ built: out.built, rows: table.length, failures: failures.slice(0, 300), failedCount: failures.length, noPrice: noPrice.length }, null, 1));
+  const byReason = {};
+  for (const [t, why] of failures) { const k = why.replace(/\. Use the tag explorer.*$/, "").slice(0, 80); (byReason[k] = byReason[k] || []).push(t); }
+  fs.writeFileSync(path.join(ROOT, "state/build_log.json"), JSON.stringify({
+    built: out.built, rows: table.length, failedCount: failures.length, noPrice: noPrice.length,
+    failedByReason: Object.fromEntries(Object.entries(byReason).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => [k, { count: v.length, tickers: v.join(" ") }])),
+    noPriceTickers: noPrice.join(" "),
+  }, null, 1));
   await alerts(table);
   if (table.length < 100 && !env.LIMIT && !env.FACTS_ZIP) throw new Error("Suspiciously few rows; not deploying.");
 }
