@@ -727,7 +727,100 @@
     return { pros, cons };
   }
 
-  const api = { compute, ratios, valuation, quality, prosCons, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+
+  /* ---------- other valuation models ----------
+     All per-share values in USD. Shared inputs: r (discount / cost of equity, decimal), gT (terminal growth),
+     g (DCF growth yrs 1–5), sbc (subtract SBC from FCF), rf (10y Treasury, %). */
+  function models(result, rat, val, inp) {
+    const n = result.aEnds.length, L = n - 1, k = rat.kpis, m = val.multiples, sh = val.shares;
+    const R = (label) => (rat.rows.find((x) => x.label === label) || { v: [] }).v;
+    const box = (t, key) => { const b = rat.boxes.find((x) => x.title === t); const r = b && b.rows.find((x) => x[0] === key); return r ? r[1] : null; };
+    const blk = (t, key) => { const b = result.blocks.find((x) => x.title === t); const r = b && b.rows.find((x) => x.key === key); return r ? r.values : []; };
+    const lb = (key) => (result.latestBS[key] ? result.latestBS[key].val : null);
+    const r = inp.r, gT = inp.gT, out = [];
+    const ok = (v) => v != null && isFinite(v);
+    const add = (o) => out.push({ low: o.value, high: o.value, ...o });
+    const na = (key, name, why, group) => out.push({ key, name, group, na: why });
+    if (!(sh > 0)) return { list: [{ key: "all", name: "All models", na: "No share count available." }] };
+    const eps = k.eps, equity = val.equity, bvps = equity != null ? equity / sh : null;
+    const avg = (xs) => { const v = xs.filter(ok); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    // DCF (range from the sensitivity grid r±1pt, g±5pt)
+    const fcf0 = m.fcf == null ? null : m.fcf - (inp.sbc ? m.sbc || 0 : 0);
+    if (fcf0 > 0 && r > gT) {
+      const base = { fcf0, gT, netDebt: m.netDebt, shares: sh };
+      const at = (dr, dg) => { const d = dcf({ ...base, r: r + dr, g: inp.g + dg }); return d ? d.perShare : null; };
+      const grid = [];
+      for (const dr of [-0.01, 0, 0.01]) for (const dg of [-0.05, 0, 0.05]) { const v = at(dr, dg); if (ok(v)) grid.push(v); }
+      add({ key: "dcf", group: "Cash flow", name: "DCF (free cash flow)", value: at(0, 0), low: Math.min(...grid), high: Math.max(...grid),
+        how: `Two-stage FCF model. Growth ${(inp.g * 100).toFixed(0)}% for 5 years fading to ${(gT * 100).toFixed(1)}%, discount ${(r * 100).toFixed(1)}%. Range: discount ±1pt, growth ±5pt.` });
+    } else na("dcf", "DCF (free cash flow)", fcf0 > 0 ? "Discount rate must exceed terminal growth." : "Free cash flow is negative or missing.", "Cash flow");
+
+    // Earnings Power Value: normalised EBIT margin × sales, after tax, as a perpetuity (no growth)
+    const opm5 = avg(R("Operating margin (EBIT) %").slice(0, n).slice(-5));
+    const tax = clamp(avg(R("Effective tax rate %").slice(0, n).slice(-3)) ?? 21, 0, 35) / 100;
+    const ebitN = opm5 != null && k.sales != null ? (opm5 / 100) * k.sales : k.ebit;
+    if (ebitN > 0 && r > 0) {
+      const epv = (rr) => ((ebitN * (1 - tax)) / rr - m.netDebt) / sh;
+      add({ key: "epv", group: "Earnings", name: "Earnings Power Value", value: epv(r), low: epv(r + 0.01), high: epv(Math.max(0.03, r - 0.01)),
+        how: `Value with zero growth: normalised EBIT (5-yr avg margin ${opm5 != null ? opm5.toFixed(1) + "%" : "n/a"} × TTM sales) × (1 − ${(tax * 100).toFixed(0)}% tax) ÷ ${(r * 100).toFixed(1)}%, minus net debt. Price above EPV = paying for growth.` });
+    } else na("epv", "Earnings Power Value", "Operating profit is not positive.", "Earnings");
+
+    // Graham Number
+    if (eps > 0 && bvps > 0) add({ key: "graham", group: "Earnings", name: "Graham Number", value: Math.sqrt(22.5 * eps * bvps),
+      how: `√(22.5 × EPS $${eps.toFixed(2)} × book value/share $${bvps.toFixed(2)}). Graham's ceiling for a defensive buy: P/E 15 × P/B 1.5.` });
+    else na("graham", "Graham Number", "Needs positive EPS and book value.", "Earnings");
+
+    // Graham growth formula (revised): EPS × (8.5 + 2g) × 4.4 / Y
+    const gE = box("Compounded EPS Growth", "5 Years");
+    const Y = (inp.rf != null ? inp.rf : 4.3) + 1.0;
+    if (eps > 0) {
+      const g0 = clamp(gE == null ? 5 : gE, 0, 20);
+      const gf = (g) => (eps * (8.5 + 2 * g) * 4.4) / Y;
+      add({ key: "graham_g", group: "Earnings", name: "Graham growth formula", value: gf(g0), low: gf(Math.max(0, g0 - 5)), high: gf(g0 + 5),
+        how: `EPS × (8.5 + 2 × ${g0.toFixed(1)}% growth) × 4.4 ÷ ${Y.toFixed(2)}% bond yield (10-yr Treasury + 1pt as an AAA proxy). Range: growth ±5pt. Growth capped at 20%.` });
+    } else na("graham_g", "Graham growth formula", "EPS is not positive.", "Earnings");
+
+    // Residual income / justified P/B
+    const roe = box("Return on Equity", "3 Years avg");
+    if (bvps > 0 && roe != null && r > gT) {
+      const roeD = clamp(roe / 100, -0.5, 0.4);
+      const jpb = (rr) => ((roeD - gT) / (rr - gT)) * bvps;
+      const v = jpb(r);
+      if (v > 0) add({ key: "rim", group: "Returns", name: "Residual income (justified P/B)", value: v, low: jpb(r + 0.01), high: r - 0.01 > gT ? jpb(r - 0.01) : v,
+        how: `Book value/share $${bvps.toFixed(2)} × (ROE ${(roeD * 100).toFixed(1)}% − g ${(gT * 100).toFixed(1)}%) ÷ (cost of equity ${(r * 100).toFixed(1)}% − g). 3-yr average ROE, capped at 40%. The standard method for banks and insurers.` });
+      else na("rim", "Residual income (justified P/B)", "ROE is below terminal growth, so the model gives no positive value.", "Returns");
+    } else na("rim", "Residual income (justified P/B)", "Needs positive book value and ROE history.", "Returns");
+
+    // Two-stage dividend discount model
+    const divs = blk("CASH FLOW", "dividends"), dsh = blk("PROFIT & LOSS", "shares_diluted");
+    const dps = divs.map((d, i) => (d > 0 && dsh[i] > 0 ? d / dsh[i] : null));
+    if (dps[L] > 0 && r > gT) {
+      const first = n > 5 ? dps[L - 5] : null;
+      const gD = first > 0 ? Math.pow(dps[L] / first, 1 / 5) - 1 : 0.03;
+      const g1 = clamp(gD, 0, 0.12);
+      const ddm = (rr) => { let d = dps[L], pv = 0; for (let t = 1; t <= 5; t++) { d *= 1 + g1; pv += d / Math.pow(1 + rr, t); } return pv + (d * (1 + gT)) / (rr - gT) / Math.pow(1 + rr, 5); };
+      add({ key: "ddm", group: "Cash flow", name: "Dividend discount model", value: ddm(r), low: ddm(r + 0.01), high: r - 0.01 > gT ? ddm(r - 0.01) : ddm(r),
+        how: `Dividend/share $${dps[L].toFixed(2)} growing ${(g1 * 100).toFixed(1)}% for 5 years (5-yr history, capped 12%), then ${(gT * 100).toFixed(1)}%, discounted at ${(r * 100).toFixed(1)}%. Best for steady dividend payers.` });
+    } else na("ddm", "Dividend discount model", "No dividends paid last year.", "Cash flow");
+
+    // Asset-based
+    const ca = lb("current_assets"), tl = lb("total_liabilities");
+    if (ca > 0 && tl != null) {
+      const v = (ca - tl) / sh;
+      if (v > 0) add({ key: "ncav", group: "Assets", name: "Net current asset value", value: v, how: `(Current assets − all liabilities) ÷ shares. Graham's "net-net": a price below this is deep value.` });
+      else na("ncav", "Net current asset value", "Liabilities exceed current assets (negative NCAV), the usual case.", "Assets");
+    } else na("ncav", "Net current asset value", "Current assets or total liabilities not reported.", "Assets");
+    if (equity != null) {
+      const v = (equity - (lb("goodwill") || 0) - (lb("intangibles") || 0)) / sh;
+      if (v > 0) add({ key: "tbv", group: "Assets", name: "Tangible book value", value: v, how: "(Equity − goodwill − intangibles) ÷ shares, latest balance sheet." });
+      else na("tbv", "Tangible book value", "Negative: goodwill and intangibles exceed equity.", "Assets");
+    }
+    return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
+  }
+
+  const api = { compute, ratios, valuation, quality, prosCons, models, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);

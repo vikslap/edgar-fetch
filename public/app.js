@@ -151,7 +151,7 @@
   // ---------------- summary ----------------
   function drawAll() {
     val = rat ? EdgarCore.valuation(result, rat, curPrice(), px && px.prices) : null;
-    drawHeader(); drawKeybox(); drawAbout(); drawAlerts(); drawCharts(); drawDcf(); drawAnalysis();
+    drawHeader(); drawKeybox(); drawAbout(); drawAlerts(); drawCharts(); drawDcf(); drawAnalysis(); drawModels(); drawPeers();
   }
 
   function drawHeader() {
@@ -518,8 +518,115 @@
     const v = parseFloat($(id).value); if (!isFinite(v)) return;
     dcfIn[{ dcfG: "g", dcfR: "r", dcfT: "gT" }[id]] = v; drawDcf(); drawKeybox();
   }));
-  $("dcfSbc").onchange = () => { dcfIn.sbc = $("dcfSbc").checked; drawDcf(); drawKeybox(); drawAnalysis(); };
-  $("dcfReset").onclick = () => { dcfIn = dcfDefaults(); drawDcf(); drawKeybox(); drawAnalysis(); };
+  $("dcfSbc").onchange = () => { dcfIn.sbc = $("dcfSbc").checked; drawDcf(); drawKeybox(); drawAnalysis(); drawModels(); };
+  $("dcfReset").onclick = () => { dcfIn = dcfDefaults(); drawDcf(); drawKeybox(); drawAnalysis(); drawModels(); };
+
+
+  // ---------------- other valuation models + football field ----------------
+  let peerModels = [];
+  function drawModels() {
+    if (!val || !rat) return;
+    if (!dcfIn) dcfIn = dcfDefaults();
+    const M = EdgarCore.models(result, rat, val, { r: dcfIn.r / 100, gT: dcfIn.gT / 100, g: dcfIn.g / 100, sbc: dcfIn.sbc, rf: rf && rf.rate });
+    const price = curPrice();
+    const good = M.list.filter((x) => !x.na), bad = M.list.filter((x) => x.na);
+    const up = (v) => (price && v != null ? (v / price - 1) * 100 : null);
+    const upTxt = (v) => { const u = up(v); return u == null ? "" : `<span class="${u < 0 ? "neg-t" : "pos-t"}">${u >= 0 ? "+" : "−"}${Math.abs(u).toFixed(0)}% vs price</span>`; };
+    $("models").innerHTML = good.filter((x) => x.key !== "dcf").map((x) => `<div class="model"><div class="g">${esc(x.group)}</div><h3>${esc(x.name)}</h3>
+      <div class="v">${usd(x.value)}</div><div>${upTxt(x.value)}</div>
+      ${x.low !== x.high ? `<div class="rg">Range ${usd(Math.min(x.low, x.high))} – ${usd(Math.max(x.low, x.high))}</div>` : ""}<p>${esc(x.how)}</p></div>`).join("");
+    $("modelsNa").innerHTML = bad.length ? "<b>Not applicable here:</b> " + bad.map((x) => `${esc(x.name)} (${esc(x.na.replace(/\.$/, ""))})`).join(" · ") : "";
+    // football field rows
+    const rows = good.map((x) => ({ name: x.name, group: x.group, v: x.value, lo: Math.min(x.low, x.high), hi: Math.max(x.low, x.high), how: x.how }));
+    peerModels.forEach((x) => rows.push(x));
+    if (px && px.prices && px.prices.length) {
+      const cut = new Date(Date.parse(px.prices.at(-1)[0]) - 365 * 86400000).toISOString().slice(0, 10);
+      const yr = px.prices.filter((p) => p[0] >= cut).map((p) => p[1]);
+      if (yr.length) rows.push({ name: "52-week trading range", group: "Market", v: null, lo: Math.min(...yr), hi: Math.max(...yr), ref: true, how: "Lowest and highest close over the last year." });
+    }
+    footballField($("ffield"), rows, price);
+  }
+
+  function footballField(el, rows, price) {
+    rows = rows.filter((r) => isFinite(r.lo) && isFinite(r.hi));
+    if (!rows.length) { el.innerHTML = `<p class="muted">Not enough data for any valuation model.</p>`; return; }
+    const W = Math.max(300, el.clientWidth || 900), narrow = W < 640;
+    // narrow screens: label + value on one line, bar underneath (full width)
+    const lw = narrow ? 8 : 230, rw = narrow ? 12 : 120, rh = narrow ? 50 : 34, top = 26, H = top + rows.length * rh + 26;
+    const cap = price ? price * 4 : Infinity;
+    let hi = Math.max(price || 0, ...rows.map((r) => Math.min(r.hi, cap)));
+    hi = hi * 1.08 || 1;
+    const X = (v) => lw + (Math.max(0, Math.min(v, hi)) / hi) * (W - lw - rw);
+    const ticks = []; const step = niceStep(hi / (narrow ? 3 : 5)); for (let t = 0; t <= hi; t += step) ticks.push(t);
+    let svg = ticks.map((t) => `<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="${top - 6}" y2="${H - 22}"/><text class="ax" x="${X(t)}" y="${H - 6}" text-anchor="middle">$${t >= 1000 ? Math.round(t).toLocaleString() : t % 1 ? t.toFixed(1) : t}</text>`).join("");
+    rows.forEach((r, i) => {
+      const y = top + i * rh, cy = narrow ? y + 34 : y + rh / 2, ly = narrow ? y + 13 : cy;
+      const x1 = X(r.lo), x2 = X(r.hi), over = r.hi > hi;
+      const valTxt = r.v != null ? usd(r.v, r.v >= 100 ? 0 : 2) : `${usd(r.lo, 0)}–${usd(r.hi, 0)}`;
+      svg += `<g class="row" data-i="${i}"><rect class="hov" x="0" y="${y}" width="${W}" height="${rh}" fill="transparent"/>
+        <text class="lbl" x="${narrow ? lw : 0}" y="${ly}" dominant-baseline="middle">${esc(r.name)}</text>
+        ${x2 - x1 > 1.5 ? `<rect class="bar${r.ref ? " ref" : ""}" x="${x1}" y="${cy - 7}" width="${Math.max(2, x2 - x1)}" height="14" rx="3"/>` : ""}
+        ${r.v != null ? `<circle class="pt${r.ref ? " ref" : ""}" cx="${X(r.v)}" cy="${cy}" r="5.5"/>` : ""}
+        ${over ? `<text x="${X(hi) + 4}" y="${cy}" dominant-baseline="middle" class="grp">›</text>` : ""}
+        <text class="val" x="${narrow ? W - rw : W - rw + 10}" y="${ly}" dominant-baseline="middle" ${narrow ? 'text-anchor="end"' : ""}>${valTxt}</text></g>`;
+    });
+    if (price) svg += `<line class="px" x1="${X(price)}" x2="${X(price)}" y1="${top - 10}" y2="${H - 22}"/><text class="pxl" x="${Math.min(Math.max(X(price), 50), W - 50)}" y="${top - 14}" text-anchor="middle">Price ${usd(price)}</text>`;
+    el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Valuation range by method versus current price">${svg}</svg>`;
+    el.querySelectorAll("g.row").forEach((g) => {
+      const r = rows[+g.dataset.i];
+      g.addEventListener("mousemove", (e) => {
+        const u = (v) => (price && v != null ? ` (${v >= price ? "+" : "−"}${Math.abs((v / price - 1) * 100).toFixed(0)}%)` : "");
+        tip.textContent = `${r.name}\n${r.v != null ? "Value " + usd(r.v) + u(r.v) + "\n" : ""}Range ${usd(r.lo)} – ${usd(r.hi)}\n\n${r.how || ""}`;
+        tip.style.display = "block"; tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = e.clientY + 16 + "px";
+      });
+      g.addEventListener("mouseleave", () => (tip.style.display = "none"));
+    });
+  }
+  function niceStep(raw) { const m = Math.pow(10, Math.floor(Math.log10(raw || 1))), f = raw / m; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * m; }
+
+  // ---------------- peers (from the nightly screener data) ----------------
+  async function drawPeers() {
+    const forTicker = ticker;
+    $("peerSub").textContent = "Loading peers…"; $("peerTable").innerHTML = ""; $("peerImplied").innerHTML = "";
+    const data = await ensureScreener();
+    if (forTicker !== ticker) return;
+    peerModels = [];
+    if (!data) { $("peerSub").textContent = "Peer data comes from the nightly screener build, which isn't available yet."; drawModels(); return; }
+    const ix = data.ix, self = data.rows.find((r) => r[1] === ticker);
+    if (!self) { $("peerSub").textContent = `${ticker} isn't in the screener data yet, so peers can't be matched.`; drawModels(); return; }
+    let basis = "industry", key = self[ix.industry];
+    let pool = key ? data.rows.filter((r) => r !== self && r[ix.industry] === key && r[ix.mcap] > 0) : [];
+    if (pool.length < 4 && self[ix.sector]) { basis = "sector"; key = self[ix.sector]; pool = data.rows.filter((r) => r !== self && r[ix.sector] === key && r[ix.mcap] > 0); }
+    if (!pool.length) { $("peerSub").textContent = "No comparable companies found."; drawModels(); return; }
+    const lm = Math.log(self[ix.mcap] || 1);
+    const peers = pool.sort((a, b) => Math.abs(Math.log(a[ix.mcap]) - lm) - Math.abs(Math.log(b[ix.mcap]) - lm)).slice(0, 10).sort((a, b) => b[ix.mcap] - a[ix.mcap]);
+    const cols = [["price", "CMP", "$"], ["mcap", "Mar Cap", "$ Mn"], ["pe", "P/E", "x"], ["ev_ebitda", "EV/EBITDA", "x"], ["pb", "P/B", "x"], ["roce", "ROCE", "%"], ["opm", "OPM", "%"], ["sales_g5", "Sales gr 5Y", "%"], ["de", "Debt/Eq", "x"]];
+    const q = (arr, p) => { const v = arr.filter((x) => x != null && isFinite(x)).sort((a, b) => a - b); if (!v.length) return null; const i = (v.length - 1) * p, lo = Math.floor(i); return v[lo] + (v[Math.ceil(i)] - v[lo]) * (i - lo); };
+    const med = Object.fromEntries(cols.map(([k]) => [k, q(peers.map((r) => r[ix[k]]), 0.5)]));
+    const cell = (v, u) => (v == null ? `<span class="muted">–</span>` : u === "$ Mn" ? fmtNum(v, 0) : u === "%" ? v.toFixed(1) : u === "$" ? v.toFixed(2) : v.toFixed(1));
+    const line = (r, cls) => `<tr class="${cls || ""}"><td>${cls === "self" ? esc(title(r[0])) : `<a href="?t=${encodeURIComponent(r[1])}" data-t="${esc(r[1])}">${esc(title(r[0]))}</a>`}<span class="tk">${esc(r[1])}</span></td>${cols.map(([k, , u]) => `<td class="num${r[ix[k]] < 0 ? " neg" : ""}">${cell(r[ix[k]], u)}</td>`).join("")}</tr>`;
+    $("peerTable").innerHTML = `<thead><tr><th>Name</th>${cols.map(([, l, u]) => `<th>${l}<br><span class="muted" style="font-weight:400">${u}</span></th>`).join("")}</tr></thead><tbody>` +
+      line(self, "self") + peers.map((r) => line(r)).join("") +
+      `<tr class="med"><td>Median of ${peers.length} peers</td>${cols.map(([k, , u]) => `<td class="num">${k === "price" ? "" : cell(med[k], u)}</td>`).join("")}</tr></tbody>`;
+    $("peerTable").querySelectorAll("a[data-t]").forEach((a) => (a.onclick = (e) => { if (e.ctrlKey || e.metaKey) return; e.preventDefault(); history.pushState(null, "", `?t=${a.dataset.t}`); $("ticker").value = a.dataset.t; go(a.dataset.t); }));
+    $("peerSub").textContent = `${peers.length} ${basis === "industry" ? "companies in the same industry" : "companies in the same sector"} (${key}), closest in market cap. From the nightly screener build.`;
+    // peer-implied prices: 25th–75th percentile of peer multiples × this company's figure
+    const k = rat.kpis, m = val.multiples, sh = val.shares, bvps = val.equity != null && sh ? val.equity / sh : null;
+    const imp = [];
+    const add = (name, metric, f, how) => {
+      const vals = peers.map((r) => r[ix[metric]]).filter((x) => x != null && x > 0);
+      if (vals.length < 3) return;
+      const a = f(q(vals, 0.25)), b = f(q(vals, 0.5)), c = f(q(vals, 0.75));
+      if ([a, b, c].every((x) => x != null && x > 0)) imp.push({ name, group: "Peers", v: b, lo: Math.min(a, c), hi: Math.max(a, c), how });
+    };
+    if (k.eps > 0) add("Peer P/E", "pe", (mult) => mult * k.eps, `Peer median P/E × this company's EPS ($${k.eps.toFixed(2)}). Range: peers' 25th–75th percentile.`);
+    if (m.ebitda > 0 && sh) add("Peer EV/EBITDA", "ev_ebitda", (mult) => (mult * m.ebitda - m.netDebt) / sh, "Peer median EV/EBITDA × this company's EBITDA, minus net debt, per share. Range: peers' 25th–75th percentile.");
+    if (bvps > 0) add("Peer P/B", "pb", (mult) => mult * bvps, `Peer median P/B × book value/share ($${bvps.toFixed(2)}). Range: peers' 25th–75th percentile.`);
+    peerModels = imp;
+    const price = curPrice();
+    $("peerImplied").innerHTML = imp.map((x) => `<div class="kpi"><div class="k">Implied by ${esc(x.name)}</div><div class="v">${usd(x.v)} ${price ? `<span class="${x.v < price ? "neg-t" : "pos-t"}" style="font-size:13px">${x.v >= price ? "+" : "−"}${Math.abs((x.v / price - 1) * 100).toFixed(0)}%</span>` : ""}</div></div>`).join("");
+    drawModels();
+  }
 
   // ---------------- financial tables ----------------
   const ORDER = ["QUARTERS", "PROFIT & LOSS", "BALANCE SHEET", "CASH FLOW"];
@@ -744,7 +851,7 @@
     });
     hit.addEventListener("mouseleave", () => { xh.setAttribute("visibility", "hidden"); xd.setAttribute("visibility", "hidden"); tip.style.display = "none"; });
   }
-  let rsz; addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => val && stockChart(), 150); });
+  let rsz; addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (val) { stockChart(); drawModels(); } }, 150); });
 
 
   // ---------------- views ----------------
@@ -769,17 +876,21 @@
   // ---------------- screens ----------------
   let scr = null, scrErr = "", res = null, resPage = 0, resSort = { key: "mcap", dir: -1 };
   const FIELD = Object.fromEntries(ScreenCore.FIELDS.map(([key, label, unit, group, , desc]) => [key, { key, label, unit, group, desc }]));
-  async function loadScreener() {
-    if (scr || scrErr) return drawScrMeta();
-    try {
-      const r = await fetch("data/screener.json", { cache: "no-cache" });
+  let scrP = null;
+  function ensureScreener() {
+    if (!scrP) scrP = fetch("data/screener.json", { cache: "no-cache" }).then(async (r) => {
       if (!r.ok) throw new Error(r.status === 404 ? "not built yet" : `HTTP ${r.status}`);
       scr = await r.json();
       scr.ix = Object.fromEntries([...scr.text, ...scr.fields.map((f) => f.key)].map((k, i) => [k, i]));
-    } catch (e) { scrErr = e.message; }
+      return scr;
+    }).catch((e) => { scrErr = e.message; return null; });
+    return scrP;
+  }
+  async function loadScreener() {
+    await ensureScreener();
     drawScrMeta();
     const q = new URLSearchParams(location.search).get("q");
-    if (q && scr) { $("q").value = q; runQuery(); }
+    if (q && scr && !res) { $("q").value = q; runQuery(); }
   }
   function drawScrMeta() {
     $("scrMeta").innerHTML = scr

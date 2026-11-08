@@ -23,6 +23,16 @@
     ["intrinsic", "Intrinsic value", "$", "Valuation", ["dcf value"], "Default DCF per share (growth = 5y sales CAGR capped 0–25%, discount = 10y Treasury + 5%, terminal 2.5%, FCF − SBC)"],
     ["dcf_upside", "DCF upside", "%", "Valuation", ["upside"], "Intrinsic value vs price"],
     ["implied_g", "Implied growth", "%", "Valuation", ["reverse dcf"], "FCF growth (yrs 1–5) priced in, reverse DCF"],
+    ["graham_number", "Graham Number", "$", "Valuation", ["graham"], "√(22.5 × EPS × book value per share)"],
+    ["price_to_graham", "Price to Graham Number", "x", "Valuation", [], "Below 1 = under Graham's ceiling"],
+    ["graham_growth", "Graham growth value", "$", "Valuation", ["graham formula"], "EPS × (8.5 + 2g) × 4.4 ÷ (10y Treasury + 1)"],
+    ["epv", "Earnings power value", "$", "Valuation", ["epv per share"], "No-growth value per share: normalised after-tax EBIT ÷ discount rate − net debt"],
+    ["epv_upside", "EPV upside", "%", "Valuation", ["epv to price"], "Earnings power value vs price; negative = price includes growth"],
+    ["justified_pb", "Justified P/B value", "$", "Valuation", ["residual income value", "rim value"], "Book value × (ROE − g) ÷ (r − g), per share"],
+    ["ncav", "NCAV per share", "$", "Valuation", ["net current asset value", "net net"], "(Current assets − all liabilities) ÷ shares"],
+    ["price_to_ncav", "Price to NCAV", "x", "Valuation", ["price to net current assets"], "Below 1 = Graham net-net"],
+    ["tangible_bv", "Tangible book value", "$", "Valuation", ["tbv", "tangible book value per share"], "(Equity − goodwill − intangibles) ÷ shares"],
+    ["price_to_tbv", "Price to tangible book", "x", "Valuation", ["p/tbv"], ""],
 
     ["sales", "Sales", "$ Mn", "Size & growth", ["revenue", "sales ttm"], "TTM"],
     ["sales_ly", "Sales last year", "$ Mn", "Size & growth", ["revenue last year"], "Last fiscal year"],
@@ -161,6 +171,17 @@
       debtor_days: ly("Debtor days"), inventory_days: ly("Inventory days"), ccc: ly("Cash conversion cycle"),
       shares: val.shares ? val.shares / 1000 : null, years: n,
     };
+    if (core.models) {
+      const g5 = box("Compounded Sales Growth", "5 Years");
+      const Mo = core.models(result, rat, val, { r: (Math.round((rfRate + 5) * 2) / 2) / 100, gT: 0.025, g: Math.round(Math.max(0, Math.min(25, g5 == null ? 10 : g5))) / 100, sbc: true, rf: rfRate });
+      const mv = (k) => { const x = Mo.list.find((y) => y.key === k && !y.na); return x ? x.value : null; };
+      const per = (v) => (v > 0 && price ? price / v : null);
+      Object.assign(row, {
+        graham_number: mv("graham"), price_to_graham: per(mv("graham")), graham_growth: mv("graham_g"),
+        epv: mv("epv"), epv_upside: mv("epv") != null && price ? (mv("epv") / price - 1) * 100 : null,
+        justified_pb: mv("rim"), ncav: mv("ncav"), price_to_ncav: per(mv("ncav")), tangible_bv: mv("tbv"), price_to_tbv: per(mv("tbv")),
+      });
+    }
     for (const key of Object.keys(row)) if (row[key] != null && !isFinite(row[key])) row[key] = null;
     return row;
   }
@@ -294,6 +315,9 @@
     ["Clean books", "Beneish M score < -2.22 AND Altman Z score > 3 AND CFO to PAT > 1"],
     ["Growth at a fair price", "PEG Ratio < 1 AND PEG Ratio > 0 AND EPS growth 5Years > 15"],
     ["Buyback machines", "Change in shares < -2 AND Free cash flow last year > 0"],
+    ["Below Graham Number", "Price to Graham Number < 1 AND Price to earning > 0 AND Market Capitalization > 300"],
+    ["Graham net-nets", "Price to NCAV < 1 AND Market Capitalization > 50"],
+    ["Priced for no growth", "EPV upside > 0 AND Return on capital employed > 15"],
     ["Debt reducing", "Debt last year < Debt preceding year AND Debt preceding year > 0 AND Market Capitalization > 500"],
   ];
 

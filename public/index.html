@@ -225,6 +225,33 @@ table.res td:first-child{min-width:240px}
 table.res td a{font-weight:500}
 table.res td .tk{color:var(--muted);font-size:12px;margin-left:6px}
 
+
+/* valuation models */
+.ffield{margin-top:14px;position:relative}
+.ffield svg{display:block;overflow:visible}
+.ffield text{font:12.5px var(--sans);fill:var(--ink)}
+.ffield .lbl,.ffield .val,.ffield .pxl{paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.ffield .lbl{fill:var(--ink)} .ffield .grp{fill:var(--muted);font-size:11px}
+.ffield .ax{fill:var(--muted);font-size:11px}
+.ffield .grid{stroke:var(--line)}
+.ffield .bar{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.ffield .bar.ref{fill:var(--soft);stroke:var(--muted)}
+.ffield .pt{fill:var(--accent);stroke:var(--card);stroke-width:2}
+.ffield .pt.ref{fill:var(--muted)}
+.ffield .px{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4}
+.ffield .pxl{font-weight:600}
+.ffield .val{font-variant-numeric:tabular-nums}
+.ffield .row:hover rect.hov{fill:var(--zebra)}
+.models{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:12px}
+.model{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.model h3{margin:0;font-size:14px}
+.model .g{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.model .v{font:600 24px var(--sans);font-variant-numeric:tabular-nums;margin:4px 0 0}
+.model .rg{font-size:12.5px;color:var(--muted)}
+.model p{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+table.res tr.self td{font-weight:600;background:var(--accent-soft)}
+table.res tr.med td{font-weight:600;border-top:2px solid var(--line)}
+
 /* documents */
 .docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:12px}
 .docs h3{font-size:15px;margin:0 0 8px;font-weight:600}
@@ -346,7 +373,11 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
     </section>
 
     <section class="card" id="valuation">
-      <h2>Valuation: DCF &amp; reverse DCF</h2>
+      <h2>Valuation</h2>
+      <div class="sub">Each method's value per share, as a range, against today's price. The ranges come from moving each model's main assumption up and down. All models share the discount rate and terminal growth set below.</div>
+      <div id="ffield" class="ffield"></div>
+
+      <h2 style="margin-top:26px">DCF &amp; reverse DCF</h2>
       <div class="sub">Two-stage free-cash-flow model: your growth rate for years 1–5, fading in a straight line to terminal growth by year 10. The reverse DCF asks what growth today's price already assumes.</div>
       <div class="dcf-in">
         <label>Starting FCF <b id="dcfBase" class="mono">–</b></label>
@@ -359,6 +390,15 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
       <div class="sub" id="rfNote"></div>
       <div class="kpis" id="dcfOut"></div>
       <div class="tbl-wrap" id="dcfGrid"></div>
+
+      <h2 style="margin-top:26px">Other methods</h2>
+      <div class="models" id="models"></div>
+      <div class="sub" id="modelsNa" style="margin-top:10px"></div>
+
+      <h2 style="margin-top:26px" id="peerH">Peer comparison</h2>
+      <div class="sub" id="peerSub"></div>
+      <div class="tbl-wrap"><table id="peerTable" class="res"></table></div>
+      <div class="kpis" id="peerImplied"></div>
     </section>
 
     <div id="tables"></div>
