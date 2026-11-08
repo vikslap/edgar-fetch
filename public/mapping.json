@@ -1,5 +1,5 @@
 {
-  "_readme": "Each line item lists XBRL tags to try IN ORDER, per period; the first tag that has a value for that period wins. 'section': PL (P&L + Quarters, default), BS (balance sheet, annual), CF (cash flow, annual). 'components' = add several items together (each component is its own fallback list). 'optional' = write 0 quietly if the company doesn't report it. 'negate' = flip the sign. 'skip' = write 0 and don't fetch. 'label' must match column A of the Data Sheet exactly. Use 'overrides' to change anything for one ticker. Not sure which tag a company uses? Run:  python fetch_edgar.py TICKER --list-tags word",
+  "_readme": "Each line item lists XBRL tags to try IN ORDER, per period; the first tag that has a value for that period wins. 'section': PL (P&L + Quarters, default), BS (balance sheet, annual), CF (cash flow, annual). 'components' = add several items together (each component is its own fallback list). 'optional' = write 0 quietly if the company doesn't report it. 'negate' = flip the sign. 'skip' = write 0 and don't fetch. 'label' must match column A of the Data Sheet exactly. Use 'overrides' to change anything for one ticker. Not sure which tag a company uses? Run:  python fetch_edgar.py TICKER --list-tags word 'ifrs' / 'ifrs_components' = the IFRS tags used for foreign filers that report under IFRS.",
   "scale": 1000,
   "items": {
     "_PL": "---------------- PROFIT & LOSS (annual + quarterly) ----------------",
@@ -13,6 +13,21 @@
         "SalesRevenueNet",
         "SalesRevenueGoodsNet",
         "RevenuesNetOfInterestExpense"
+      ],
+      "components": [
+        [
+          "InterestAndDividendIncomeOperating",
+          "InterestIncomeOperating"
+        ],
+        [
+          "NoninterestIncome"
+        ]
+      ],
+      "_note": "Banks don't report one 'revenue' figure; if no revenue tag exists, total interest income + noninterest income is used.",
+      "ifrs": [
+        "Revenue",
+        "RevenueFromContractsWithCustomers",
+        "RevenueFromSaleOfGoods"
       ]
     },
     "cogs": {
@@ -24,13 +39,17 @@
         "CostOfGoodsAndServicesSold",
         "CostOfGoodsSold",
         "CostOfServices"
+      ],
+      "ifrs": [
+        "CostOfSales"
       ]
     },
     "sga": {
       "label": "Selling, General & Admin (SGA)",
       "unit": "USD",
       "tags": [
-        "SellingGeneralAndAdministrativeExpense"
+        "SellingGeneralAndAdministrativeExpense",
+        "NoninterestExpense"
       ],
       "components": [
         [
@@ -43,6 +62,18 @@
         [
           "GeneralAndAdministrativeExpense"
         ]
+      ],
+      "ifrs": [
+        "SellingGeneralAndAdministrativeExpense"
+      ],
+      "ifrs_components": [
+        [
+          "DistributionCosts",
+          "SellingExpense"
+        ],
+        [
+          "AdministrativeExpense"
+        ]
       ]
     },
     "rnd": {
@@ -53,6 +84,9 @@
         "ResearchAndDevelopmentExpense",
         "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost",
         "TechnologyAndDevelopmentExpense"
+      ],
+      "ifrs": [
+        "ResearchAndDevelopmentExpense"
       ]
     },
     "interest": {
@@ -66,6 +100,10 @@
         "InterestExpenseOperating",
         "InterestExpenseDebt",
         "InterestAndDebtExpense"
+      ],
+      "ifrs": [
+        "FinanceCosts",
+        "InterestExpense"
       ]
     },
     "other_income": {
@@ -77,6 +115,9 @@
         "OtherNonoperatingIncomeExpense",
         "InvestmentIncomeInterestAndDividend",
         "InvestmentIncomeInterest"
+      ],
+      "ifrs": [
+        "FinanceIncome"
       ]
     },
     "other_nonop": {
@@ -90,6 +131,9 @@
       "unit": "USD",
       "tags": [
         "IncomeTaxExpenseBenefit"
+      ],
+      "ifrs": [
+        "IncomeTaxExpenseContinuingOperations"
       ]
     },
     "shares_diluted": {
@@ -100,6 +144,10 @@
       "tags": [
         "WeightedAverageNumberOfDilutedSharesOutstanding",
         "WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
+      ],
+      "ifrs": [
+        "AdjustedWeightedAverageShares",
+        "WeightedAverageShares"
       ]
     },
     "_BS": "---------------- BALANCE SHEET (annual, as at year end) ----------------",
@@ -111,6 +159,9 @@
         "CashAndCashEquivalentsAtCarryingValue",
         "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
         "Cash"
+      ],
+      "ifrs": [
+        "CashAndCashEquivalents"
       ]
     },
     "st_investments": {
@@ -122,6 +173,10 @@
         "ShortTermInvestments",
         "MarketableSecuritiesCurrent",
         "AvailableForSaleSecuritiesDebtSecuritiesCurrent"
+      ],
+      "ifrs": [
+        "ShorttermDepositsNotClassifiedAsCashEquivalents",
+        "OtherCurrentFinancialAssets"
       ]
     },
     "receivables": {
@@ -133,6 +188,10 @@
         "AccountsReceivableNetCurrent",
         "ReceivablesNetCurrent",
         "AccountsNotesAndLoansReceivableNetCurrent"
+      ],
+      "ifrs": [
+        "TradeAndOtherCurrentReceivables",
+        "CurrentTradeReceivables"
       ]
     },
     "inventory": {
@@ -143,6 +202,9 @@
       "tags": [
         "InventoryNet",
         "InventoryFinishedGoodsNetOfReserves"
+      ],
+      "ifrs": [
+        "Inventories"
       ]
     },
     "current_assets": {
@@ -152,6 +214,9 @@
       "optional": true,
       "tags": [
         "AssetsCurrent"
+      ],
+      "ifrs": [
+        "CurrentAssets"
       ]
     },
     "ppe": {
@@ -162,6 +227,9 @@
       "tags": [
         "PropertyPlantAndEquipmentNet",
         "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization"
+      ],
+      "ifrs": [
+        "PropertyPlantAndEquipment"
       ]
     },
     "goodwill": {
@@ -170,6 +238,9 @@
       "unit": "USD",
       "optional": true,
       "tags": [
+        "Goodwill"
+      ],
+      "ifrs": [
         "Goodwill"
       ]
     },
@@ -181,6 +252,9 @@
       "tags": [
         "IntangibleAssetsNetExcludingGoodwill",
         "FiniteLivedIntangibleAssetsNet"
+      ],
+      "ifrs": [
+        "IntangibleAssetsOtherThanGoodwill"
       ]
     },
     "total_assets": {
@@ -188,6 +262,9 @@
       "label": "Total Assets",
       "unit": "USD",
       "tags": [
+        "Assets"
+      ],
+      "ifrs": [
         "Assets"
       ]
     },
@@ -199,6 +276,10 @@
       "tags": [
         "AccountsPayableCurrent",
         "AccountsPayableAndAccruedLiabilitiesCurrent"
+      ],
+      "ifrs": [
+        "TradeAndOtherCurrentPayables",
+        "CurrentTradePayables"
       ]
     },
     "current_liabilities": {
@@ -208,6 +289,9 @@
       "optional": true,
       "tags": [
         "LiabilitiesCurrent"
+      ],
+      "ifrs": [
+        "CurrentLiabilities"
       ]
     },
     "st_debt": {
@@ -220,6 +304,11 @@
         "LongTermDebtCurrent",
         "ShortTermBorrowings",
         "ShortTermDebtAndCurrentPortionOfLongTermDebt"
+      ],
+      "ifrs": [
+        "CurrentBorrowingsAndCurrentPortionOfNoncurrentBorrowings",
+        "ShorttermBorrowings",
+        "CurrentPortionOfLongtermBorrowings"
       ]
     },
     "lt_debt": {
@@ -232,6 +321,11 @@
         "LongTermDebt",
         "LongTermDebtAndCapitalLeaseObligations",
         "DebtInstrumentCarryingAmount"
+      ],
+      "ifrs": [
+        "NoncurrentPortionOfNoncurrentBorrowings",
+        "LongtermBorrowings",
+        "NoncurrentBorrowings"
       ]
     },
     "total_liabilities": {
@@ -239,6 +333,9 @@
       "label": "Total Liabilities",
       "unit": "USD",
       "tags": [
+        "Liabilities"
+      ],
+      "ifrs": [
         "Liabilities"
       ]
     },
@@ -248,6 +345,10 @@
       "unit": "USD",
       "tags": [
         "StockholdersEquity"
+      ],
+      "ifrs": [
+        "EquityAttributableToOwnersOfParent",
+        "Equity"
       ]
     },
     "equity_total": {
@@ -258,6 +359,9 @@
       "tags": [
         "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
         "StockholdersEquity"
+      ],
+      "ifrs": [
+        "Equity"
       ]
     },
     "retained_earnings": {
@@ -267,6 +371,9 @@
       "optional": true,
       "tags": [
         "RetainedEarningsAccumulatedDeficit"
+      ],
+      "ifrs": [
+        "RetainedEarnings"
       ]
     },
     "shares_out": {
@@ -277,7 +384,8 @@
       "split_adjust": true,
       "tags": [
         "CommonStockSharesOutstanding"
-      ]
+      ],
+      "ifrs": []
     },
     "_CF": "---------------- CASH FLOW (annual) ----------------",
     "cfo": {
@@ -287,6 +395,9 @@
       "tags": [
         "NetCashProvidedByUsedInOperatingActivities",
         "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+      ],
+      "ifrs": [
+        "CashFlowsFromUsedInOperatingActivities"
       ]
     },
     "capex": {
@@ -299,6 +410,10 @@
         "PaymentsToAcquirePropertyPlantAndEquipment",
         "PaymentsToAcquireProductiveAssets",
         "PaymentsForCapitalImprovements"
+      ],
+      "ifrs": [
+        "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+        "PurchaseOfPropertyPlantAndEquipment"
       ]
     },
     "cfi": {
@@ -308,6 +423,9 @@
       "tags": [
         "NetCashProvidedByUsedInInvestingActivities",
         "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations"
+      ],
+      "ifrs": [
+        "CashFlowsFromUsedInInvestingActivities"
       ]
     },
     "cff": {
@@ -317,6 +435,9 @@
       "tags": [
         "NetCashProvidedByUsedInFinancingActivities",
         "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations"
+      ],
+      "ifrs": [
+        "CashFlowsFromUsedInFinancingActivities"
       ]
     },
     "dna": {
@@ -329,6 +450,10 @@
         "DepreciationAmortizationAndAccretionNet",
         "DepreciationAndAmortization",
         "Depreciation"
+      ],
+      "ifrs": [
+        "DepreciationAndAmortisationExpense",
+        "AdjustmentsForDepreciationAndAmortisationExpense"
       ]
     },
     "sbc": {
@@ -339,6 +464,9 @@
       "tags": [
         "ShareBasedCompensation",
         "AllocatedShareBasedCompensationExpense"
+      ],
+      "ifrs": [
+        "AdjustmentsForSharebasedPayments"
       ]
     },
     "dividends": {
@@ -349,6 +477,10 @@
       "tags": [
         "PaymentsOfDividends",
         "PaymentsOfDividendsCommonStock"
+      ],
+      "ifrs": [
+        "DividendsPaidClassifiedAsFinancingActivities",
+        "DividendsPaid"
       ]
     },
     "buybacks": {
@@ -358,6 +490,9 @@
       "optional": true,
       "tags": [
         "PaymentsForRepurchaseOfCommonStock"
+      ],
+      "ifrs": [
+        "PaymentsToAcquireOrRedeemEntitysShares"
       ]
     }
   },
@@ -397,5 +532,14 @@
         }
       }
     }
+  },
+  "checks_ifrs": {
+    "pretax": [
+      "ProfitLossBeforeTax"
+    ],
+    "net_income": [
+      "ProfitLossAttributableToOwnersOfParent",
+      "ProfitLoss"
+    ]
   }
 }

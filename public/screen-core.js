@@ -98,6 +98,7 @@
     ["ccc", "Cash conversion cycle", "days", "Quality", [], ""],
     ["shares", "Number of shares", "Mn", "Other", ["shares outstanding", "no eq shares"], "Latest"],
     ["years", "Years of data", "", "Other", [], "Fiscal years available"],
+    ["mcap_quote", "Market cap (quoted)", "$ Mn", "Other", ["quoted market cap"], "Market cap from the price feed; used to size ADRs"],
   ];
   const TEXT = ["name", "ticker", "exchange", "sector", "industry"];
 

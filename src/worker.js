@@ -6,6 +6,8 @@
  *  - GET /api/tickers          [[ticker, name], ...] for the search box
  *  - GET /api/prices/:ticker   10y daily prices (Yahoo Finance, Stooq fallback)
  *  - GET /api/rate             10-yr US Treasury yield
+ *  - GET/PUT /api/user/:doc   your synced watchlist, saved screens and custom peers (stored in KV)
+ *  - GET /api/fx/:CCY           USD per 1 unit of a currency (Yahoo, ECB via Frankfurter as fallback)
  *  - GET /api/concalls/:ticker  earnings 8-Ks (Item 2.02) with their exhibits classified
  *  - GET /api/transcript/:ticker/:YYYYQn   earnings call transcript (Alpha Vantage), stored permanently
  *
@@ -32,6 +34,8 @@ export default {
     let m;
     try {
       if (p === "/api/rate") return cached("rate", 21600, ctx, url, rate10y);
+      if ((m = p.match(/^\/api\/user\/(watchlist|screens|peers)$/))) return userDoc(env, req, m[1]);
+      if ((m = p.match(/^\/api\/fx\/([A-Z]{3})$/))) return cached(`fx/${m[1]}`, 43200, ctx, url, () => fxRate(m[1]));
       if ((m = p.match(new RegExp(`^/api/prices/${SYM}$`))))
         return cached(`prices/${m[1].toUpperCase()}`, 43200, ctx, url, () => prices(m[1].toUpperCase()));
 
@@ -291,6 +295,37 @@ async function stooq(symbol) {
   if (!out.length) throw new Error("no rows");
   return { source: "Stooq", currency: "USD", last: { price: out.at(-1)[1], date: out.at(-1)[0] }, prices: out };
 }
+// Synced personal data. Set ACCESS_KEY so only you can read or change it.
+async function userDoc(env, req, doc) {
+  const kv = env.TRANSCRIPTS_KV;
+  if (!kv) return json({ error: "nostorage" }, 501);
+  const key = `user/${doc}.json`;
+  if (req.method === "PUT") {
+    const text = await req.text();
+    if (text.length > 500000) return json({ error: "too large" }, 413);
+    let j; try { j = JSON.parse(text); } catch { return json({ error: "bad json" }, 400); }
+    if (typeof j.updated !== "number" || !("data" in j)) return json({ error: "expected {data, updated}" }, 400);
+    const cur = await kv.get(key, "json");
+    if (cur && cur.updated > j.updated) return json({ ...cur, conflict: true }, 409);   // newer copy elsewhere wins
+    await kv.put(key, JSON.stringify({ data: j.data, updated: j.updated }));
+    return json({ ok: true, updated: j.updated, protected: !!env.ACCESS_KEY });
+  }
+  const cur = await kv.get(key, "json");
+  return json({ ...(cur || { data: null, updated: 0 }), protected: !!env.ACCESS_KEY });
+}
+
+async function fxRate(ccy) {
+  if (ccy === "USD") return { ccy, usd: 1, source: "identity" };
+  try {
+    const y = await yahoo("query1", `${ccy}USD=X`, "5d");
+    if (y.last.price > 0) return { ccy, usd: y.last.price, date: y.last.date, source: "Yahoo Finance" };
+  } catch (e) { /* fall through */ }
+  const r = await fetch(`https://api.frankfurter.app/latest?from=${ccy}&to=USD`);
+  if (!r.ok) throw new Error(`No exchange rate for ${ccy}`);
+  const j = await r.json();
+  return { ccy, usd: j.rates.USD, date: j.date, source: "ECB (Frankfurter)" };
+}
+
 async function rate10y() {
   try {
     const y = await yahoo("query1", "^TNX", "5d");
@@ -322,7 +357,7 @@ function cors() {
   return {
     "access-control-allow-origin": "*",
     "access-control-allow-headers": "x-access-key, content-type",
-    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
     "access-control-expose-headers": "x-cik, x-fetched, x-cache",
   };
 }

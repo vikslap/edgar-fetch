@@ -132,6 +132,16 @@
       try { px = await pxP; } catch (e) { pxErr = e.message; }
       [co, rf] = await Promise.all([coP, rfP]);
       facts = j; ticker = t; dcfIn = null;
+      // foreign filers: exchange rate to USD, and ADR sizing from the quoted market cap
+      facts._opts = {};
+      const basis = EdgarCore.detectBasis(facts);
+      if (basis.cur !== "USD") { try { facts._opts.fx = (await api(`/api/fx/${basis.cur}`)).j.usd; } catch (e) { /* shown as a note */ } }
+      if (basis.foreign && px && px.last && px.last.price > 0) {
+        const d = await ensureScreener();
+        const row = d && d.rows.find((r) => r[1] === t);
+        const mq = row && row[d.ix.mcap_quote];
+        if (mq > 0) facts._opts.adrShares = (mq * 1000) / px.last.price;
+      }
       facts._meta = { cik: r.headers.get("x-cik"), fetched: r.headers.get("x-fetched") };
       pushRecent(t);
       history.replaceState(null, "", `?t=${encodeURIComponent(t)}`);
@@ -142,13 +152,13 @@
   }
 
   function run() {
-    try { result = EdgarCore.compute(facts, mapping, ticker); }
+    try { result = EdgarCore.compute(facts, mapping, ticker, facts._opts || {}); }
     catch (e) { status(e.message, true); $("result").hidden = true; drawTags(); return; }
     try { rat = EdgarCore.ratios(result); } catch (e) { rat = null; console.error(e); }
     $("empty").hidden = true; $("result").hidden = view !== "company"; $("subnav").hidden = view !== "company";
     $("navName").textContent = shortName(result.name);
     $("priceIn").value = store.get("edgar.price." + ticker, "");
-    drawAll(); drawTables(); drawDocs(); drawConcalls(); drawTags();
+    drawAll(); drawTables(); drawDocs(); drawConcalls(); drawTags(); drawStar();
     document.title = `${ticker} · ${result.name} · EDGAR Fetch`;
   }
   const shortName = (n) => n.replace(/,?\s+(INC|CORP|CORPORATION|CO|LTD|PLC|HOLDINGS|GROUP|N\.?V\.?|S\.?A\.?)\.?$/i, "").slice(0, 24);
@@ -181,6 +191,9 @@
     const cik = (co && co.cik) || (facts._meta && facts._meta.cik);
     if (cik) L.push(`<a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=&dateb=&owner=include&count=40" target="_blank" rel="noopener">↗ SEC: CIK ${parseInt(cik, 10)}</a>`);
     if (co && co.sicDescription) L.push(`<span class="k">${esc(title(co.sicDescription))}</span>`);
+    const B = result.basis || {};
+    if (B.cur && B.cur !== "USD" || B.ns === "ifrs-full") L.push(`<span class="k" title="${esc(result.notes.filter((n) => /Reports in|IFRS|ADR/.test(n)).join(" "))}">ⓘ Reports ${B.ns === "ifrs-full" ? "under IFRS " : ""}in ${esc(B.cur)}${B.cur !== "USD" ? ", shown in USD" : ""}</span>`);
+    if (result.noRevenue) L.push(`<span class="k">ⓘ No revenue reported yet</span>`);
     $("coLinks").innerHTML = L.join("");
   }
 
@@ -257,6 +270,12 @@
 
   // ---------------- charts ----------------
   // ---------------- stock chart (screener-style) ----------------
+  const MULT = {
+    pe: { label: "P/E", base: "EPS (TTM)", baseFmt: (v) => "$" + v.toFixed(2), stat: "pe" },
+    ev_ebitda: { label: "EV/EBITDA", base: "EBITDA ($ Mn, TTM)", baseFmt: (v) => "$" + fmtNum(v, 0) + "M" },
+    pb: { label: "P/B", base: "Book value per share", baseFmt: (v) => "$" + v.toFixed(2) },
+    ps: { label: "P/S", base: "Sales per share (TTM)", baseFmt: (v) => "$" + v.toFixed(2) },
+  };
   const chart = { range: store.get("edgar.range", "5Y"), mode: "price", show: { price: true, d50: true, d200: true, vol: true, pe: true, med: true, eps: true } };
   const RANGE_DAYS = { "1M": 31, "6M": 183, "1Y": 366, "3Y": 1096, "5Y": 1827, "10Y": 3653, MAX: 1e6 };
   let maCache = null;
@@ -271,9 +290,13 @@
     document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.m === chart.mode));
     const s = val.peStats, m = val.multiples;
     let peTxt = "";
+    const mode = chart.mode === "price" ? "pe" : chart.mode, st = val.multStats && val.multStats[mode], lab = MULT[mode].label;
+    const cur = mode === "pe" ? m.pe : st && st.current;
     if (!px) peTxt = `<span class="err">Price history unavailable${pxErr ? ": " + esc(pxErr) : ""}. Valuation uses the price set under Data tools → Settings.</span>`;
-    else if (s && m.pe != null) peTxt = `P/E now <b>${m.pe.toFixed(1)}×</b>, ${m.pe > s.median5 ? "above" : "below"} its 5-year median of <b>${s.median5.toFixed(1)}×</b> (range ${s.min.toFixed(0)}–${s.max.toFixed(0)}×). Cheaper than ${(100 - s.pctile).toFixed(0)}% of trading days in the last 5 years.`;
-    else if (s) peTxt = `5-year median P/E ${s.median5.toFixed(1)}× (no current P/E: earnings are negative or price missing).`;
+    else if (st && cur != null && st.median5) peTxt = `${lab} now <b>${cur.toFixed(1)}×</b>, ${cur > st.median5 ? "above" : "below"} its 5-year median of <b>${st.median5.toFixed(1)}×</b> (range ${st.min.toFixed(0)}–${st.max.toFixed(0)}×)` +
+      (st.pctile != null ? `. Cheaper than ${(100 - st.pctile).toFixed(0)}% of trading days in the last 5 years.` : ".");
+    else if (st && st.median5) peTxt = `5-year median ${lab} ${st.median5.toFixed(1)}× (no current value: the denominator is negative or missing).`;
+    else peTxt = `Not enough history for ${lab}.`;
     $("peText").innerHTML = peTxt;
     stockChart();
   }
@@ -294,12 +317,12 @@
     $("rangeRet").innerHTML = `<span class="${ret < 0 ? "neg-t" : "pos-t"}">${ret < 0 ? "↘" : "↗"} ${Math.abs(ret).toFixed(1)}%</span>` + (cagr != null ? `<span>${cagr.toFixed(1).replace("-", "−")}% <small>CAGR</small></span>` : "");
 
     // PE mode data
-    const pe = chart.mode === "pe";
+    const pe = chart.mode !== "price", MD = MULT[chart.mode] || MULT.pe;
     let peMap = null, epsBars = [];
     if (pe) {
-      peMap = new Map(val.peSeries.map((x) => [x[0], x[1] != null && x[1] < 500 ? x[1] : null]));
+      peMap = new Map((val.multSeries[chart.mode] || []).map((x) => [x[0], x[1] != null && x[1] > 0 && x[1] < 500 ? x[1] : null]));
       days.forEach((x) => (x.pe = peMap.has(x.d) ? peMap.get(x.d) : null));
-      epsBars = (val.epsPts || []).filter((e) => e[0] >= days[0].d);
+      epsBars = [...new Map((val.bases[chart.mode] || []).filter((e) => e[0] >= days[0].d && e[1] != null).map((e) => [e[0], e])).values()];
     }
     const peVals = pe ? days.map((x) => x.pe).filter((v) => v != null) : [];
     const medPe = peVals.length ? [...peVals].sort((a, b) => a - b)[peVals.length >> 1] : null;
@@ -343,7 +366,7 @@
         const xa = Math.max(padL, X(e[0])), xb = k + 1 < epsBars.length ? X(epsBars[k + 1][0]) : padL + innerW;
         const h = Math.abs(e[1]) * scale;
         return `<rect class="eps${e[1] < 0 ? " neg" : ""}" x="${xa.toFixed(1)}" y="${(e[1] >= 0 ? mid - h : mid).toFixed(1)}" width="${Math.max(1, xb - xa - 2).toFixed(1)}" height="${h.toFixed(1)}"/>`;
-      }).join("") + `<text x="${padL - 6}" y="${y2top + 10}" text-anchor="end">$${emax.toFixed(2)}</text>`;
+      }).join("") + `<text x="${padL - 6}" y="${y2top + 10}" text-anchor="end">${MD.baseFmt(emax)}</text>`;
     }
     // x axis ticks
     const spanY = (t1 - t0) / (365.25 * 86400000);
@@ -356,11 +379,11 @@
     const lp = pts.at(-1);
     const endLabel = (k, cls, txt) => (lp[k] == null ? "" : `<circle class="dot" cx="${X(lp.d)}" cy="${Y(lp[k])}" r="4" fill="var(--${cls})"/>`);
     const lines = pe
-      ? (chart.show.med && medPe != null ? `<line x1="${padL}" x2="${padL + innerW}" y1="${Y(medPe)}" y2="${Y(medPe)}" class="ref"/><text x="${padL + 6}" y="${Y(medPe) - 6}" class="reft">Median PE ${medPe.toFixed(1)}</text>` : "") +
+      ? (chart.show.med && medPe != null ? `<line x1="${padL}" x2="${padL + innerW}" y1="${Y(medPe)}" y2="${Y(medPe)}" class="ref"/><text x="${padL + 6}" y="${Y(medPe) - 6}" class="reft">Median ${MD.label} ${medPe.toFixed(1)}</text>` : "") +
         (chart.show.pe ? `<path class="ln s1" d="${path("pe")}"/>${endLabel("pe", "s1")}` : "")
       : (chart.show.d200 ? `<path class="ln ma s3" d="${path("d200")}"/>` : "") + (chart.show.d50 ? `<path class="ln ma s2" d="${path("d50")}"/>` : "") +
         (chart.show.price ? `<path class="ln s1" d="${path("p")}"/>${endLabel("p", "s1")}` : "");
-    el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="${pe ? "P/E ratio" : "Share price"} chart">
+    el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="${pe ? MD.label : "Share price"} chart">
       ${ticks.map((v) => `<line x1="${padL}" x2="${padL + innerW}" y1="${Y(v)}" y2="${Y(v)}" class="grid"/><text x="${padL + innerW + 8}" y="${Y(v) + 4}">${fmtAxis(v)}</text>`).join("")}
       <line x1="${padL}" x2="${padL + innerW}" y1="${H1}" y2="${H1}" class="ax"/>
       ${showLow ? `<line x1="${padL}" x2="${padL + innerW}" y1="${y2top + H2}" y2="${y2top + H2}" class="ax"/><text x="${padL - 6}" y="${y2top + H2 / 2 + 4}" text-anchor="end" style="display:none"></text>` : ""}
@@ -373,7 +396,7 @@
     // legend with checkboxes (series colour on the box, current value beside the name)
     const lv = (v, f) => (v == null ? "" : `<span class="val">${f(v)}</span>`);
     const leg = pe
-      ? [["pe", "PE", "var(--s1)", lv(lp.pe, (v) => v.toFixed(1))], ["med", "Median PE", "var(--muted)", lv(medPe, (v) => v.toFixed(1))], ["eps", "EPS (TTM)", "var(--vol)", lv((epsBars.at(-1) || [])[1], (v) => "$" + v.toFixed(2))]]
+      ? [["pe", MD.label, "var(--s1)", lv(lp.pe, (v) => v.toFixed(1))], ["med", `Median ${MD.label}`, "var(--muted)", lv(medPe, (v) => v.toFixed(1))], ["eps", MD.base, "var(--vol)", lv((epsBars.at(-1) || [])[1], MD.baseFmt)]]
       : [["price", "Price", "var(--s1)", lv(lp.p, fmtP)], ["d50", "50 DMA", "var(--s2)", lv(lp.d50, fmtP)], ["d200", "200 DMA", "var(--s3)", lv(lp.d200, fmtP)], ["vol", "Volume", "var(--vol)", ""]];
     $("chLegend").innerHTML = leg.map(([k, l, c, v]) => `<label style="--c:${c}"><input type="checkbox" data-k="${k}"${chart.show[k] ? " checked" : ""}>${l} ${v}</label>`).join("");
     $("chLegend").querySelectorAll("input").forEach((i) => (i.onchange = () => { chart.show[i.dataset.k] = i.checked; stockChart(); }));
@@ -392,7 +415,7 @@
       const cell = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
       const fromHere = (last / best.p - 1) * 100;
       hb.innerHTML = pe
-        ? cell(day(best.d), best.pe == null ? "–" : best.pe.toFixed(1) + "×") + cell("Median", medPe == null ? "–" : medPe.toFixed(1) + "×") + cell("Price", usd(best.p))
+        ? cell(day(best.d), best.pe == null ? "–" : best.pe.toFixed(1) + "×") + cell(`Median ${MD.label}`, medPe == null ? "–" : medPe.toFixed(1) + "×") + cell("Price", usd(best.p))
         : cell(day(best.d), usd(best.p)) + cell("From here", `<span class="${fromHere < 0 ? "neg-t" : "pos-t"}">${fromHere >= 0 ? "↗" : "↘"} ${Math.abs(fromHere).toFixed(1)}%</span>`) +
           cell("50 DMA", best.d50 == null ? "–" : fmtP(best.d50)) + cell("200 DMA", best.d200 == null ? "–" : fmtP(best.d200)) + (best.v ? cell("Vol", fmtVol(best.v)) : "");
       hb.style.display = "flex";
@@ -600,12 +623,24 @@
     if (!data) { $("peerSub").textContent = "Peer data comes from the nightly screener build, which isn't available yet."; drawModels(); return; }
     const ix = data.ix, self = data.rows.find((r) => r[1] === ticker);
     if (!self) { $("peerSub").textContent = `${ticker} isn't in the screener data yet, so peers can't be matched.`; drawModels(); return; }
-    let basis = "industry", key = self[ix.industry];
-    let pool = key ? data.rows.filter((r) => r !== self && r[ix.industry] === key && r[ix.mcap] > 0) : [];
-    if (pool.length < 4 && self[ix.sector]) { basis = "sector"; key = self[ix.sector]; pool = data.rows.filter((r) => r !== self && r[ix.sector] === key && r[ix.mcap] > 0); }
-    if (!pool.length) { $("peerSub").textContent = "No comparable companies found."; drawModels(); return; }
-    const lm = Math.log(self[ix.mcap] || 1);
-    const peers = pool.sort((a, b) => Math.abs(Math.log(a[ix.mcap]) - lm) - Math.abs(Math.log(b[ix.mcap]) - lm)).slice(0, 10).sort((a, b) => b[ix.mcap] - a[ix.mcap]);
+    let basis = "industry", key = self[ix.industry], peers;
+    const custom = (getDoc("peers", {}) || {})[ticker];
+    if (custom && custom.length) {
+      basis = "custom";
+      peers = custom.map((t) => data.rows.find((r) => r[1] === t)).filter(Boolean);
+      const missing = custom.filter((t) => !data.rows.some((r) => r[1] === t));
+      if (missing.length) basis = `custom (not in screener data: ${missing.join(", ")})`;
+    } else {
+      let pool = key ? data.rows.filter((r) => r !== self && r[ix.industry] === key && r[ix.mcap] > 0) : [];
+      if (pool.length < 4 && self[ix.sector]) {
+        const sec = data.rows.filter((r) => r !== self && r[ix.sector] === self[ix.sector] && r[ix.mcap] > 0);
+        if (sec.length > pool.length) { basis = "sector"; key = self[ix.sector]; pool = sec; }
+      }
+      const lm = Math.log(self[ix.mcap] || 1);
+      peers = pool.sort((a, b) => Math.abs(Math.log(a[ix.mcap]) - lm) - Math.abs(Math.log(b[ix.mcap]) - lm)).slice(0, 10).sort((a, b) => b[ix.mcap] - a[ix.mcap]);
+    }
+    drawPeerEditor(custom);
+    if (!peers.length) { $("peerSub").textContent = "No comparable companies found. Choose your own peers below."; $("peerTable").innerHTML = ""; drawModels(); return; }
     const cols = [["price", "CMP", "$"], ["mcap", "Mar Cap", "$ Mn"], ["pe", "P/E", "x"], ["ev_ebitda", "EV/EBITDA", "x"], ["pb", "P/B", "x"], ["roce", "ROCE", "%"], ["opm", "OPM", "%"], ["sales_g5", "Sales gr 5Y", "%"], ["de", "Debt/Eq", "x"]];
     const q = (arr, p) => { const v = arr.filter((x) => x != null && isFinite(x)).sort((a, b) => a - b); if (!v.length) return null; const i = (v.length - 1) * p, lo = Math.floor(i); return v[lo] + (v[Math.ceil(i)] - v[lo]) * (i - lo); };
     const med = Object.fromEntries(cols.map(([k]) => [k, q(peers.map((r) => r[ix[k]]), 0.5)]));
@@ -615,7 +650,8 @@
       line(self, "self") + peers.map((r) => line(r)).join("") +
       `<tr class="med"><td>Median of ${peers.length} peers</td>${cols.map(([k, , u]) => `<td class="num">${k === "price" ? "" : cell(med[k], u)}</td>`).join("")}</tr></tbody>`;
     $("peerTable").querySelectorAll("a[data-t]").forEach((a) => (a.onclick = (e) => { if (e.ctrlKey || e.metaKey) return; e.preventDefault(); history.pushState(null, "", `?t=${a.dataset.t}`); $("ticker").value = a.dataset.t; go(a.dataset.t); }));
-    $("peerSub").textContent = `${peers.length} ${basis === "industry" ? "companies in the same industry" : "companies in the same sector"} (${key}), closest in market cap. From the nightly screener build.`;
+    $("peerSub").textContent = basis.startsWith("custom") ? `Your chosen peers (${peers.length})${basis.length > 6 ? " — " + basis.slice(7) : ""}. Synced across your devices.`
+      : `${peers.length} ${basis === "industry" ? "companies in the same industry" : "companies in the same sector"} (${key}), closest in market cap. From the nightly screener build.`;
     // peer-implied prices: 25th–75th percentile of peer multiples × this company's figure
     const k = rat.kpis, m = val.multiples, sh = val.shares, bvps = val.equity != null && sh ? val.equity / sh : null;
     const imp = [];
@@ -632,6 +668,20 @@
     const price = curPrice();
     $("peerImplied").innerHTML = imp.map((x) => `<div class="kpi"><div class="k">Implied by ${esc(x.name)}</div><div class="v">${usd(x.v)} ${price ? `<span class="${x.v < price ? "neg-t" : "pos-t"}" style="font-size:13px">${x.v >= price ? "+" : "−"}${Math.abs((x.v / price - 1) * 100).toFixed(0)}%</span>` : ""}</div></div>`).join("");
     drawModels();
+  }
+
+  function drawPeerEditor(custom) {
+    const el = $("peerEdit"); if (!el) return;
+    el.innerHTML = `<form class="row" id="peerForm" style="margin-top:10px"><label class="sub" for="peerIn">${custom && custom.length ? "Your peers" : "Choose your own peers"} (tickers, comma-separated)</label>
+      <input id="peerIn" style="flex:1;min-width:220px;max-width:420px;text-transform:uppercase" value="${esc((custom || []).join(", "))}" placeholder="e.g. DIS, WBD, PARA, ROKU">
+      <button class="primary">Save</button>${custom && custom.length ? `<button type="button" id="peerAuto">Use automatic</button>` : ""}</form>`;
+    $("peerForm").onsubmit = (e) => {
+      e.preventDefault();
+      const list = [...new Set($("peerIn").value.toUpperCase().split(/[\s,;]+/).map((x) => x.replace(".", "-")).filter((x) => x && x !== ticker))].slice(0, 20);
+      const all = getDoc("peers", {}) || {}; if (list.length) all[ticker] = list; else delete all[ticker];
+      setDoc("peers", all); drawPeers();
+    };
+    if ($("peerAuto")) $("peerAuto").onclick = () => { const all = getDoc("peers", {}) || {}; delete all[ticker]; setDoc("peers", all); drawPeers(); };
   }
 
   // ---------------- financial tables ----------------
@@ -980,19 +1030,21 @@
   let view = "company";
   function showView(v) {
     view = v;
-    const scr = v === "screens";
-    $("screens").hidden = !scr;
-    $("data").hidden = scr;
-    $("empty").hidden = scr || !!result;
-    $("result").hidden = scr || !result;
-    $("subnav").hidden = scr || !result;
-    $("lnkScreens").classList.toggle("on", scr);
+    const scr = v === "screens", wl = v === "watchlist", co = v === "company";
+    $("screens").hidden = !scr; $("watch").hidden = !wl;
+    $("data").hidden = !co;
+    $("empty").hidden = !co || !!result;
+    $("result").hidden = !co || !result;
+    $("subnav").hidden = !co || !result;
+    $("lnkScreens").classList.toggle("on", scr); $("lnkWatch").classList.toggle("on", wl);
     if (scr) { loadScreener(); document.title = "Screens · EDGAR Fetch"; }
+    if (wl) { drawWatchlist(); document.title = "Watchlist · EDGAR Fetch"; }
   }
+  $("lnkWatch").onclick = (e) => { e.preventDefault(); history.pushState(null, "", "?view=watchlist"); showView("watchlist"); };
   $("lnkScreens").onclick = (e) => { e.preventDefault(); history.pushState(null, "", "?view=screens"); showView("screens"); };
   addEventListener("popstate", () => {
     const ps = new URLSearchParams(location.search);
-    if (ps.get("view") === "screens") showView("screens"); else showView("company");
+    const v = ps.get("view"); showView(v === "screens" || v === "watchlist" ? v : "company");
   });
 
   // ---------------- screens ----------------
@@ -1022,11 +1074,11 @@
   function drawLists() {
     $("presets").innerHTML = ScreenCore.PRESETS.map(([n, q], i) => `<li><a data-p="${i}">${esc(n)}</a></li>`).join("");
     $("presets").querySelectorAll("a").forEach((a) => (a.onclick = () => { $("q").value = ScreenCore.PRESETS[+a.dataset.p][1]; $("saveName").value = ScreenCore.PRESETS[+a.dataset.p][0]; runQuery(); }));
-    const saved = store.get("edgar.screens", []);
+    const saved = getDoc("screens", []);
     $("saved").innerHTML = saved.length ? saved.map((x, i) => `<li><a data-s="${i}">${esc(x.name)}</a><button class="x" data-d="${i}" title="Delete">✕</button></li>`).join("")
       : `<li class="muted">None yet. Write a query, give it a name and press Save.</li>`;
     $("saved").querySelectorAll("a").forEach((a) => (a.onclick = () => { const x = saved[+a.dataset.s]; $("q").value = x.query; $("saveName").value = x.name; runQuery(); }));
-    $("saved").querySelectorAll(".x").forEach((b) => (b.onclick = () => { saved.splice(+b.dataset.d, 1); store.set("edgar.screens", saved); drawLists(); }));
+    $("saved").querySelectorAll(".x").forEach((b) => (b.onclick = () => { saved.splice(+b.dataset.d, 1); setDoc("screens", saved); drawLists(); }));
     const groups = {};
     ScreenCore.FIELDS.forEach(([key, label, unit, group, , desc]) => (groups[group] = groups[group] || []).push([label, unit, desc]));
     $("fieldList").innerHTML = Object.entries(groups).map(([g, fs]) => `<h4>${esc(g)}</h4>` +
@@ -1037,8 +1089,8 @@
     const name = $("saveName").value.trim() || $("q").value.trim().slice(0, 40), query = $("q").value.trim();
     if (!query) return;
     try { ScreenCore.compile(query); } catch (e) { $("qErr").textContent = e.message; return; }
-    const saved = store.get("edgar.screens", []).filter((x) => x.name !== name);
-    saved.unshift({ name, query }); store.set("edgar.screens", saved); drawLists();
+    const saved = getDoc("screens", []).filter((x) => x.name !== name);
+    saved.unshift({ name, query }); setDoc("screens", saved); drawLists();
     $("qErr").innerHTML = `<span class="pos-t">Saved as "${esc(name)}".</span>`;
   };
   $("alertQ").onclick = async () => {
@@ -1159,11 +1211,100 @@
   };
   drawLists();
 
+
+  // ---------------- synced personal data (watchlist, saved screens, custom peers) ----------------
+  // Kept in this browser and mirrored to the Worker's KV, so every device sees the same lists.
+  const DOCS = { watchlist: [], screens: [], peers: {} };
+  let syncState = "local";
+  function getDoc(name, def) {
+    const d = store.get(`edgar.doc.${name}`, null);
+    if (d) return d.data;
+    if (name === "screens") { const old = store.get("edgar.screens", null); if (old) return old; }   // migrate older saves
+    return def;
+  }
+  const pushTimers = {};
+  function setDoc(name, data) {
+    const doc = { data, updated: Date.now() };
+    store.set(`edgar.doc.${name}`, doc);
+    clearTimeout(pushTimers[name]);
+    pushTimers[name] = setTimeout(() => pushDoc(name, doc), 600);
+  }
+  async function pushDoc(name, doc) {
+    try {
+      const r = await fetch(`/api/user/${name}`, { method: "PUT", headers: { ...headers(), "content-type": "application/json" }, body: JSON.stringify(doc) });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 409 && j.data != null) { store.set(`edgar.doc.${name}`, { data: j.data, updated: j.updated }); refreshSynced(); }
+      syncState = r.ok || r.status === 409 ? (j.protected ? "synced" : "synced-open") : r.status === 501 ? "nostorage" : r.status === 401 ? "denied" : "error";
+    } catch { syncState = "offline"; }
+    drawSyncNote();
+  }
+  async function syncAll() {
+    for (const name of Object.keys(DOCS)) {
+      try {
+        const r = await fetch(`/api/user/${name}`, { headers: headers() });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) { syncState = r.status === 501 ? "nostorage" : r.status === 401 ? "denied" : "error"; continue; }
+        const local = store.get(`edgar.doc.${name}`, null);
+        if (j.updated > (local ? local.updated : 0)) store.set(`edgar.doc.${name}`, { data: j.data, updated: j.updated });
+        else if (local && local.updated > j.updated) await pushDoc(name, local);
+        else if (!local && name === "screens" && store.get("edgar.screens", null)) setDoc("screens", store.get("edgar.screens", []));
+        syncState = j.protected ? "synced" : "synced-open";
+      } catch { syncState = "offline"; }
+    }
+    refreshSynced();
+  }
+  function refreshSynced() { drawLists(); drawStar(); if (view === "watchlist") drawWatchlist(); if (result && val) drawPeers(); drawSyncNote(); }
+  function drawSyncNote() {
+    const el = $("syncNote"); if (!el) return;
+    el.innerHTML = {
+      synced: "✓ Synced across your devices.",
+      "synced-open": "✓ Synced across devices. <b>Tip:</b> set an ACCESS_KEY on the Worker (and enter it under Data tools → Settings) so only you can see or change your lists.",
+      nostorage: "Saved in this browser only: the Worker has no KV storage connected.",
+      denied: "Saved in this browser only: enter your access key under Data tools → Settings to sync.",
+      offline: "Saved in this browser; will sync when the server is reachable.",
+      error: "Saved in this browser; syncing failed.", local: "",
+    }[syncState] || "";
+  }
+
+  // ---------------- watchlist ----------------
+  function inWatch(t) { return getDoc("watchlist", []).includes(t); }
+  function toggleWatch(t) {
+    const w = getDoc("watchlist", []);
+    setDoc("watchlist", w.includes(t) ? w.filter((x) => x !== t) : [...w, t]);
+    drawStar(); if (view === "watchlist") drawWatchlist();
+  }
+  function drawStar() {
+    const b = $("starBtn"); if (!b || !ticker) return;
+    const on = inWatch(ticker);
+    b.textContent = on ? "★ In watchlist" : "☆ Watchlist"; b.classList.toggle("starred", on);
+  }
+  $("starBtn").onclick = () => ticker && toggleWatch(ticker);
+  $("wlAddForm").onsubmit = (e) => { e.preventDefault(); const t = $("wlAdd").value.trim().toUpperCase().replace(".", "-"); if (t && !inWatch(t)) toggleWatch(t); $("wlAdd").value = ""; };
+  let wlSort = { key: null, dir: -1 };
+  async function drawWatchlist() {
+    const list = getDoc("watchlist", []);
+    drawSyncNote();
+    if (!list.length) { $("wlSub").textContent = "Empty. Add tickers above, or press ☆ Watchlist on any company page."; $("wlTable").innerHTML = ""; return; }
+    const d = await ensureScreener();
+    const cols = [["price", "CMP", "$"], ["mcap", "Mar Cap", "$ Mn"], ["pe", "P/E", "x"], ["roce", "ROCE", "%"], ["sales_g5", "Sales gr 5Y", "%"], ["opm", "OPM", "%"], ["de", "Debt/Eq", "x"], ["piotroski", "Piotroski", "/9"], ["dcf_upside", "DCF upside", "%"]];
+    const rows = list.map((t) => ({ t, r: d ? d.rows.find((x) => x[1] === t) : null }));
+    if (wlSort.key) { const i = d.ix[wlSort.key]; rows.sort((a, b) => { const x = a.r ? a.r[i] : null, y = b.r ? b.r[i] : null; if (x == null) return 1; if (y == null) return -1; return wlSort.dir * (x - y); }); }
+    const cell = (v, u) => (v == null ? `<span class="muted">–</span>` : u === "$ Mn" ? fmtNum(v, 0) : u === "%" ? v.toFixed(1) : u === "/9" ? Math.round(v) : u === "$" ? v.toFixed(2) : v.toFixed(1));
+    $("wlSub").textContent = `${list.length} compan${list.length === 1 ? "y" : "ies"}${d ? ` · data as of ${new Date(d.built).toLocaleDateString("en-US", { dateStyle: "medium" })}` : ""}. Click a column to sort.`;
+    $("wlTable").innerHTML = `<thead><tr><th>Name</th>${cols.map(([k, l, u]) => `<th data-k="${k}" class="${wlSort.key === k ? "sorted" : ""}">${l}<br><span class="muted" style="font-weight:400">${u}</span></th>`).join("")}<th></th></tr></thead><tbody>` +
+      rows.map(({ t, r }) => `<tr><td><a href="?t=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(r ? title(r[0]) : t)}</a><span class="tk">${esc(t)}</span></td>` +
+        cols.map(([k, , u]) => `<td class="num${r && r[d.ix[k]] < 0 ? " neg" : ""}">${r ? cell(r[d.ix[k]], u) : (k === "price" ? '<span class="muted">not in screener data</span>' : "")}</td>`).join("") +
+        `<td><button class="x" data-rm="${esc(t)}" title="Remove">✕</button></td></tr>`).join("") + "</tbody>";
+    $("wlTable").querySelectorAll("th[data-k]").forEach((th) => (th.onclick = () => { const k = th.dataset.k; wlSort = { key: k, dir: wlSort.key === k ? -wlSort.dir : -1 }; drawWatchlist(); }));
+    $("wlTable").querySelectorAll("a[data-t]").forEach((a) => (a.onclick = (e) => { if (e.ctrlKey || e.metaKey) return; e.preventDefault(); history.pushState(null, "", `?t=${a.dataset.t}`); $("ticker").value = a.dataset.t; go(a.dataset.t); }));
+    $("wlTable").querySelectorAll("button[data-rm]").forEach((b) => (b.onclick = () => toggleWatch(b.dataset.rm)));
+  }
+
   // ---------------- boot ----------------
-  drawRecent(); drawTags();
+  drawRecent(); drawTags(); syncAll();
   loadMapping().then(() => {
     const ps = new URLSearchParams(location.search), q = ps.get("t");
-    if (ps.get("view") === "screens") showView("screens");
+    if (ps.get("view") === "screens" || ps.get("view") === "watchlist") showView(ps.get("view"));
     else if (q) { $("ticker").value = q.toUpperCase(); go(q); }
   }).catch((e) => status("Couldn't load mapping.json: " + e.message, true));
 })();

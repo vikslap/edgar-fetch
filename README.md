@@ -57,6 +57,18 @@ To read call transcripts inside the page:
 
 Transcripts are only fetched when you click **Read**, never when a page opens. Each one is stored compressed (about 20 KB), so the free 1 GB holds tens of thousands.
 
+## Watchlist, saved screens and custom peers (synced)
+
+Your watchlist (☆ on any company page, or the **Watchlist** link), saved screens and custom peer lists are stored in the same KV namespace as transcripts, so every browser and device sees the same lists.
+
+**Set an access key so only you can see or change them:** Cloudflare → edgar-fetch → Settings → Variables and Secrets → Add → *Secret* `ACCESS_KEY` (any password). Then enter the same password on the site under Data tools → Settings, once per browser.
+
+## Coverage notes
+- **Banks:** revenue = interest income + noninterest income; noninterest expense is used as SG&A. Bank ratios are still approximate (no bank-specific template yet).
+- **Foreign filers (20-F / 40-F):** IFRS line items are mapped; figures in other currencies are converted to USD at today's rate for every year (growth rates stay in the home currency). ADR share counts are scaled using the quoted market cap. Many foreign filers only file annual reports, so they have no quarterly data.
+- **No revenue yet:** included with sales shown as 0.
+- `python/fetch_edgar.py` still covers US-GAAP filers only.
+
 ## Alert screens
 
 Edit `screens.json` (the **Copy for Telegram alerts** button on the Screens page gives you a ready line):

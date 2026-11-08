@@ -3,7 +3,7 @@
 (function (root) {
   "use strict";
 
-  const FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "10-KT"]);
+  const FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "10-KT", "20-F", "20-F/A", "40-F", "40-F/A", "6-K", "6-K/A"]);
   const SECTIONS = {
     PL: [["PROFIT & LOSS", "annual"], ["QUARTERS", "quarterly"]],
     BS: [["BALANCE SHEET", "annual"]],
@@ -25,18 +25,36 @@
     return null;
   }
 
+  /* Which taxonomy and currency a filer reports in. US companies: us-gaap / USD.
+     Many foreign filers: ifrs-full in their home currency. Result is cached on the facts object. */
+  function detectBasis(facts) {
+    if (facts._basis) return facts._basis;
+    const F = facts.facts || {};
+    const usable = (node) => node && Object.values(node.units || {}).some((a) => a.some((f) => FORMS.has(f.form)));
+    const ns = usable((F["us-gaap"] || {}).Assets) || usable((F["us-gaap"] || {}).Revenues) || !F["ifrs-full"] ? "us-gaap" : "ifrs-full";
+    const probe = (F[ns] || {}).Assets || (F[ns] || {}).Revenue || (F[ns] || {}).Revenues || {};
+    const counts = Object.entries(probe.units || {}).filter(([u]) => /^[A-Z]{3}$/.test(u)).map(([u, a]) => [u, a.filter((f) => FORMS.has(f.form)).length]);
+    counts.sort((a, b) => b[1] - a[1]);
+    const cur = counts.find(([u]) => u === "USD" && counts[0][1] > 0 && counts.find((c) => c[0] === "USD")[1] >= counts[0][1] * 0.5) ? "USD" : (counts[0] ? counts[0][0] : "USD");
+    const foreign = Object.values(F).some((nsNode) => Object.values(nsNode).some((n) => Object.values(n.units || {}).some((a) => a.some((f) => /^(20-F|40-F)/.test(f.form)))));
+    return (facts._basis = { ns, cur, foreign });
+  }
+
   function tagSeries(facts, tag, unit) {
-    const node = ((facts.facts || {})["us-gaap"] || {})[tag];
+    const b = facts._basis || detectBasis(facts);
+    const node = ((facts.facts || {})[b.ns] || {})[tag];
     const out = new Map();
     if (!node) return out;
-    for (const f of (node.units || {})[unit] || []) {
+    const u = unit === "USD" ? b.cur : unit;
+    const fx = u !== "USD" && unit === "USD" && facts._fx ? facts._fx : 1;      // convert at one (latest) rate
+    for (const f of (node.units || {})[u] || []) {
       if (!FORMS.has(f.form)) continue;
       const s = f.start || null, e = f.end, k = kind(s, e);
       if (!k) continue;
       const key = `${k}|${s}|${e}`;
       const cur = out.get(key);
       if (!cur || f.filed > cur.filed)
-        out.set(key, { kind: k, start: s, end: e, val: f.val, tag, form: f.form,
+        out.set(key, { kind: k, start: s, end: e, val: f.val * fx, tag, form: f.form,
                        filed: f.filed, accn: f.accn || "", derived: "" });
     }
     return out;
@@ -50,10 +68,11 @@
   }
 
   function itemSeries(facts, spec) {
-    const unit = spec.unit || "USD";
-    const s = mergedSeries(facts, spec.tags, unit);
-    if (spec.components && spec.components.length) {
-      const parts = spec.components.map((c) => mergedSeries(facts, c, unit));
+    const unit = spec.unit || "USD", ifrs = (facts._basis || detectBasis(facts)).ns === "ifrs-full";
+    const s = mergedSeries(facts, ifrs ? spec.ifrs : spec.tags, unit);
+    const comps = ifrs ? spec.ifrs_components : spec.components;
+    if (comps && comps.length) {
+      const parts = comps.map((c) => mergedSeries(facts, c, unit));
       for (const key of parts[0].keys()) {
         if (s.has(key) || !parts.every((p) => p.has(key))) continue;
         const fs = parts.map((p) => p.get(key));
@@ -118,6 +137,12 @@
     ticker = (ticker || "").toUpperCase();
     const { items, splits, scale } = resolveItems(cfg, ticker);
     const annual = {}, quarterly = {};
+    const basis = detectBasis(facts), basisNotes = [];
+    facts._fx = basis.cur !== "USD" && opts.fx ? opts.fx : null;
+    if (basis.cur !== "USD") basisNotes.push(facts._fx
+      ? `Reports in ${basis.cur}; all years converted to USD at today's rate (1 ${basis.cur} = ${facts._fx.toFixed(4)} USD), so growth rates are in ${basis.cur} terms.`
+      : `Reports in ${basis.cur}; no exchange rate available, so figures are in ${basis.cur} (valuation vs the USD price will be wrong).`);
+    if (basis.ns === "ifrs-full") basisNotes.push("Files under IFRS; line items are mapped from IFRS tags.");
 
     for (const [key, spec] of Object.entries(items)) {
       if (spec.plug || spec.skip) continue;
@@ -132,15 +157,24 @@
     }
 
     const chk = {};
-    for (const [ck, tags] of Object.entries(cfg.checks || {})) {
+    for (const [ck, tags] of Object.entries((basis.ns === "ifrs-full" ? cfg.checks_ifrs : cfg.checks) || {})) {
       if (ck.startsWith("_")) continue;
       const s = mergedSeries(facts, tags, "USD");
       chk[ck] = [byEnd(s, "FY"), buildQuarters(s)];
     }
     const pretax = chk.pretax || [new Map(), new Map()];
 
-    if (!annual.sales || !annual.sales.size)
-      throw new Error("No annual revenue found. Use the tag explorer to find this company's revenue tag.");
+    let noRevenue = false;
+    if (!annual.sales || !annual.sales.size) {
+      // pre-revenue companies: anchor the years on net income / operating costs and show sales as 0
+      const anchorA = new Map(), anchorQ = new Map();
+      for (const src of [chk.net_income, chk.pretax].filter(Boolean)) { for (const e of src[0].keys()) anchorA.set(e, 1); for (const e of src[1].keys()) anchorQ.set(e, 1); }
+      for (const key of ["rnd", "sga", "tax"]) if (annual[key]) { for (const e of annual[key].keys()) anchorA.set(e, 1); for (const e of quarterly[key].keys()) anchorQ.set(e, 1); }
+      if (!anchorA.size) throw new Error("No annual revenue or profit data found. Use the tag explorer to find this company's tags.");
+      const zero = (ends) => new Map([...ends.keys()].map((e) => [e, { val: 0, tag: "(no revenue reported)", form: "", filed: "", accn: "", derived: "no revenue reported" }]));
+      annual.sales = zero(anchorA); quarterly.sales = zero(anchorQ); noRevenue = true;
+      basisNotes.push("No revenue reported: shown as 0 (common for early-stage companies).");
+    }
     const aEnds = [...annual.sales.keys()].sort().slice(-ANNUAL);
     const qEnds = [...quarterly.sales.keys()].sort().slice(-QUARTERS);
 
@@ -247,8 +281,21 @@
       sharesLatest = pick("QUARTERS", qEnds) || pick("PROFIT & LOSS", aEnds) || sharesLatest;
     }
 
+    // ADRs: one US share can equal several home-market shares. Re-express share counts in ADR units
+    // using the quoted market cap (opts.adrShares = quoted market cap ÷ price, in thousands).
+    let adrRatio = 1;
+    if (basis.foreign && opts.adrShares > 0 && sharesLatest && sharesLatest.val > 0) {
+      const k = sharesLatest.val / opts.adrShares;
+      if (k > 1.15 || k < 0.87) {
+        adrRatio = k;
+        for (const b of blocks) for (const r of b.rows) if (r.key === "shares_diluted" || r.key === "shares_out") r.values = r.values.map((v) => (v == null ? v : v / k));
+        sharesLatest = { val: opts.adrShares, end: sharesLatest.end, classes: 1, adr: true };
+        basisNotes.push(`Share counts shown per ADR: 1 ADR ≈ ${k >= 1 ? k.toFixed(2) + " ordinary shares" : (1 / k).toFixed(2) + " ADRs per share"} (from the quoted market cap).`);
+      }
+    }
+    for (const n of basisNotes) notes.unshift(n);
     return { name: facts.entityName || ticker, ticker, scale, aEnds, qEnds, blocks, raw,
-             warnings, notes, quiet, latestBS, sharesLatest };
+             warnings, notes, quiet, latestBS, sharesLatest, basis, noRevenue, adrRatio };
   }
 
   function fmt(v) {
@@ -259,7 +306,8 @@
   function listTags(facts, needle) {
     needle = (needle || "").toLowerCase();
     const rows = [];
-    for (const [tag, node] of Object.entries((facts.facts || {})["us-gaap"] || {})) {
+    const nsList = Object.keys(facts.facts || {}).filter((n) => n !== "dei");
+    for (const [tag, node] of nsList.flatMap((n) => Object.entries(facts.facts[n]).map(([t, v]) => [n === "us-gaap" ? t : `${n}:${t}`, v]))) {
       const label = node.label || "";
       if (needle && !tag.toLowerCase().includes(needle) && !label.toLowerCase().includes(needle)) continue;
       for (const [unit, arr] of Object.entries(node.units || {})) {
@@ -560,7 +608,51 @@
       pctile: multiples.pe != null && pe5.length ? (pe5.filter((v) => v <= multiples.pe).length / pe5.length) * 100 : null,
     } : null;
 
-    return { price, shares: sh, multiples, peSeries, peStats, equity, epsPts };
+    // History of EV/EBITDA, P/B and P/S: step through fundamentals as they were at each date
+    // (fiscal-year points, overridden by trailing-4-quarter points where quarterly data exists).
+    const BSv = (key) => row("BALANCE SHEET", key), CFv = (key) => row("CASH FLOW", key), PLv = (key) => row("PROFIT & LOSS", key);
+    const fpts = [];
+    result.aEnds.forEach((e, i) => {
+      const sales = PLv("sales")[i], eb = sales == null ? null : sales - num(PLv("cogs")[i]) - num(PLv("sga")[i]) - num(PLv("rnd")[i]);
+      fpts.push({ d: e, shares: dil[i], equity: BSv("equity")[i], netDebt: BSv("total_assets")[i] == null ? null : num(BSv("st_debt")[i]) + num(BSv("lt_debt")[i]) - num(BSv("cash")[i]) - num(BSv("st_investments")[i]),
+        ebitda: eb == null ? null : eb + num(CFv("dna")[i]), sales, da: num(CFv("dna")[i]), eps: fyEps[i] });
+    });
+    for (let i = 3; i < nq; i++) {
+      let sales = 0, eb = 0, shs = 0;
+      for (let j = i - 3; j <= i; j++) { const sv = q("sales")[j]; sales += num(sv); eb += num(sv) - num(q("cogs")[j]) - num(q("sga")[j]) - num(q("rnd")[j]); shs += num(q("shares_diluted")[j]) / 4; }
+      const d = result.qEnds[i], prev = fpts.filter((p) => p.d <= d && !p.q).pop() || {};
+      fpts.push({ d, q: true, shares: shs || prev.shares, equity: prev.equity, netDebt: prev.netDebt, ebitda: eb + num(prev.da), sales, da: prev.da,
+        eps: (epsPts.find((x) => x[0] === d) || [])[1] });
+    }
+    fpts.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : a.q ? 1 : -1));
+    const multSeries = { pe: peSeries, ev_ebitda: [], pb: [], ps: [] }, bases = { pe: epsPts.map((x) => [x[0], x[1]]), ev_ebitda: [], pb: [], ps: [] };
+    for (const p of fpts) {
+      if (p.ebitda != null) bases.ev_ebitda.push([p.d, p.ebitda / 1000]);
+      if (p.equity != null && p.shares) bases.pb.push([p.d, p.equity / p.shares]);
+      if (p.sales != null && p.shares) bases.ps.push([p.d, p.sales / p.shares]);
+    }
+    if (priceSeries && fpts.length) {
+      let j = -1;
+      for (const [d, pr] of priceSeries) {
+        while (j + 1 < fpts.length && fpts[j + 1].d <= d) j++;
+        if (j < 0) continue;
+        const p = fpts[j], mc = p.shares ? pr * p.shares : null;
+        multSeries.ev_ebitda.push([d, mc && p.ebitda > 0 && p.netDebt != null ? (mc + p.netDebt) / p.ebitda : null]);
+        multSeries.pb.push([d, mc && p.equity > 0 ? mc / p.equity : null]);
+        multSeries.ps.push([d, mc && p.sales > 0 ? mc / p.sales : null]);
+      }
+    }
+    const statsOf = (ser, cur) => {
+      const all = ser.map((x) => x[1]).filter((v) => v != null && v > 0 && v < 500);
+      if (!all.length) return null;
+      const cut = ser.length ? new Date(t(ser.at(-1)[0]) - 5 * 365.25 * DAY).toISOString().slice(0, 10) : "";
+      const v5 = ser.filter((x) => x[0] >= cut && x[1] != null && x[1] > 0 && x[1] < 500).map((x) => x[1]);
+      return { median5: median(v5.length ? v5 : all), min: Math.min(...all), max: Math.max(...all), current: cur,
+        pctile: cur != null && v5.length ? (v5.filter((v) => v <= cur).length / v5.length) * 100 : null };
+    };
+    const multStats = { pe: peStats, ev_ebitda: statsOf(multSeries.ev_ebitda, multiples.evEbitda), pb: statsOf(multSeries.pb, multiples.pb),
+      ps: statsOf(multSeries.ps, mcap && k.sales > 0 ? mcap / k.sales : null) };
+    return { price, shares: sh, multiples, peSeries, peStats, equity, epsPts, multSeries, multStats, bases };
   }
 
   // Two-stage FCF DCF: growth g for years 1-5, fading linearly to terminal growth by year 10.
@@ -731,11 +823,13 @@
 
   /* ---------- fiscal quarter labels: period end -> {fy, fq} from the filings themselves ---------- */
   function fiscalPeriods(facts, cfg) {
-    const tags = [...((cfg.items && cfg.items.sales && cfg.items.sales.tags) || []), "NetIncomeLoss", "OperatingIncomeLoss"];
+    const b = detectBasis(facts), ifrs = b.ns === "ifrs-full";
+    const tags = ifrs ? [...((cfg.items && cfg.items.sales && cfg.items.sales.ifrs) || []), "ProfitLoss"]
+      : [...((cfg.items && cfg.items.sales && cfg.items.sales.tags) || []), "NetIncomeLoss", "OperatingIncomeLoss"];
     const best = new Map();
     for (const tag of tags) {
-      const node = ((facts.facts || {})["us-gaap"] || {})[tag];
-      for (const f of (node && node.units && node.units.USD) || []) {
+      const node = ((facts.facts || {})[b.ns] || {})[tag];
+      for (const f of (node && node.units && node.units[b.cur]) || []) {
         if (!f.start || !f.fp || !f.fy || !FORMS.has(f.form)) continue;
         const k = kind(f.start, f.end);
         const isQ = k === "Q" && /^Q[1-3]$/.test(f.fp), isFY = k === "FY" && f.fp === "FY";
@@ -839,7 +933,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { detectBasis, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);

@@ -272,6 +272,8 @@ table.cc button.rd{padding:4px 10px;font-size:13px}
 .rd-body mark.cur{background:#ffb84d}
 @media (max-width:640px){ .reader{padding:0} .rd-box{border-radius:0} }
 
+.starred{color:var(--accent);border-color:var(--accent)}
+#wlTable .x{border:none;background:none;color:var(--muted);cursor:pointer;padding:0 6px}
 /* documents */
 .docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:12px}
 .docs h3{font-size:15px;margin:0 0 8px;font-weight:600}
@@ -309,7 +311,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
 <div class="topbar">
   <div class="topin">
     <div class="brand" id="home">EDGAR<span>·</span>Fetch</div>
-    <nav class="toplinks"><a href="?view=screens" id="lnkScreens">Screens</a></nav>
+    <nav class="toplinks"><a href="?view=screens" id="lnkScreens">Screens</a><a href="?view=watchlist" id="lnkWatch">Watchlist</a></nav>
     <div class="spacer"></div>
     <form class="search" id="searchForm" autocomplete="off">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -352,6 +354,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
         <h1 id="coName"></h1>
         <div class="px" id="pxBlock"></div>
         <div class="co-btns">
+          <button class="btn-up" id="starBtn" title="Add to your watchlist">☆ Watchlist</button>
           <button class="btn-up" id="exportBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>Export to Excel</button>
           <label class="btn btn-up primary">
@@ -374,7 +377,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
           <button data-r="5Y">5Yr</button><button data-r="10Y">10Yr</button><button data-r="MAX">Max</button>
           <span class="ret" id="rangeRet"></span>
         </div>
-        <span class="seg" id="modeSeg"><button data-m="price">Price</button><button data-m="pe">PE Ratio</button></span>
+        <span class="seg" id="modeSeg"><button data-m="price">Price</button><button data-m="pe">PE Ratio</button><button data-m="ev_ebitda">EV/EBITDA</button><button data-m="pb">P/B</button><button data-m="ps">P/S</button></span>
       </div>
       <div id="stock" class="chart stock"></div>
       <div class="ch-legend" id="chLegend"></div>
@@ -419,6 +422,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
       <h2 style="margin-top:26px" id="peerH">Peer comparison</h2>
       <div class="sub" id="peerSub"></div>
       <div class="tbl-wrap"><table id="peerTable" class="res"></table></div>
+      <div id="peerEdit"></div>
       <div class="kpis" id="peerImplied"></div>
     </section>
 
@@ -473,6 +477,17 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
       </div>
       <div class="tbl-wrap"><table id="resTable" class="res"></table></div>
       <div class="row" id="pager" style="justify-content:center"></div>
+    </section>
+  </div>
+
+  <div id="watch" hidden>
+    <section class="card">
+      <div class="head-row">
+        <div><h1 class="scr-h">Watchlist</h1><div class="sub" id="wlSub"></div></div>
+        <form class="row" id="wlAddForm" style="margin:0"><input id="wlAdd" placeholder="Add ticker, e.g. AAPL" style="max-width:200px;text-transform:uppercase"><button class="primary">Add</button></form>
+      </div>
+      <div class="tbl-wrap"><table id="wlTable" class="res"></table></div>
+      <div class="sub" id="syncNote" style="margin-top:10px"></div>
     </section>
   </div>
 

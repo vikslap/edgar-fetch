@@ -95,6 +95,21 @@ async function riskFree() {
   } catch { return 4.3; }
 }
 
+/* ---------- FX for foreign filers (USD per 1 unit), memoised ---------- */
+const fxMemo = new Map();
+async function fx(ccy) {
+  if (ccy === "USD") return 1;
+  if (fxMemo.has(ccy)) return fxMemo.get(ccy);
+  let rate = null;
+  if (env.FX_FILE) rate = (readJSON(env.FX_FILE) || {})[ccy] || null;
+  else {
+    try { const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${ccy}USD%3DX?range=5d&interval=1d`, { "User-Agent": BROWSER_UA }, 2); rate = j.chart.result[0].meta.regularMarketPrice; } catch {}
+    if (!(rate > 0)) { try { const j = await getJSON(`https://api.frankfurter.app/latest?from=${ccy}&to=USD`, {}, 2); rate = j.rates.USD; } catch {} }
+  }
+  fxMemo.set(ccy, rate > 0 ? rate : null);
+  return fxMemo.get(ccy);
+}
+
 /* ---------- 3. bulk facts ---------- */
 async function factsZip() {
   if (env.FACTS_ZIP) return env.FACTS_ZIP;
@@ -135,14 +150,17 @@ function eachCompany(zipPath, wanted, onFacts) {
 /* ---------- 4. one company -> one row ---------- */
 const FIELD_KEYS = SC.FIELDS.map((f) => f[0]);
 const round = (v) => (v == null || !isFinite(v) ? null : Math.abs(v) >= 1000 ? Math.round(v) : Math.abs(v) >= 10 ? Math.round(v * 100) / 100 : Math.round(v * 10000) / 10000);
-function rowFor(facts, meta, px, rf) {
-  const result = core.compute(facts, mapping, meta.ticker);
+function rowFor(facts, meta, px, rf, rate) {
+  const basis = core.detectBasis(facts);
+  const adrShares = basis.foreign && px && px.mcapNasdaq > 0 && px.price > 0 ? px.mcapNasdaq / px.price / 1000 : null;
+  const result = core.compute(facts, mapping, meta.ticker, { fx: rate, adrShares });
   const rat = core.ratios(result);
   const val = core.valuation(result, rat, px ? px.price : null, null);
   const sector = px ? px.sector : "";
   const sic = /finance/i.test(sector) ? 6000 : 0;            // Nasdaq sector: banks/insurers/lenders
   const q = core.quality(result, rat, val, sic);
   const r = SC.rowFor(core, result, rat, val, q, { rf });
+  r.mcap_quote = px && px.mcapNasdaq > 0 ? px.mcapNasdaq / 1e6 : null;
   return { cells: [meta.name, meta.ticker, meta.exchange, sector, px ? px.industry : "", ...FIELD_KEYS.map((k) => round(r[k]))],
            warnings: result.warnings.length, row: r };
 }
@@ -224,7 +242,8 @@ async function main() {
     if (seen++ >= limit) return;
     const meta = companies.get(cik), px = prices.get(meta.ticker);
     try {
-      const r = rowFor(facts, meta, px, rf);
+      const cur = core.detectBasis(facts).cur;
+      const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur));
       table.push(r.cells);
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
