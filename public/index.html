@@ -494,12 +494,17 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
         <span id="mapMsg" class="sub"></span>
       </div>
     </details>
-    <details>
+    <details id="settingsBox">
       <summary>Settings</summary>
       <div class="row">
         <label class="sub" for="priceIn">Price override for the current ticker ($, blank = live price)</label>
         <input id="priceIn" inputmode="decimal" style="max-width:140px">
         <button id="priceSave">Apply</button>
+      </div>
+      <div class="row">
+        <label class="sub" for="avKey">Alpha Vantage key, for call transcripts (stored only in this browser)</label>
+        <input id="avKey" type="password" style="max-width:260px" autocomplete="off">
+        <button id="avSave">Save</button>
       </div>
       <div class="row">
         <label class="sub" for="accessKey">Access key (only if your Worker has ACCESS_KEY set)</label>

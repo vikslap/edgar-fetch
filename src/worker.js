@@ -44,7 +44,10 @@ export default {
       if ((m = p.match(new RegExp(`^/api/facts/${SYM}$`)))) return facts(env, ctx, url, m[1]);
       if ((m = p.match(new RegExp(`^/api/concalls/${SYM}$`))))
         return cached(`concalls/${m[1].toUpperCase()}`, 21600, ctx, url, () => concalls(env, m[1]));
-      if ((m = p.match(new RegExp(`^/api/transcript/${SYM}/(\\d{4})Q([1-4])$`)))) return transcript(env, ctx, m[1].toUpperCase(), m[2], m[3]);
+      if ((m = p.match(new RegExp(`^/api/transcript/${SYM}/(\\d{4})Q([1-4])$`)))) {
+        if (req.method === "POST") return saveTranscript(env, req, m[1].toUpperCase(), m[2], m[3]);
+        return transcript(env, ctx, m[1].toUpperCase(), m[2], m[3], url.searchParams.get("stored") === "1");
+      }
     } catch (e) {
       return json({ error: String(e.message || e) }, e.status || 502);
     }
@@ -173,7 +176,7 @@ function classify(docs, mainUrl) {
 }
 
 /* ---------------- transcripts: Alpha Vantage, stored compressed for good ---------------- */
-async function transcript(env, ctx, ticker, year, q) {
+async function transcript(env, ctx, ticker, year, q, storedOnly) {
   const key = `transcripts/${ticker}/${year}Q${q}.json.gz`;
   const store = env.TRANSCRIPTS_R2 ? "r2" : env.TRANSCRIPTS_KV ? "kv" : null;
   // 1. permanent store
@@ -183,6 +186,7 @@ async function transcript(env, ctx, ticker, year, q) {
     if (store === "kv") buf = await env.TRANSCRIPTS_KV.get(key, "arrayBuffer");
     if (buf) return json({ ...(JSON.parse(await gunzip(buf))), stored: true, storage: store });
   } catch (e) { /* fall through and fetch */ }
+  if (storedOnly) return json({ error: "notstored", storage: store }, 404);
   // 2. short-lived edge cache (also catches "no transcript" answers so they don't burn requests)
   const ck = new Request(`https://edgar-cache/${key}`);
   const hit = await caches.default.match(ck);
@@ -217,6 +221,26 @@ async function transcript(env, ctx, ticker, year, q) {
     ctx.waitUntil(caches.default.put(ck, res.clone()));
   }
   return json({ ...body, stored, storage: store });
+}
+// The browser fetched a transcript itself (Cloudflare's shared IPs often hit Alpha Vantage's per-IP limit); keep it.
+async function saveTranscript(env, req, ticker, year, q) {
+  const store = env.TRANSCRIPTS_R2 ? "r2" : env.TRANSCRIPTS_KV ? "kv" : null;
+  if (!store) return json({ stored: false, storage: null });
+  const text = await req.text();
+  if (text.length > 3e6) return json({ error: "too large" }, 413);
+  let j;
+  try { j = JSON.parse(text); } catch { return json({ error: "bad json" }, 400); }
+  const parts = Array.isArray(j.transcript) ? j.transcript.filter((x) => x && typeof x.content === "string")
+    .map((x) => ({ speaker: String(x.speaker || "").slice(0, 200), title: String(x.title || "").slice(0, 200), content: x.content })) : [];
+  if (!parts.length) return json({ error: "empty transcript" }, 400);
+  const body = { symbol: ticker, quarter: `${year}Q${q}`, source: "Alpha Vantage", fetched: new Date().toISOString(), transcript: parts };
+  const key = `transcripts/${ticker}/${year}Q${q}.json.gz`;
+  try {
+    const gz = await gzip(JSON.stringify(body));
+    if (store === "r2") await env.TRANSCRIPTS_R2.put(key, gz, { httpMetadata: { contentType: "application/json", contentEncoding: "gzip" } });
+    else await env.TRANSCRIPTS_KV.put(key, gz);
+    return json({ stored: true, storage: store });
+  } catch (e) { return json({ stored: false, storeError: String(e.message || e) }); }
 }
 async function gzip(text) {
   return new Response(new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
@@ -297,7 +321,8 @@ function httpErr(msg, status) { const e = new Error(msg); e.status = status; ret
 function cors() {
   return {
     "access-control-allow-origin": "*",
-    "access-control-allow-headers": "x-access-key",
+    "access-control-allow-headers": "x-access-key, content-type",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-expose-headers": "x-cik, x-fetched, x-cache",
   };
 }

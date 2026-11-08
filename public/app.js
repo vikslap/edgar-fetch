@@ -50,6 +50,12 @@
 
   // ---------------- settings ----------------
   $("accessKey").value = store.get("edgar.key", "");
+  $("avKey").value = store.get("edgar.avkey", "");
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("[data-settings]"); if (!a) return;
+    e.preventDefault(); $("settingsBox").open = true; $("settingsBox").scrollIntoView({ block: "center" }); setTimeout(() => $("avKey").focus(), 300);
+  });
+  $("avSave").onclick = () => { store.set("edgar.avkey", $("avKey").value.trim()); status("Alpha Vantage key saved in this browser."); };
   $("keySave").onclick = () => { store.set("edgar.key", $("accessKey").value); status("Access key saved."); };
   $("priceSave").onclick = () => { if (!ticker) return; store.set("edgar.price." + ticker, $("priceIn").value.trim()); drawAll(); };
   $("home").onclick = () => { history.replaceState(null, "", location.pathname); location.reload(); };
@@ -763,17 +769,45 @@
   }
 
   async function openTranscript(quarter, label, i, btn) {
-    const msg = $(`ccMsg${i}`);
+    const msg = $(`ccMsg${i}`), T = encodeURIComponent(ticker);
     btn.disabled = true; msg.textContent = "Fetching transcript…";
+    const said = (d) => (d ? `<br><span class="muted">Alpha Vantage said: “${esc(String(d).slice(0, 300))}”</span>` : "");
     try {
-      const r = await fetch(`/api/transcript/${encodeURIComponent(ticker)}/${quarter}`, { headers: headers() });
+      // 1. your saved library (no request used)
+      const sr = await fetch(`/api/transcript/${T}/${quarter}?stored=1`, { headers: headers() });
+      const sj = await sr.json().catch(() => ({}));
+      if (sr.ok && sj.transcript && sj.transcript.length) { msg.textContent = "✓ From your library"; showReader(sj, label); return; }
+      // 2. fetch from this browser with your key (Cloudflare's shared IPs get rate-limited by Alpha Vantage)
+      const key = store.get("edgar.avkey", "");
+      if (key) {
+        let j = null;
+        try {
+          const r = await fetch(`https://www.alphavantage.co/query?function=EARNINGS_CALL_TRANSCRIPT&symbol=${encodeURIComponent(ticker.replace("-", "."))}&quarter=${quarter}&apikey=${encodeURIComponent(key)}`);
+          j = await r.json();
+        } catch (e) { j = null; }                                     // network/CORS problem: fall back to the Worker
+        if (j) {
+          const note = j.Information || j.Note || j["Error Message"];
+          if (note) { msg.innerHTML = (/per day|rate limit/i.test(note) ? "This key's daily limit (about 25) is used up; it resets tomorrow. Saved transcripts still open." : "Alpha Vantage couldn't return this transcript.") + said(note); return; }
+          if (!Array.isArray(j.transcript) || !j.transcript.length) { msg.textContent = "No transcript available from Alpha Vantage for this quarter. Try the search link."; return; }
+          const data = { symbol: ticker, quarter: j.quarter || quarter, source: "Alpha Vantage", transcript: j.transcript };
+          showReader(data, label);
+          msg.textContent = "Saving to your library…";
+          try {
+            const pr = await fetch(`/api/transcript/${T}/${quarter}`, { method: "POST", headers: { ...headers(), "content-type": "application/json" }, body: JSON.stringify(data) });
+            const pj = await pr.json().catch(() => ({}));
+            msg.textContent = pj.stored ? "✓ Saved in your library" : pj.storeError ? "Shown, but couldn't be saved (storage full?)" : "Shown (no library storage set up)";
+          } catch { msg.textContent = "Shown, but couldn't be saved"; }
+          return;
+        }
+      }
+      // 3. ask the Worker to fetch it (works when Cloudflare's IP isn't rate-limited)
+      const r = await fetch(`/api/transcript/${T}/${quarter}`, { headers: headers() });
       const j = await r.json().catch(() => ({}));
-      if (j.error === "nokey") { msg.innerHTML = "In-page transcripts need a free Alpha Vantage key on the Worker (see README). Use the search link for now."; return; }
-      const said = j.detail ? `<br><span class="muted">Alpha Vantage said: “${esc(j.detail.slice(0, 300))}”</span>` : "";
-      if (j.error === "limit") { msg.innerHTML = "Alpha Vantage's request limit has been reached (free keys allow about 25 a day). Saved transcripts still open. Use the search link meanwhile." + said; return; }
-      if (j.error === "premium") { msg.innerHTML = "Alpha Vantage says transcripts need a premium plan for this key. Use the search link instead." + said; return; }
-      if (j.error === "badkey") { msg.innerHTML = "Alpha Vantage didn't accept the API key. Check the ALPHAVANTAGE_KEY secret on the Worker." + said; return; }
-      if (!r.ok) { msg.innerHTML = `Couldn't fetch the transcript.` + (said || ` (${esc(String(j.error || r.status))})`); return; }
+      if (j.error === "nokey") { msg.innerHTML = "<a href='#data' data-settings>Add your Alpha Vantage key in Settings</a> to read transcripts here. Use the search link for now."; return; }
+      if (j.error === "limit") { msg.innerHTML = (key ? "Alpha Vantage's request limit has been reached." : "Alpha Vantage is limiting requests from the shared server. <a href='#data' data-settings>Add your own key in Settings</a> so your browser fetches it directly.") + said(j.detail); return; }
+      if (j.error === "premium") { msg.innerHTML = "Alpha Vantage says this needs a premium plan." + said(j.detail); return; }
+      if (j.error === "badkey") { msg.innerHTML = "Alpha Vantage didn't accept the API key." + said(j.detail); return; }
+      if (!r.ok) { msg.innerHTML = "Couldn't fetch the transcript." + (said(j.detail) || ` (${esc(String(j.error || r.status))})`); return; }
       if (j.empty || !j.transcript || !j.transcript.length) { msg.textContent = "No transcript available from the provider for this quarter. Try the search link."; return; }
       msg.textContent = j.stored ? "✓ Saved in your library" : j.storeError ? "Shown, but couldn't be saved (storage full?)" : "";
       showReader(j, label);
