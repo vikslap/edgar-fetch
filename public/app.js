@@ -1028,6 +1028,7 @@
         const search = `https://www.google.com/search?q=${encodeURIComponent(`${name} ${q ? `Q${q.fq} ${q.fy}` : c.date.slice(0, 4)} earnings call transcript`)}`;
         const tr = (q ? `<button class="rd" data-i="${i}" data-q="${q.fy}Q${q.fq}" data-l="${esc(label)}">Read</button> ` : "") +
           (filedTranscript ? `<a class="doc" href="${esc(filedTranscript.url)}" target="_blank" rel="noopener">Filed copy</a>` : "") +
+          `<a class="doc" href="https://www.google.com/search?q=${encodeURIComponent(`site:fool.com/earnings/call-transcripts ${name} (${ticker}) ${q ? `Q${q.fq} ${q.fy}` : c.date.slice(0, 4)} earnings call transcript`)}" target="_blank" rel="noopener" title="The Motley Fool's free transcript of this call (Google search on fool.com)">Motley Fool ↗</a>` +
           `<a class="doc" href="${search}" target="_blank" rel="noopener" title="Search the web for this call's transcript">Search ↗</a>` +
           (ir && i === 0 ? `<a class="doc" href="${esc(ir)}" target="_blank" rel="noopener" title="Webcast replays are usually here">IR site ↗</a>` : "") +
           `<div class="sub cc-msg" id="ccMsg${i}"></div>`;
