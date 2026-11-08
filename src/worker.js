@@ -40,6 +40,7 @@ export default {
         return cached(`prices/${m[1].toUpperCase()}`, 43200, ctx, url, () => prices(m[1].toUpperCase()));
 
       if (!env.SEC_UA) return json({ error: "Server not configured: set the SEC_UA secret" }, 500);
+      if (!/@/.test(env.SEC_UA)) return json({ error: `The SEC_UA secret must include an email address, e.g. "Jane Doe jane@example.com" (SEC requires it).` }, 500);
       if (p === "/api/tickers")
         return cached("tickers", 86400, ctx, url, async () =>
           Object.values(await tickerList(env)).map((v) => [v.ticker, v.title]));
@@ -60,15 +61,30 @@ export default {
 };
 
 /* ---------------- SEC ---------------- */
-function secFetch(u, ua, ttl) {
-  return fetch(u, {
+async function secFetch(u, ua, ttl) {
+  const go = () => fetch(u, {
     headers: { "User-Agent": ua, "Accept-Encoding": "gzip, deflate" },
     cf: ttl ? { cacheTtl: ttl, cacheEverything: true } : { cacheTtl: 0 },
   });
+  let r = await go();
+  if (r.status === 403 || r.status === 429) { await new Promise((ok) => setTimeout(ok, 1500)); r = await go(); }   // one gentle retry
+  return r;
+}
+// Turn an SEC refusal into a message that says what to do
+async function secError(what, r) {
+  let body = "";
+  try { body = (await r.text()).slice(0, 2000); } catch {}
+  if (r.status === 403 && /undeclared automated tool|user-agent|declare your traffic/i.test(body))
+    return httpErr(`SEC rejected the request's identity. Check the Worker secret SEC_UA is your name and email, e.g. "Jane Doe jane@example.com".`, 502);
+  if ((r.status === 403 || r.status === 429) && /rate threshold|request rate|exceeded/i.test(body + r.status))
+    return httpErr(`SEC is temporarily limiting requests from this server (Cloudflare's shared address). It usually clears within 10 minutes; pages opened before stay cached.`, 503);
+  if (r.status === 403 || r.status === 429)
+    return httpErr(`SEC refused the request (${what}: HTTP ${r.status}). This is usually its rate limit on Cloudflare's shared address and clears within 10 minutes. If it persists, check that SEC_UA is your name and email.`, 503);
+  return httpErr(`SEC ${what}: HTTP ${r.status}`, 502);
 }
 async function tickerList(env) {
   const r = await secFetch(TICKERS_URL, env.SEC_UA, 86400);
-  if (!r.ok) throw httpErr(`SEC ticker list: HTTP ${r.status}`, 502);
+  if (!r.ok) throw await secError("ticker list", r);
   return r.json();
 }
 async function cikFor(env, sym) {
@@ -88,7 +104,7 @@ async function facts(env, ctx, url, sym) {
   const cik = await cikFor(env, ticker);
   const r = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, env.SEC_UA, 0);
   if (r.status === 404) return json({ error: `${ticker} has no XBRL financial data on EDGAR` }, 404);
-  if (!r.ok) return json({ error: `SEC companyfacts: HTTP ${r.status}` }, 502);
+  if (!r.ok) { const e = await secError("companyfacts", r); return json({ error: e.message }, e.status); }
   const out = new Response(r.body, {
     headers: { "content-type": "application/json", "cache-control": "public, max-age=21600",
                "x-cik": cik, "x-fetched": new Date().toISOString() },
@@ -100,8 +116,8 @@ async function facts(env, ctx, url, sym) {
 const KEEP_FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "DEF 14A", "20-F", "40-F", "6-K", "S-1", "10-KT"]);
 async function company(env, sym) {
   const cik = await cikFor(env, sym);
-  const r = await secFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, env.SEC_UA, 0);
-  if (!r.ok) throw httpErr(`SEC submissions: HTTP ${r.status}`, 502);
+  const r = await secFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, env.SEC_UA, 3600);
+  if (!r.ok) throw await secError("submissions", r);
   const s = await r.json();
   const rec = (s.filings && s.filings.recent) || {};
   const filings = [];
@@ -130,10 +146,11 @@ async function company(env, sym) {
 async function concalls(env, sym) {
   const c = await company(env, sym);
   const cikInt = parseInt(c.cik, 10);
-  const earn = c.filings.filter((f) => f.form === "8-K" && /(^|,)\s*2\.02/.test(f.items || "")).slice(0, 12);
+  const earn = c.filings.filter((f) => f.form === "8-K" && /(^|,)\s*2\.02/.test(f.items || "")).slice(0, 8);
   const out = [];
-  for (let i = 0; i < earn.length; i += 4) {              // small batches: stay well under SEC's 10 req/s
-    const batch = await Promise.all(earn.slice(i, i + 4).map(async (f) => {
+  for (let i = 0; i < earn.length; i += 2) {              // two at a time with a pause: be gentle with SEC's rate limit
+    if (i) await new Promise((ok) => setTimeout(ok, 250));
+    const batch = await Promise.all(earn.slice(i, i + 2).map(async (f) => {
       const accnNoDash = f.url.split("/")[7], accn = `${accnNoDash.slice(0, 10)}-${accnNoDash.slice(10, 12)}-${accnNoDash.slice(12)}`;
       const base = `https://www.sec.gov/Archives/edgar/data/${cikInt}/${accnNoDash}/`;
       let docs = [];
