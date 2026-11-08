@@ -1,0 +1,1208 @@
+{
+ "built": "2026-11-08T06:14:15.550Z",
+ "rows": 3557,
+ "failures": [
+  [
+   "ADX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AEM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VBF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BCV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BNS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SRL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CNI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CBSH",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CRF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SRCE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FFIN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TRMK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FNB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IMO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MUFG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NRUC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PHI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RAND",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SFNC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SOR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SCE-PG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TFC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TCPA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UMBF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "STEW",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "WSBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "WABC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SU",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BCS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ATMP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PHG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SONY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SSL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ASM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CTBI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ABCB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NVO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CVBF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "OSBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TRST",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FMBH",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KGC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SBSI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HBNC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UNB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FFBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CBAN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FRME",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FCF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CNOB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VLY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "THFF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RNST",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HMC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AROW",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ERIC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CMTV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BCE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "STBA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FRAF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CCBG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SBCF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UBCP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RCI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CCNE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MGA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "QNBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "B",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "JHI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "JHS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BANF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CHMG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SSB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FNLC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CMCL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SBFG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AEG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PAAS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HBT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "INDB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ASG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FMAO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CHNR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NEXM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "USA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TWN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DNP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "WPP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TATT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CIK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PCF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CZNC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BHP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CLM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BRW",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SABA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NMI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BKT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MTH",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "OIA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DEO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ZTR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VOD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BBVA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NWG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "WDS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GCV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AGM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SNN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VLT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GSBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PDT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IHG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FCBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FIBK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CEE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FISI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RIO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MXE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PFD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TU",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BOKF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VKQ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TGB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DTF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MPB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TTE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HERZ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VGM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VTN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MYI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NXP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AUB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MBOT",
+   "Cannot read properties of null (reading 'toFixed')"
+  ],
+  [
+   "VMO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IQI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IIM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MEOH",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TECK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SIM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KEP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TRIB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CCU",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PKX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MQY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MIY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BLX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MPA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SAN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HWBK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "OVBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VPV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VCV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ENB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GILT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SPE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SKT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MUA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AZN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ALRS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "YPF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VKI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SQM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SUZ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KOF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TIGO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BBAR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FRO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CIGI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SILC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SMBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IFN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "XPL",
+   "Cannot read properties of null (reading 'toFixed')"
+  ],
+  [
+   "VALE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "EGO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RCG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FNWD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UNTY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ARMP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GGT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NOK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AKO-A",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BTO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BMO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TSEM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RELX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RTO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RWT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TGS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TEO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CYD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "STM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IRS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ASML",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PSO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ICL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ELLO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BANR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DSWL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IOR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NAT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SAP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MFIN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BAP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TLK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "E",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NICE",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NGG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "OCFC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BOSC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CCJ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PROV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BVN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PDS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SKM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "QGEN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CHKP",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RDCM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CNQ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SMFG",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DRD",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HMY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "XTLB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ELTK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "EFSC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CLWT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HIHO",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "APWC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BSAC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ESLT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UTSI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SLM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "UMC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CRESY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RYAAY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SMBK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ING",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RVSB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ELPC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MBWM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "NLY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FORTY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HFWA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TSBK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TSM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "LTM",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SID",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DSGX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "EGBN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DSU",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MUC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GLDI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MUJ",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MFA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PFIS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DHF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HIX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VVR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "ICLR",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DHY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GIB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BXMT",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "FMX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "GIL",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DOX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "DNN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "VIV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "INFY",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "PB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "IX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CFBK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "EVF",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "RRBI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "TKC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "BAK",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KWY",
+   "Cannot read properties of null (reading 'toFixed')"
+  ],
+  [
+   "GGB",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "EVN",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CEV",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MODD",
+   "Cannot read properties of null (reading 'toFixed')"
+  ],
+  [
+   "TRI",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "KZIA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "CX",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "SVA",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "AUDC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MFC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "HSBC",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ],
+  [
+   "MTLS",
+   "No annual revenue found. Use the tag explorer to find this company's revenue tag."
+  ]
+ ],
+ "failedCount": 2342,
+ "noPrice": 44
+}
