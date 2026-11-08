@@ -10,8 +10,8 @@ not_found_handling = "none"
 
 # Permanent transcript library (optional). Create a KV namespace in the Cloudflare dashboard
 # (Storage & databases → Workers KV → Create, name it "edgar-fetch-transcripts"), copy its ID,
-# then uncomment the three lines below and paste the ID. Without it, transcripts still work
+# then put its ID below. Without it, transcripts still work
 # but are only cached for a while.
-# [[kv_namespaces]]
-# binding = "TRANSCRIPTS_KV"
-# id = "PASTE_NAMESPACE_ID_HERE"
+[[kv_namespaces]]
+binding = "TRANSCRIPTS_KV"
+id = "baef4ff5556546c3abb82218f86628f3"
