@@ -1,5 +1,5 @@
 {
-  "_readme": "Each line item lists XBRL tags to try IN ORDER, per period; the first tag that has a value for that period wins. 'section': PL (P&L + Quarters, default), BS (balance sheet, annual), CF (cash flow, annual). 'components' = add several items together (each component is its own fallback list). 'optional' = write 0 quietly if the company doesn't report it. 'negate' = flip the sign. 'skip' = write 0 and don't fetch. 'label' must match column A of the Data Sheet exactly. Use 'overrides' to change anything for one ticker. Not sure which tag a company uses? Run:  python fetch_edgar.py TICKER --list-tags word 'ifrs' / 'ifrs_components' = the IFRS tags used for foreign filers that report under IFRS.",
+  "_readme": "Each line item lists XBRL tags to try IN ORDER, per period; the first tag that has a value for that period wins. 'section': PL (P&L + Quarters, default), BS (balance sheet, annual), CF (cash flow, annual). 'components' = add several items together (each component is its own fallback list). 'optional' = write 0 quietly if the company doesn't report it. 'negate' = flip the sign. 'skip' = write 0 and don't fetch. 'label' must match column A of the Data Sheet exactly. Use 'overrides' to change anything for one ticker. Not sure which tag a company uses? Run:  python fetch_edgar.py TICKER --list-tags word 'ifrs' / 'ifrs_components' = the IFRS tags used for foreign filers that report under IFRS. 'sheet': false = shown on the site but not written into your Excel Data Sheet. 'quiet' = no warning when missing. 'groups' = sum of several optional tag lists with signs.",
   "scale": 1000,
   "items": {
     "_PL": "---------------- PROFIT & LOSS (annual + quarterly) ----------------",
@@ -148,6 +148,118 @@
       "ifrs": [
         "AdjustedWeightedAverageShares",
         "WeightedAverageShares"
+      ]
+    },
+    "depreciation": {
+      "label": "Depreciation",
+      "unit": "USD",
+      "optional": true,
+      "sheet": false,
+      "tags": [
+        "DepreciationDepletionAndAmortization",
+        "DepreciationAmortizationAndAccretionNet",
+        "DepreciationAndAmortization",
+        "Depreciation"
+      ],
+      "ifrs": [
+        "DepreciationAndAmortisationExpense",
+        "AdjustmentsForDepreciationAndAmortisationExpense"
+      ],
+      "_note": "Display only. From the cash flow statement; quarterly values are worked out from year-to-date totals."
+    },
+    "net_income": {
+      "label": "Net profit (reported)",
+      "unit": "USD",
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "NetIncomeLoss",
+        "NetIncomeLossAvailableToCommonStockholdersBasic"
+      ],
+      "ifrs": [
+        "ProfitLossAttributableToOwnersOfParent"
+      ],
+      "_note": "Net income attributable to shareholders, as reported. Used for EPS, P/E and returns."
+    },
+    "minority": {
+      "label": "Minority share",
+      "unit": "USD",
+      "optional": true,
+      "sheet": false,
+      "tags": [
+        "NetIncomeLossAttributableToNoncontrollingInterest",
+        "MinorityInterestInNetIncomeLossOfConsolidatedEntities"
+      ],
+      "ifrs": [
+        "ProfitLossAttributableToNoncontrollingInterests"
+      ]
+    },
+    "disc_ops": {
+      "label": "Discontinued operations",
+      "unit": "USD",
+      "optional": true,
+      "sheet": false,
+      "tags": [
+        "IncomeLossFromDiscontinuedOperationsNetOfTax",
+        "IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity"
+      ],
+      "ifrs": [
+        "ProfitLossFromDiscontinuedOperations"
+      ]
+    },
+    "unusual": {
+      "label": "Unusual items (pre-tax)",
+      "unit": "USD",
+      "optional": true,
+      "sheet": false,
+      "_note": "Net one-off charges (positive = reduces profit): impairments + restructuring \u2212 gains on asset/business sales \u2212 gains on debt extinguishment. Already included in the lines above; shown to work out profit excluding unusual items.",
+      "groups": [
+        {
+          "sign": 1,
+          "tags": [
+            "AssetImpairmentCharges",
+            "GoodwillAndIntangibleAssetImpairment",
+            "GoodwillImpairmentLoss",
+            "ImpairmentOfLongLivedAssetsHeldForUse"
+          ],
+          "ifrs": [
+            "ImpairmentLossRecognisedInProfitOrLoss"
+          ]
+        },
+        {
+          "sign": 1,
+          "tags": [
+            "RestructuringCharges",
+            "RestructuringSettlementAndImpairmentProvisions"
+          ],
+          "ifrs": []
+        },
+        {
+          "sign": -1,
+          "tags": [
+            "GainLossOnSaleOfPropertyPlantEquipment",
+            "GainLossOnDispositionOfAssets1",
+            "GainLossOnDispositionOfAssets"
+          ],
+          "ifrs": [
+            "GainsLossesOnDisposalsOfPropertyPlantAndEquipment"
+          ]
+        },
+        {
+          "sign": -1,
+          "tags": [
+            "DisposalGroupNotDiscontinuedOperationGainLossOnDisposal",
+            "GainLossOnSaleOfBusiness"
+          ],
+          "ifrs": []
+        },
+        {
+          "sign": -1,
+          "tags": [
+            "GainsLossesOnExtinguishmentOfDebt"
+          ],
+          "ifrs": []
+        }
       ]
     },
     "_BS": "---------------- BALANCE SHEET (annual, as at year end) ----------------",

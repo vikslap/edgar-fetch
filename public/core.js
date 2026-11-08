@@ -81,6 +81,16 @@
                      filed: fs.map((f) => f.filed).sort().pop(), derived: "sum of components" });
       }
     }
+    if (spec.groups && spec.groups.length) {             // sum of optional tag groups with signs
+      const parts = spec.groups.map((g) => [g.sign || 1, mergedSeries(facts, ifrs ? g.ifrs : g.tags, unit)]);
+      const keys = new Set(parts.flatMap(([, p]) => [...p.keys()]));
+      for (const key of keys) {
+        if (s.has(key)) continue;
+        const hits = parts.filter(([, p]) => p.has(key)).map(([sg, p]) => [sg, p.get(key)]);
+        s.set(key, { ...hits[0][1], val: hits.reduce((a, [sg, f]) => a + sg * f.val, 0),
+                     tag: hits.map(([sg, f]) => (sg < 0 ? "−" : "+") + f.tag).join(" "), derived: "sum of unusual items" });
+      }
+    }
     if (spec.negate) for (const f of s.values()) f.val = -f.val;
     return s;
   }
@@ -96,7 +106,20 @@
   }
 
   function buildQuarters(series, additive = true) {
-    const q = byEnd(series, "Q"), fy = byEnd(series, "FY"), nine = byEnd(series, "9M");
+    const q = byEnd(series, "Q"), fy = byEnd(series, "FY"), nine = byEnd(series, "9M"), half = byEnd(series, "H");
+    if (additive) {
+      // cash-flow items are reported year-to-date in 10-Qs: turn 6- and 9-month totals into single quarters
+      for (const h of half.values()) {
+        if ([...q.keys()].some((e) => near(e, h.end))) continue;
+        const q1 = [...q.values()].find((x) => near(x.start, h.start) && x.end < h.end);
+        if (q1) q.set(h.end, { ...h, start: addDays(q1.end, 1), kind: "Q", val: h.val - q1.val, derived: "H1 YTD − Q1" });
+      }
+      for (const n9 of nine.values()) {
+        if ([...q.keys()].some((e) => near(e, n9.end))) continue;
+        const h = [...half.values()].find((x) => near(x.start, n9.start) && x.end < n9.end);
+        if (h) q.set(n9.end, { ...n9, start: addDays(h.end, 1), kind: "Q", val: n9.val - h.val, derived: "9M YTD − H1 YTD" });
+      }
+    }
     for (const [fe, f] of fy) {
       if ([...q.keys()].some((e) => near(e, fe))) continue;
       const fs = f.start;
@@ -133,7 +156,7 @@
 
   /* Main: returns everything needed to preview and to write the Data Sheet */
   function compute(facts, cfg, ticker, opts = {}) {
-    const ANNUAL = opts.annualCols || 9, QUARTERS = opts.quarterCols || 10;
+    const ANNUAL = opts.annualCols || 12, QUARTERS = opts.quarterCols || 10;
     ticker = (ticker || "").toUpperCase();
     const { items, splits, scale } = resolveItems(cfg, ticker);
     const annual = {}, quarterly = {};
@@ -200,7 +223,7 @@
         const [ends, book, ncols] = freq === "annual" ? [aEnds, annual, ANNUAL] : [qEnds, quarterly, QUARTERS];
         const block = { title, freq, ncols, ends: ends.slice(), rows: [] };
         for (const [key, spec] of secItems) {
-          const row = { key, label: spec.label, values: [], src: [] };
+          const row = { key, label: spec.label, values: [], src: [], sheet: spec.sheet !== false };
           for (let i = 0; i < ncols; i++) {
             const e = ends[i];
             if (!e) { row.values.push(null); row.src.push(null); continue; }
@@ -216,6 +239,7 @@
             const f = lookup(book, key, e);
             if (!f) {
               row.values.push(spec.optional ? 0 : null); row.src.push(null);
+              if (spec.quiet) continue;
               const mk = `${title}|${spec.label}|${spec.optional ? 1 : 0}`;
               if (!missing.has(mk)) missing.set(mk, []);
               missing.get(mk).push(e);
@@ -229,6 +253,28 @@
         }
         blocks.push(block);
       }
+    }
+
+    // Net profit = reported net income attributable to shareholders; falls back to pre-tax − tax.
+    for (const b of blocks) {
+      if (b.title !== "PROFIT & LOSS" && b.title !== "QUARTERS") continue;
+      const g = (key) => (b.rows.find((r) => r.key === key) || { values: [] }).values;
+      const zz = (v) => v || 0;
+      const pat = [], np = [], clean = [], npSrc = [];
+      for (let i = 0; i < b.ncols; i++) {
+        const sales = g("sales")[i];
+        if (sales == null || !b.ends[i]) { pat.push(null); np.push(null); clean.push(null); npSrc.push(null); continue; }
+        const pbt = sales - zz(g("cogs")[i]) - zz(g("sga")[i]) - zz(g("rnd")[i]) - zz(g("interest")[i]) + zz(g("other_income")[i]) - zz(g("other_nonop")[i]);
+        const p = pbt - zz(g("tax")[i]);
+        const rep = g("net_income")[i];
+        const v = rep != null ? rep : p;
+        const tr = pbt > 0 ? Math.max(0, Math.min(0.35, zz(g("tax")[i]) / pbt)) : 0.21;
+        pat.push(r2(p)); np.push(r2(v)); clean.push(r2(v - zz(g("disc_ops")[i]) + zz(g("unusual")[i]) * (1 - tr)));
+        npSrc.push(rep != null ? { tag: "reported net income attributable to shareholders" } : { tag: "pre-tax profit − tax (no reported net income)", derived: "calculated" });
+      }
+      b.rows.push({ key: "pat", label: "Profit after tax (incl. minority)", values: pat, src: pat.map(() => ({ derived: "calculated" })), sheet: false, calc: true });
+      b.rows.push({ key: "net_profit", label: "Net profit", values: np, src: npSrc, sheet: false, calc: true });
+      b.rows.push({ key: "profit_clean", label: "Profit excl. unusual items", values: clean, src: clean.map(() => ({ derived: "calculated" })), sheet: false, calc: true });
     }
 
     const niA = (chk.net_income || [new Map()])[0];
@@ -364,13 +410,18 @@
     ws.getCell("B1").value = result.name.toUpperCase();
     for (const b of result.blocks)
       if (b.title !== "PROFIT & LOSS" && b.title !== "QUARTERS")
-        ensureSection(ws, b.title, b.rows.map((r) => r.label), log);
+        ensureSection(ws, b.title, b.rows.filter((r) => r.sheet !== false).map((r) => r.label), log);
+    const SHEET_ANNUAL = 9;                                   // your template's annual columns (B..J)
     for (const b of result.blocks) {
       const { dateRow, rows } = findSection(ws, b.title);
-      for (let i = 0; i < b.ncols; i++) {
-        const col = 2 + i, e = b.ends[i];
+      const filled = b.ends.filter(Boolean).length;
+      const from = b.freq === "annual" ? Math.max(0, filled - SHEET_ANNUAL) : 0;
+      const ncols = b.freq === "annual" ? Math.min(SHEET_ANNUAL, b.ncols) : b.ncols;
+      for (let k = 0; k < ncols; k++) {
+        const i = from + k, col = 2 + k, e = b.ends[i];
         ws.getCell(dateRow, col).value = e ? asDate(e) : null;
         for (const row of b.rows) {
+          if (row.sheet === false) continue;
           const r = rows[row.label];
           if (!r) { if (i === 0) log && log(`Label '${row.label}' not found under ${b.title} - row not filled`); continue; }
           ws.getCell(r, col).value = row.values[i];
@@ -455,11 +506,17 @@
       const intr = num(src("interest")), oth = num(src("other_income")), plug = num(src("other_nonop")), tax = num(src("tax"));
       const ebit = sales == null ? null : sales - cogs - sga - rnd;
       const ebt = ebit == null ? null : ebit - intr + oth - plug;
-      return { sales, cogs, ebit, ebt, tax, intr, ni: ebt == null ? null : ebt - tax, gp: sales == null ? null : sales - cogs };
+      const npv = src("net_profit"), clean = src("profit_clean");
+      return { sales, cogs, ebit, ebt, tax, intr, ni: npv != null ? npv : ebt == null ? null : ebt - tax, niClean: clean, gp: sales == null ? null : sales - cogs };
     };
     const yr = [...Array(n).keys()].map((i) => pl(i, (k) => A(k)[i]));
     const ttm = ttmOK ? pl(-1, (k) => (k === "shares_diluted" ? null : last4(k))) : null;
     const ttmPrev = nq >= 8 ? pl(-1, (k) => prev4(k)) : null;
+    // unusual items / discontinued ops are often only in the annual report: carry the latest FY adjustment into TTM
+    if (ttm && n) {
+      const qHasAdj = ["unusual", "disc_ops"].some((key) => Q(key).slice(nq - 4).some((v) => v));
+      ttm.niClean = qHasAdj ? ttm.niClean : ttm.ni + (num(yr[n - 1].niClean) - num(yr[n - 1].ni));
+    }
     const shares = A("shares_diluted"), qShares = Q("shares_diluted");
     const ttmShares = ttmOK ? qShares.slice(nq - 4).reduce((a, v) => a + num(v), 0) / 4 : null;
     const eps = yr.map((y, i) => div(y.ni, shares[i]));
@@ -527,7 +584,7 @@
 
     const src = ttm || yr[L];
     const kpis = {
-      sales: src.sales, ni: src.ni, ebit: src.ebit, eps: ttm ? ttmEps : eps[L], ebitMargin: pct(src.ebit, src.sales),
+      sales: src.sales, ni: src.ni, niClean: src.niClean, ebit: src.ebit, eps: ttm ? ttmEps : eps[L], ebitMargin: pct(src.ebit, src.sales),
       roe: roeY[L], roce: (rows.find((r) => r.label === "ROCE %") || { v: [] }).v[L],
       de: div(nz(debt[L]), eq[L]), fcf: fcf[L], equity: eq[L], sharesOut: B("shares_out")[L] || shares[L], basis: ttm ? "TTM" : `FY ${result.aEnds[L].slice(0, 4)}`,
     };
@@ -562,7 +619,7 @@
 
     const multiples = {
       mcap, ev, netDebt, debt, cash, ebitda, fcf, sbc,
-      pe: ratio(mcap, k.ni), evEbitda: ratio(ev, ebitda), evEbit: ratio(ev, ebit), evSales: ratio(ev, k.sales),
+      pe: ratio(mcap, k.ni), peClean: ratio(mcap, k.niClean), evEbitda: ratio(ev, ebitda), evEbit: ratio(ev, ebit), evSales: ratio(ev, k.sales),
       pb: ratio(mcap, equity), pfcf: ratio(mcap, fcf), fcfYield: mcap && fcf != null ? (fcf / mcap) * 100 : null,
       earningsYield: mcap && k.ni != null ? (k.ni / mcap) * 100 : null,
       divYield: mcap ? (divs / mcap) * 100 : null,
@@ -580,7 +637,7 @@
       let ni = 0, shs = 0;
       for (let j = i - 3; j <= i; j++) {
         const s = q("sales")[j];
-        ni += num(s) - num(q("cogs")[j]) - num(q("sga")[j]) - num(q("rnd")[j]) - num(q("interest")[j]) + num(q("other_income")[j]) - num(q("other_nonop")[j]) - num(q("tax")[j]);
+        ni += num(q("net_profit")[j]);
         shs += num(q("shares_diluted")[j]) / 4;
       }
       if (shs) epsPts.push([result.qEnds[i], ni / shs]);
@@ -689,7 +746,7 @@
     const P = (k) => row("PROFIT & LOSS", k), B = (k) => row("BALANCE SHEET", k), C = (k) => row("CASH FLOW", k);
     const n = result.aEnds.length, t1 = n - 1, t0 = n - 2;
     const z = (v) => v || 0, has = (v) => v != null && v !== 0;
-    const ni = (i) => { const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
+    const ni = (i) => { const v = P("net_profit")[i]; if (v != null) return v; const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
     const ebit = (i) => { const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]); };
     const TA = B("total_assets"), CA = B("current_assets"), CL = B("current_liabilities"), LTD = B("lt_debt"), STD = B("st_debt");
     const TL = B("total_liabilities"), RE = B("retained_earnings"), EQ = B("equity"), PPE = B("ppe"), REC = B("receivables");

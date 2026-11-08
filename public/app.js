@@ -210,7 +210,7 @@
     const peg = m.pe != null && epsCagr > 0 ? m.pe / epsCagr : null;
     const pl = (key) => { const b = result.blocks.find((x) => x.title === "PROFIT & LOSS"); const r = b.rows.find((x) => x.key === key); return r ? r.values : []; };
     const cf = (key) => { const b = result.blocks.find((x) => x.title === "CASH FLOW"); const r = b && b.rows.find((x) => x.key === key); return r ? r.values : []; };
-    const niFY = (() => { const g = (key) => pl(key)[L] || 0; const sales = pl("sales")[L]; return sales == null ? null : sales - g("cogs") - g("sga") - g("rnd") - g("interest") + g("other_income") - g("other_nonop") - g("tax"); })();
+    const niFY = pl("net_profit")[L];
     const cfo = cf("cfo")[L];
     const opm = rows("Operating margin (EBIT) %").slice(0, n).slice(-5).filter((x) => x != null);
     const opm5 = opm.length ? opm.reduce((a, b) => a + b, 0) / opm.length : null;
@@ -689,70 +689,170 @@
   const NICE = { "QUARTERS": "Quarterly Results", "PROFIT & LOSS": "Profit & Loss", "BALANCE SHEET": "Balance Sheet", "CASH FLOW": "Cash Flows" };
   const SUBT = { "QUARTERS": "Discrete quarters (Q4 derived from the annual report)", "PROFIT & LOSS": "Fiscal years", "BALANCE SHEET": "As at fiscal year end", "CASH FLOW": "Fiscal years" };
 
-  function computedRows(b) {
-    const g = (key) => (b.rows.find((r) => r.key === key) || { values: [] }).values;
-    const n = b.ends.length, z = (a, i) => a[i] || 0;
-    if (b.title === "PROFIT & LOSS" || b.title === "QUARTERS") {
-      const S = g("sales");
-      const op = [...Array(n)].map((_, i) => (S[i] == null ? null : S[i] - z(g("cogs"), i) - z(g("sga"), i) - z(g("rnd"), i)));
-      const pbt = op.map((v, i) => (v == null ? null : v - z(g("interest"), i) + z(g("other_income"), i) - z(g("other_nonop"), i)));
-      const np = pbt.map((v, i) => (v == null ? null : v - z(g("tax"), i)));
-      const sh = g("shares_diluted");
-      return { after: {
-        rnd: [{ label: "Operating Profit (EBIT)", values: op, strong: true },
-              { label: "OPM %", values: op.map((v, i) => (v == null || !S[i] ? null : (v / S[i]) * 100)), f: "pct" }],
-        other_nonop: [{ label: "Profit before tax", values: pbt, strong: true }],
-        tax: [{ label: "Tax %", values: pbt.map((v, i) => (v > 0 ? (z(g("tax"), i) / v) * 100 : null)), f: "pct" },
-              { label: "Net Profit", values: np, strong: true },
-              { label: "EPS in $", values: np.map((v, i) => (v != null && sh[i] ? v / sh[i] : null)), f: "eps" }],
-      } };
-    }
-    if (b.title === "CASH FLOW") {
-      const c = g("cfo"), k = g("capex");
-      return { tail: [{ label: "Free Cash Flow", values: c.map((v, i) => (v == null ? null : v - z(k, i))), strong: true },
-        { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }] };
-    }
-    return {};
-  }
   const cellFmt = (v, f, isShares) => {
     if (v == null || !isFinite(v)) return "–";
-    if (f === "pct") return Math.round(v) + "%";
+    if (f === "pct") return v.toFixed(Math.abs(v) < 10 ? 1 : 0) + "%";
     if (f === "eps") return v.toFixed(2);
     return fmtNum(isShares ? v / 1000 : (v * 1000) / unit, unit === 1000 && !isShares ? 0 : (Math.abs((v * 1000) / unit) < 100 ? 1 : 0));
   };
+  const expanded = new Set();
+
+  // P&L and Quarterly Results, laid out like screener.in
+  function plTable(b) {
+    const isQ = b.title === "QUARTERS";
+    const g = (key) => (b.rows.find((r) => r.key === key) || { values: [] }).values;
+    const n = b.ends.filter(Boolean).length;
+    const ends = b.ends.slice(0, n);
+    const cols = ends.map((e, i) => ({ e, i }));
+    // TTM column on the annual table (sum of the last 4 quarters)
+    const qb = result.blocks.find((x) => x.title === "QUARTERS"), qn = qb ? qb.ends.filter(Boolean).length : 0;
+    const ttm = !isQ && qn >= 4 && ends.length && qb.ends[qn - 1] > ends[n - 1];
+    const val = (key, i) => {
+      if (i === "ttm") {
+        const r = qb.rows.find((x) => x.key === key); if (!r) return null;
+        const last = r.values.slice(qn - 4, qn);
+        if (key === "depreciation" && last.some((v) => !v)) return g(key)[n - 1];   // estimate TTM D&A from the latest year
+        if (last.every((v) => v == null)) return null;
+        return key === "shares_diluted" ? last.reduce((a, v) => a + (v || 0), 0) / 4 : last.reduce((a, v) => a + (v || 0), 0);
+      }
+      return g(key)[i];
+    };
+    const idx = [...cols.map((c) => c.i), ...(ttm ? ["ttm"] : [])];
+    const z = (v) => v || 0;
+    const calc = idx.map((i) => {
+      const sales = val("sales", i);
+      if (sales == null) return null;
+      const cogs = z(val("cogs", i)), sga = z(val("sga", i)), rnd = z(val("rnd", i)), dep = val("depreciation", i);
+      const hasDep = dep != null && dep !== 0;
+      const ebit = sales - cogs - sga - rnd, ebitda = hasDep ? ebit + dep : ebit;
+      const oi = z(val("other_income", i)), plug = z(val("other_nonop", i)), intr = z(val("interest", i)), tax = z(val("tax", i));
+      const pbt = ebitda + oi - plug - intr - (hasDep ? dep : 0);
+      let np = val("net_profit", i), clean = val("profit_clean", i);
+      if (i === "ttm" && rat && rat.kpis.basis === "TTM") { np = rat.kpis.ni; clean = rat.kpis.niClean; }
+      const sh = val("shares_diluted", i);
+      const cfb = result.blocks.find((x) => x.title === "CASH FLOW");
+      const div = i !== "ttm" && !isQ && cfb ? (cfb.rows.find((x) => x.key === "dividends") || { values: [] }).values[i] : null;
+      return { sales, cogs, sga, rnd, dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
+        taxPct: pbt > 0 ? (tax / pbt) * 100 : null, np, pat: val("pat", i), minority: val("minority", i), disc: val("disc_ops", i), unusual: val("unusual", i), clean,
+        eps: np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null };
+    });
+    const get = (f) => calc.map((c) => (c ? f(c) : null));
+    const growth = (arr, lag) => arr.map((v, k) => {
+      if (idx[k] === "ttm") return null;
+      const p = k - lag >= 0 ? arr[k - lag] : null;
+      return v == null || p == null || p <= 0 ? null : (v / p - 1) * 100;
+    });
+    const lag = isQ ? 4 : 1, pctOf = (f) => get((c) => (c.sales ? (f(c) / c.sales) * 100 : null));
+    const sales = get((c) => c.sales), np = get((c) => c.np), eps = get((c) => c.eps);
+    const rows = [
+      { label: "Sales", vals: sales, key: "sales" },
+      { label: isQ ? "YoY sales growth" : "Sales growth", vals: growth(sales, lag), f: "growth" },
+      { label: "Expenses", vals: get((c) => c.exp), strong: true, tg: "exp" },
+      { label: "Cost of sales %", vals: pctOf((c) => c.cogs), f: "pct", child: "exp", tip: "Includes depreciation charged to cost of sales" },
+      { label: "SG&A %", vals: pctOf((c) => c.sga), f: "pct", child: "exp" },
+      { label: "R&D %", vals: pctOf((c) => c.rnd), f: "pct", child: "exp" },
+      { label: "Operating Profit", vals: get((c) => c.ebitda), strong: true, tip: "Before depreciation (EBITDA), like screener.in. If depreciation isn't reported for a period, this is EBIT." },
+      { label: "OPM %", vals: get((c) => (c.sales ? (c.ebitda / c.sales) * 100 : null)), f: "pct" },
+      { label: "Other Income", vals: get((c) => c.otherNet), tg: "oi" },
+      { label: "Reported other income / expense", vals: get((c) => c.oi), child: "oi", key: "other_income" },
+      { label: "Unclassified items (balancing)", vals: get((c) => -c.plug), child: "oi", plug: true, tip: "The difference between the lines above and reported pre-tax profit" },
+      { label: "Interest", vals: get((c) => c.intr), key: "interest" },
+      { label: "Depreciation", vals: get((c) => c.dep), key: "depreciation" },
+      { label: "Profit before tax", vals: get((c) => c.pbt), strong: true },
+      { label: "Tax %", vals: get((c) => c.taxPct), f: "pct" },
+      { label: "Net Profit", vals: np, strong: true, tg: "np", key: "net_profit", tip: "Net income attributable to shareholders, as reported" },
+      { label: "Profit after tax (incl. minority)", vals: get((c) => c.pat), child: "np", same: true },
+      { label: "Minority share", vals: get((c) => (c.minority ? -c.minority : null)), child: "np", key: "minority" },
+      { label: "Discontinued operations", vals: get((c) => c.disc || null), child: "np", key: "disc_ops" },
+      { label: "Unusual items (pre-tax, already in the lines above)", vals: get((c) => (c.unusual ? -c.unusual : null)), child: "np", key: "unusual", tip: "Impairments and restructuring (negative), gains on asset/business sales and debt extinguishment (positive)" },
+      { label: "Profit excl. unusual items", vals: get((c) => c.clean), child: "np", same: true, tip: "Net profit − discontinued operations + unusual items after tax" },
+      { label: isQ ? "YoY profit growth" : "Profit growth", vals: growth(np, lag), f: "growth" },
+      { label: "EPS in $", vals: eps, f: "eps", tg: "eps" },
+      { label: "Diluted shares (Mn)", vals: get((c) => c.sh), child: "eps", shares: true, key: "shares_diluted" },
+      { label: isQ ? "YoY EPS growth" : "EPS growth", vals: growth(eps, lag), f: "growth" },
+    ];
+    if (!isQ) rows.push({ label: "Dividend payout %", vals: get((c) => c.payout), f: "pct" });
+    // links: annual report per year, earnings release per quarter
+    const links = idx.map((i) => {
+      if (i === "ttm") return "";
+      const e = ends[i];
+      if (!isQ) {
+        const f = co && co.filings && co.filings.find((x) => /^(10-K|20-F|40-F)/.test(x.form) && x.period && Math.abs(Date.parse(x.period) - Date.parse(e)) < 8 * 86400000);
+        return f ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.form.replace("/A", ""))} ↗</a>` : "";
+      }
+      const c = ccData && ccData.calls.find((x) => x.date > e && (Date.parse(x.date) - Date.parse(e)) / 86400000 <= 125 &&
+        !ends.some((e2) => e2 > e && e2 < x.date));
+      const d = c && (c.docs.find((x) => x.kind === "press") || c.docs.find((x) => x.kind === "letter") || c.docs[0]);
+      return d ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Results ↗</a>` : "";
+    });
+    const fps = isQ && facts ? EdgarCore.fiscalPeriods(facts, mapping) : null;
+    const head = idx.map((i) => {
+      if (i === "ttm") return `<th>TTM</th>`;
+      const fp = fps && fps.get(ends[i]);
+      return `<th>${mon(ends[i])}${fp ? `<br><span class="fq">Q${fp.fq} FY${String(fp.fy).slice(2)}</span>` : ""}</th>`;
+    }).join("");
+    const fmtCell = (r, v) => {
+      if (r.f === "growth") return v == null ? "" : `<span class="${v < 0 ? "neg-t" : "pos-t"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+      return cellFmt(v, r.f, r.shares);
+    };
+    let body = "";
+    for (const r of rows) {
+      if (r.child && !expanded.has(`${b.title}:${r.child}`)) continue;
+      if (r.vals.every((v) => v == null || v === 0) && (r.child || r.key === "depreciation")) continue;
+      if (r.same && r.vals.every((v, k) => v == null || np[k] == null || Math.abs(v - np[k]) < 0.5)) continue;   // adds nothing when equal to net profit
+      const open = r.tg && expanded.has(`${b.title}:${r.tg}`);
+      const cls = [r.strong ? "strong" : "", r.child ? "child" : "", r.f === "growth" ? "grow" : ""].join(" ");
+      body += `<tr class="${cls}"><td${r.tip ? ` title="${esc(r.tip)}"` : ""}>${r.tg ? `<button class="tg" data-tg="${esc(b.title)}:${r.tg}" aria-expanded="${open}">${esc(r.label)} <span>${open ? "−" : "+"}</span></button>` : esc(r.label)}</td>` +
+        r.vals.map((v, k) => {
+          const c = ["num"]; if (v == null) c.push("na"); else if (v < 0 && r.f !== "growth") c.push("neg");
+          if (r.plug) c.push("plug");
+          const i = idx[k], src = r.key && i !== "ttm" ? ((b.rows.find((x) => x.key === r.key) || { src: [] }).src[i]) : null;
+          if (src && src.derived && src.derived !== "calculated") c.push("derived");
+          return `<td class="${c.join(" ")}"${src ? ` data-b="${esc(b.title)}" data-k="${r.key}" data-i="${i}"` : ""}>${fmtCell(r, v)}</td>`;
+        }).join("") + "</tr>";
+    }
+    if (links.some(Boolean)) body += `<tr class="links"><td>${isQ ? "Earnings release" : "Annual report"}</td>${links.map((l) => `<td class="num">${l}</td>`).join("")}</tr>`;
+    return `<table class="pl"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  function genericTable(b) {
+    const g = (key) => (b.rows.find((r) => r.key === key) || { values: [] }).values;
+    const n = b.ends.filter(Boolean).length, z = (a, i) => a[i] || 0;
+    const tail = b.title === "CASH FLOW" ? (() => { const c = g("cfo"), k = g("capex");
+      return [{ label: "Free Cash Flow", values: c.map((v, i) => (v == null ? null : v - z(k, i))), strong: true },
+        { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }]; })() : [];
+    const line = (r, raw) => {
+      const isShares = /share/i.test(r.label);
+      let s = `<tr class="${r.strong ? "strong" : ""}"><td>${esc(r.label)}${isShares ? ' <span class="muted">(Mn)</span>' : ""}</td>`;
+      for (let i = 0; i < n; i++) {
+        const v = r.values[i], src = raw && r.src[i], cls = ["num"];
+        if (v == null) cls.push("na"); else if (v < 0) cls.push("neg");
+        if (src && src.derived && src.derived !== "calculated") cls.push("derived");
+        s += `<td class="${cls.join(" ")}"${raw ? ` data-b="${esc(b.title)}" data-k="${r.key}" data-i="${i}"` : ""}>${cellFmt(v, r.f, isShares)}</td>`;
+      }
+      return s + "</tr>";
+    };
+    return `<table><thead><tr><th></th>${b.ends.slice(0, n).map((e) => `<th>${mon(e)}</th>`).join("")}</tr></thead><tbody>${b.rows.map((r) => line(r, true)).join("")}${tail.map((r) => line(r, false)).join("")}</tbody></table>`;
+  }
 
   function drawTables() {
     const blocks = [...result.blocks].sort((a, b) => ORDER.indexOf(a.title) - ORDER.indexOf(b.title));
     let h = "";
     for (const b of blocks) {
-      const n = b.ends.length, extra = computedRows(b);
-      const head = b.ends.map((e) => `<th>${mon(e)}</th>`).join("");
-      const line = (r, ri, raw) => {
-        const isShares = /share/i.test(r.label);
-        let s = `<tr class="${r.strong ? "strong" : ""}"><td>${esc(r.label)}${isShares ? ' <span class="muted">(Mn)</span>' : ""}</td>`;
-        for (let i = 0; i < n; i++) {
-          const v = r.values[i], src = raw && r.src[i], cls = ["num"];
-          if (v == null) cls.push("na"); else if (v < 0) cls.push("neg");
-          if (src && src.derived && src.derived !== "calculated") cls.push("derived");
-          if (src && src.derived === "calculated") cls.push("plug");
-          s += `<td class="${cls.join(" ")}"${raw ? ` data-b="${esc(b.title)}" data-r="${ri}" data-i="${i}"` : ""}>${cellFmt(v, r.f, isShares)}</td>`;
-        }
-        return s + "</tr>";
-      };
-      let rows = "";
-      b.rows.forEach((r, ri) => {
-        rows += line(r, ri, true);
-        ((extra.after || {})[r.key] || []).forEach((x) => (rows += line(x, -1, false)));
-      });
-      (extra.tail || []).forEach((x) => (rows += line(x, -1, false)));
+      const pl = b.title === "PROFIT & LOSS" || b.title === "QUARTERS";
+      if (!b.ends.filter(Boolean).length) continue;
       h += `<section class="card" id="sec-${b.title.split(" ")[0]}">
-        <div class="head-row"><div><h2>${esc(NICE[b.title])}</h2><div class="sub">${SUBT[b.title]} · Figures in ${unit === 1000 ? "$ thousands" : "$ millions"} · hover a number for its source</div></div></div>
-        <div class="tbl-wrap"><table><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="legend"><span><b>underlined</b> = derived (Q4 = FY − Q1–Q3, split-adjusted)</span><span><i>italic</i> = reconciling plug</span><span>bold rows are calculated</span></div>
+        <div class="head-row"><div><h2>${esc(NICE[b.title])}</h2><div class="sub">${SUBT[b.title]} · Figures in ${unit === 1000 ? "$ thousands" : "$ millions"} · ${pl ? "click a row with + to expand · " : ""}hover a number for its source</div></div></div>
+        <div class="tbl-wrap">${pl ? plTable(b) : genericTable(b)}</div>
+        <div class="legend"><span><b>underlined</b> = derived (e.g. Q4 = FY − Q1–Q3, quarterly D&A from year-to-date totals)</span>${pl ? "<span><i>italic</i> = balancing item</span>" : ""}</div>
         ${b.title === "PROFIT & LOSS" && rat ? growthBoxes() : ""}
       </section>`;
     }
     $("tables").innerHTML = h + drawRatios();
+    $("tables").querySelectorAll("button.tg").forEach((bt) => (bt.onclick = () => {
+      const k = bt.dataset.tg; expanded.has(k) ? expanded.delete(k) : expanded.add(k);
+      const y = scrollY; drawTables(); scrollTo({ top: y });
+    }));
   }
   const growthBoxes = () => `<div class="boxes">` + rat.boxes.map((b) => `<div class="box"><h3>${esc(b.title)}:</h3>` +
     b.rows.map(([k, v]) => `<div><span class="muted">${esc(k)}:</span><span>${v == null ? "–" : v.toFixed(0) + "%"}</span></div>`).join("") + "</div>").join("") + `</div>`;
@@ -785,6 +885,7 @@
     catch (e) { if (forTicker === ticker) $("ccTable").innerHTML = `<tr><td class="err">Couldn't load earnings filings: ${esc(e.message)}</td></tr>`; return; }
     if (forTicker !== ticker) return;
     ccData = j;
+    if (result && view === "company") { const y = scrollY; drawTables(); scrollTo({ top: y }); }
     const fps = EdgarCore.fiscalPeriods(facts, mapping);
     const ends = [...fps.keys()].sort();
     const qFor = (date) => {        // the latest fiscal period that ended before the release, within ~4 months
@@ -916,7 +1017,8 @@
     const td = e.target.closest && e.target.closest("td[data-b]");
     if (!td || !result) { if (!e.target.closest || !e.target.closest(".chart")) tip.style.display = "none"; return; }
     const b = result.blocks.find((x) => x.title === td.dataset.b);
-    const s = b.rows[+td.dataset.r].src[+td.dataset.i];
+    const row = td.dataset.k ? b.rows.find((x) => x.key === td.dataset.k) : b.rows[+td.dataset.r];
+    const s = row && row.src[+td.dataset.i];
     tip.textContent = !s ? "No value found for this period." :
       [s.tag, s.form && `${s.form} filed ${s.filed}`, s.accn && `accession ${s.accn}`, s.derived && `derived: ${s.derived}`].filter(Boolean).join("\n");
     tip.style.display = "block";

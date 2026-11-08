@@ -63,6 +63,9 @@ Your watchlist (☆ on any company page, or the **Watchlist** link), saved scree
 
 **Set an access key so only you can see or change them:** Cloudflare → edgar-fetch → Settings → Variables and Secrets → Add → *Secret* `ACCESS_KEY` (any password). Then enter the same password on the site under Data tools → Settings, once per browser.
 
+## Profit & Loss layout
+Quarterly Results and Profit & Loss follow screener.in's layout: Operating Profit is before depreciation (EBITDA), Expenses / Other Income / Net Profit / EPS expand with **+**, and YoY growth rows sit under Sales, Net Profit and EPS. **Net Profit is the reported net income attributable to shareholders** (used for EPS, P/E, ROE and screens); the breakdown shows minority share, discontinued operations and unusual items, and "P/E excl. unusual items" is available in Screens. The page shows up to 12 years; *Fill my model* still writes the latest 9 so your template is unchanged.
+
 ## Coverage notes
 - **Banks:** revenue = interest income + noninterest income; noninterest expense is used as SG&A. Bank ratios are still approximate (no bank-specific template yet).
 - **Foreign filers (20-F / 40-F):** IFRS line items are mapped; figures in other currencies are converted to USD at today's rate for every year (growth rates stay in the home currency). ADR share counts are scaled using the quoted market cap. Many foreign filers only file annual reports, so they have no quarterly data.

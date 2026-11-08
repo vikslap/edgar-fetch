@@ -9,7 +9,8 @@
     ["price", "Current price", "$", "Valuation", ["price", "cmp"], "Last close"],
     ["mcap", "Market Capitalization", "$ Mn", "Valuation", ["market cap", "mcap", "market capitalisation"], "Price × latest shares outstanding"],
     ["ev", "Enterprise Value", "$ Mn", "Valuation", ["ev"], "Market cap + debt − cash − short-term investments"],
-    ["pe", "Price to earning", "x", "Valuation", ["pe", "p/e", "stock p/e", "price to earnings", "pe ratio"], "Market cap ÷ TTM net profit"],
+    ["pe", "Price to earning", "x", "Valuation", ["pe", "p/e", "stock p/e", "price to earnings", "pe ratio"], "Market cap ÷ TTM net profit (reported, attributable to shareholders)"],
+    ["pe_clean", "P/E excl. unusual items", "x", "Valuation", ["clean pe", "adjusted pe", "price to earning excl unusual"], "Market cap ÷ TTM profit excluding impairments, restructuring, asset-sale gains and discontinued operations"],
     ["pb", "Price to book value", "x", "Valuation", ["pb", "p/b", "price to book"], ""],
     ["ps", "Price to sales", "x", "Valuation", ["ps", "p/s"], "Market cap ÷ TTM sales"],
     ["pfcf", "Price to free cash flow", "x", "Valuation", ["pfcf", "p/fcf", "price to fcf"], "Market cap ÷ last FY FCF"],
@@ -113,7 +114,7 @@
     const m = val.multiples, k = rat.kpis, M = (v) => (v == null || !isFinite(v) ? null : v / 1000);
     const blk = (t, key) => { const b = result.blocks.find((x) => x.title === t); const r = b && b.rows.find((x) => x.key === key); return r ? r.values : []; };
     const P = (key) => blk("PROFIT & LOSS", key), z = (v) => v || 0;
-    const niFY = (i) => { const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
+    const niFY = (i) => { const v = P("net_profit")[i]; if (v != null) return v; const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
     const cagr = (arr, yrs) => (n - 1 < yrs ? null : arr[L - yrs] > 0 && arr[L] > 0 ? (Math.pow(arr[L] / arr[L - yrs], 1 / yrs) - 1) * 100 : null);
     const npArr = [...Array(n).keys()].map(niFY);
     const opm = R("Operating margin (EBIT) %").slice(0, n).slice(-5).filter((x) => x != null);
@@ -150,7 +151,7 @@
       debt_chg: dLy != null && dPy > 0 ? (dLy / dPy - 1) * 100 : null,
       de_py: dPy != null && eqAt(L - 1) > 0 ? dPy / eqAt(L - 1) : null,
       net_debt_ly: M(netDebtAt(L)), net_debt_py: M(netDebtAt(L - 1)),
-      price, mcap: M(m.mcap), ev: M(m.ev), pe: m.pe, pb: m.pb, ps: m.mcap && k.sales > 0 ? m.mcap / k.sales : null, pfcf: m.pfcf,
+      price, mcap: M(m.mcap), ev: M(m.ev), pe: m.pe, pe_clean: m.peClean, pb: m.pb, ps: m.mcap && k.sales > 0 ? m.mcap / k.sales : null, pfcf: m.pfcf,
       ev_ebitda: m.evEbitda, ev_sales: m.evSales, earnings_yield: m.earningsYield, fcf_yield: m.fcfYield, div_yield: m.divYield,
       shareholder_yield: m.shareholderYield, peg: m.pe != null && epsC > 0 ? m.pe / epsC : null,
       intrinsic, dcf_upside: intrinsic != null && price ? (intrinsic / price - 1) * 100 : null, implied_g: implied,
