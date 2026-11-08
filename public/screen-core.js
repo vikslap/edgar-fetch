@@ -26,8 +26,12 @@
 
     ["sales", "Sales", "$ Mn", "Size & growth", ["revenue", "sales ttm"], "TTM"],
     ["sales_ly", "Sales last year", "$ Mn", "Size & growth", ["revenue last year"], "Last fiscal year"],
+    ["sales_py", "Sales preceding year", "$ Mn", "Size & growth", ["revenue preceding year", "sales previous year"], "Fiscal year before last"],
     ["np", "Net profit", "$ Mn", "Size & growth", ["profit after tax", "pat", "net income"], "TTM"],
     ["np_ly", "Net profit last year", "$ Mn", "Size & growth", ["pat last year"], ""],
+    ["np_py", "Net profit preceding year", "$ Mn", "Size & growth", ["pat preceding year", "net profit previous year"], ""],
+    ["eps_ly", "EPS last year", "$", "Size & growth", [], "Diluted, last fiscal year"],
+    ["eps_py", "EPS preceding year", "$", "Size & growth", ["eps previous year"], ""],
     ["ebit", "Operating profit", "$ Mn", "Size & growth", ["ebit"], "TTM, Sales − COGS − SG&A − R&D"],
     ["eps", "EPS", "$", "Size & growth", ["eps ttm"], "TTM, diluted"],
     ["sales_g1", "Sales growth", "%", "Size & growth", ["sales growth ttm", "revenue growth"], "TTM vs prior 4 quarters"],
@@ -40,18 +44,29 @@
 
     ["opm", "OPM", "%", "Profitability", ["operating margin", "operating profit margin"], "TTM"],
     ["opm_5y", "OPM 5Year", "%", "Profitability", ["average opm 5years", "opm 5 years"], "Average of last 5 fiscal years"],
+    ["opm_ly", "OPM last year", "%", "Profitability", [], "Last fiscal year"],
+    ["opm_py", "OPM preceding year", "%", "Profitability", ["opm previous year"], ""],
     ["npm", "Net profit margin", "%", "Profitability", ["npm"], "TTM"],
     ["gpm", "Gross margin", "%", "Profitability", ["gross profit margin", "gpm"], "TTM"],
     ["roe", "Return on equity", "%", "Profitability", ["roe"], "Last FY, average equity"],
     ["roe_3y", "Average return on equity 3Years", "%", "Profitability", ["roe 3 years", "roe 3years"], ""],
     ["roe_5y", "Average return on equity 5Years", "%", "Profitability", ["roe 5 years", "roe 5years"], ""],
     ["roce", "Return on capital employed", "%", "Profitability", ["roce"], "Last FY"],
+    ["roce_py", "ROCE preceding year", "%", "Profitability", ["return on capital employed preceding year"], ""],
+    ["roe_py", "ROE preceding year", "%", "Profitability", ["return on equity preceding year"], ""],
     ["roic", "ROIC", "%", "Profitability", ["return on invested capital"], "EBIT × (1 − tax) ÷ (equity + debt − cash)"],
 
     ["de", "Debt to equity", "x", "Balance sheet", ["d/e", "debt equity"], ""],
     ["debt", "Debt", "$ Mn", "Balance sheet", ["total debt"], "Latest balance sheet"],
     ["cash", "Cash", "$ Mn", "Balance sheet", ["cash and investments"], "Cash + short-term investments"],
     ["net_debt", "Net debt", "$ Mn", "Balance sheet", [], "Debt − cash"],
+    ["debt_ly", "Debt last year", "$ Mn", "Balance sheet", ["debt current year"], "Short + long-term debt at the last fiscal year end"],
+    ["debt_py", "Debt preceding year", "$ Mn", "Balance sheet", ["debt previous year", "debt prev year"], "At the fiscal year end before that"],
+    ["debt_3y", "Debt 3Years back", "$ Mn", "Balance sheet", ["debt 3 years back", "debt 3 years ago"], "Three fiscal year ends before the last"],
+    ["debt_chg", "Change in debt", "%", "Balance sheet", ["debt change", "debt growth"], "Last year vs preceding year (blank if preceding year had no debt)"],
+    ["de_py", "Debt to equity preceding year", "x", "Balance sheet", ["d/e preceding year"], ""],
+    ["net_debt_ly", "Net debt last year", "$ Mn", "Balance sheet", [], "At the last fiscal year end"],
+    ["net_debt_py", "Net debt preceding year", "$ Mn", "Balance sheet", ["net debt previous year"], ""],
     ["current_ratio", "Current ratio", "x", "Balance sheet", [], ""],
     ["int_cov", "Interest Coverage Ratio", "x", "Balance sheet", ["interest coverage", "icr"], "EBIT ÷ interest, last FY"],
     ["book_value", "Book value", "$", "Balance sheet", ["bvps", "book value per share"], "Per share"],
@@ -109,7 +124,21 @@
       if (m.mcap) { const rv = core.reverseDcf({ ...base, mcap: m.mcap }); implied = rv && !rv.below && !rv.above ? rv.g * 100 : null; }
     }
     const price = val.price;
+    const BS = (key) => blk("BALANCE SHEET", key);
+    const debtAt = (i) => (i < 0 || BS("total_assets")[i] == null ? null : z(BS("st_debt")[i]) + z(BS("lt_debt")[i]));
+    const netDebtAt = (i) => { const d = debtAt(i); return d == null ? null : d - z(BS("cash")[i]) - z(BS("st_investments")[i]); };
+    const dLy = debtAt(L), dPy = debtAt(L - 1);
+    const eqAt = (i) => BS("equity")[i];
+    const epsArr = R("EPS (diluted, $)");
+    const prev = (label) => (n > 1 ? R(label)[L - 1] : null);
     const row = {
+      sales_py: M(P("sales")[L - 1]), np_py: M(npArr[L - 1]), eps_ly: epsArr[L], eps_py: n > 1 ? epsArr[L - 1] : null,
+      opm_ly: ly("Operating margin (EBIT) %"), opm_py: prev("Operating margin (EBIT) %"),
+      roce_py: prev("ROCE %"), roe_py: prev("ROE %"),
+      debt_ly: M(dLy), debt_py: M(dPy), debt_3y: M(debtAt(L - 3)),
+      debt_chg: dLy != null && dPy > 0 ? (dLy / dPy - 1) * 100 : null,
+      de_py: dPy != null && eqAt(L - 1) > 0 ? dPy / eqAt(L - 1) : null,
+      net_debt_ly: M(netDebtAt(L)), net_debt_py: M(netDebtAt(L - 1)),
       price, mcap: M(m.mcap), ev: M(m.ev), pe: m.pe, pb: m.pb, ps: m.mcap && k.sales > 0 ? m.mcap / k.sales : null, pfcf: m.pfcf,
       ev_ebitda: m.evEbitda, ev_sales: m.evSales, earnings_yield: m.earningsYield, fcf_yield: m.fcfYield, div_yield: m.divYield,
       shareholder_yield: m.shareholderYield, peg: m.pe != null && epsC > 0 ? m.pe / epsC : null,
@@ -265,6 +294,7 @@
     ["Clean books", "Beneish M score < -2.22 AND Altman Z score > 3 AND CFO to PAT > 1"],
     ["Growth at a fair price", "PEG Ratio < 1 AND PEG Ratio > 0 AND EPS growth 5Years > 15"],
     ["Buyback machines", "Change in shares < -2 AND Free cash flow last year > 0"],
+    ["Debt reducing", "Debt last year < Debt preceding year AND Debt preceding year > 0 AND Market Capitalization > 500"],
   ];
 
   const api = { FIELDS, TEXT, rowFor, compile, tokenize, resolve, suggest, PRESETS };
