@@ -13,6 +13,7 @@ GitHub Actions (nightly, 14:47 IST Tue–Sat)
   builder/build.mjs
     ├─ SEC company_tickers_exchange.json   → listed companies (NYSE, Nasdaq, …)
     ├─ Nasdaq screener download            → price + sector for every stock (Yahoo fallback)
+    ├─ Yahoo 2-year daily closes           → DMA 50/200, golden/death cross, 52-week high, returns
     ├─ SEC companyfacts.zip (~1 GB)        → every company's XBRL financials
     ├─ public/core.js + screen-core.js     → same maths as the website
     ├─ SEC submissions.zip                 → filings list per company

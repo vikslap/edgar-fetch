@@ -100,7 +100,49 @@
     ["shares", "Number of shares", "Mn", "Other", ["shares outstanding", "no eq shares"], "Latest"],
     ["years", "Years of data", "", "Other", [], "Fiscal years available"],
     ["mcap_quote", "Market cap (quoted)", "$ Mn", "Other", ["quoted market cap"], "Market cap from the price feed; used to size ADRs"],
+    ["dma50", "DMA 50", "$", "Technicals", ["50 dma", "50 day moving average", "sma 50", "dma50"], "50-day simple moving average of the close"],
+    ["dma200", "DMA 200", "$", "Technicals", ["200 dma", "200 day moving average", "sma 200", "dma200"], "200-day simple moving average of the close"],
+    ["golden_days", "Days since golden cross", "days", "Technicals", ["golden cross", "golden crossover", "days since golden crossover"], "Trading days since the 50 DMA crossed above the 200 DMA (0 = today). Empty if the 50 DMA is below the 200 DMA now"],
+    ["death_days", "Days since death cross", "days", "Technicals", ["death cross", "death crossover"], "Trading days since the 50 DMA crossed below the 200 DMA (0 = today). Empty if the 50 DMA is above the 200 DMA now"],
+    ["dma50_above", "DMA 50 above DMA 200", "", "Technicals", ["50 dma above 200 dma"], "1 if the 50 DMA is above the 200 DMA, otherwise 0"],
+    ["vs_dma200", "Price vs DMA 200", "%", "Technicals", ["distance from 200 dma", "price to 200 dma"], "% above (+) or below (−) the 200 DMA"],
+    ["vs_dma50", "Price vs DMA 50", "%", "Technicals", ["distance from 50 dma", "price to 50 dma"], "% above (+) or below (−) the 50 DMA"],
+    ["from_high", "Down from 52 week high", "%", "Technicals", ["52 week high", "below 52 week high"], "% below the highest close of the last 52 weeks (0 = at the high)"],
+    ["ret_3m", "Return over 3 months", "%", "Technicals", ["3 month return"], "Price change over the last 63 trading days"],
+    ["ret_1y", "Return over 1 year", "%", "Technicals", ["1 year return", "52 week return"], "Price change over the last 252 trading days"],
   ];
+
+  /* ---------- technicals from daily closes (oldest → newest) ---------- */
+  function technicals(c) {
+    const out = {};
+    if (!c || c.length < 50) return out;
+    const n = c.length, last = c[n - 1];
+    const sma = (len) => {                         // rolling simple average; null until enough bars
+      const a = new Array(n).fill(null); let s = 0;
+      for (let i = 0; i < n; i++) { s += c[i]; if (i >= len) s -= c[i - len]; if (i >= len - 1) a[i] = s / len; }
+      return a;
+    };
+    const s50 = sma(50), s200 = sma(200);
+    out.dma50 = s50[n - 1];
+    out.vs_dma50 = (last / s50[n - 1] - 1) * 100;
+    if (n >= 200) {
+      out.dma200 = s200[n - 1];
+      out.vs_dma200 = (last / s200[n - 1] - 1) * 100;
+      const up = s50[n - 1] > s200[n - 1];
+      out.dma50_above = up ? 1 : 0;
+      // walk back to the day the current state began; stays empty if it began before our history
+      let i = n - 1;
+      while (i > 0 && s200[i - 1] != null && (s50[i - 1] > s200[i - 1]) === up) i--;
+      const days = s200[i - 1] != null && i > 0 ? n - 1 - i : null;
+      out.golden_days = up ? days : null;
+      out.death_days = up ? null : days;
+    }
+    const yr = c.slice(-252);
+    out.from_high = (1 - last / Math.max(...yr)) * 100;
+    if (n > 63) out.ret_3m = (last / c[n - 64] - 1) * 100;
+    if (n > 252) out.ret_1y = (last / c[n - 253] - 1) * 100;
+    return out;
+  }
   const TEXT = ["name", "ticker", "exchange", "sector", "industry"];
 
   /* ---------- per-company row ---------- */
@@ -321,9 +363,12 @@
     ["Graham net-nets", "Price to NCAV < 1 AND Market Capitalization > 50"],
     ["Priced for no growth", "EPV upside > 0 AND Return on capital employed > 15"],
     ["Debt reducing", "Debt last year < Debt preceding year AND Debt preceding year > 0 AND Market Capitalization > 500"],
+    ["Golden cross (last 10 days)", "Days since golden cross <= 10 AND Market Capitalization > 1000"],
+    ["Death cross (last 10 days)", "Days since death cross <= 10 AND Market Capitalization > 1000"],
+    ["Uptrend near highs", "DMA 50 above DMA 200 = 1 AND Down from 52 week high < 5 AND Market Capitalization > 1000"],
   ];
 
-  const api = { FIELDS, TEXT, rowFor, compile, tokenize, resolve, suggest, PRESETS };
+  const api = { FIELDS, TEXT, rowFor, technicals, compile, tokenize, resolve, suggest, PRESETS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ScreenCore = api;
 })(typeof window !== "undefined" ? window : this);

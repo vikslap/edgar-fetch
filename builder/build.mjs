@@ -14,7 +14,7 @@
  *   TELEGRAM_BOT_TOKEN  optional; with TELEGRAM_CHAT_ID sends alerts
  *   TELEGRAM_CHAT_ID    optional
  *   SITE_URL            optional, e.g. https://edgar-fetch.you.workers.dev (links in alerts)
- *   For local testing:  FACTS_ZIP, SUBS_ZIP, TICKERS_FILE, PRICES_FILE, RATE, LIMIT, TELEGRAM_API
+ *   For local testing:  FACTS_ZIP, SUBS_ZIP, HISTORY_FILE, TICKERS_FILE, PRICES_FILE, RATE, LIMIT, TELEGRAM_API
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -90,6 +90,24 @@ async function yahooPrice(sym) {
     const p = j.chart.result[0].meta.regularMarketPrice;
     return p > 0 ? { price: p, sector: "", industry: "" } : null;
   } catch { return null; }
+}
+// ~2 years of daily closes per stock (for DMA / golden-cross fields). Gives up early if Yahoo blocks us.
+async function histories(tickers) {
+  if (env.HISTORY_FILE) return new Map(Object.entries(readJSON(env.HISTORY_FILE)));
+  const out = new Map(); let tried = 0;
+  for (let i = 0; i < tickers.length; i += 8) {
+    const got = await Promise.all(tickers.slice(i, i + 8).map(async (t) => {
+      try {
+        const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?range=2y&interval=1d`, { "User-Agent": BROWSER_UA }, 2);
+        return (j.chart.result[0].indicators.quote[0].close || []).filter((x) => x != null && x > 0);
+      } catch { return null; }
+    }));
+    got.forEach((c, k) => c && c.length && out.set(tickers[i + k], c));
+    tried += got.length;
+    if (tried >= 400 && out.size < tried * 0.1) { log(`Price history: Yahoo is refusing (${out.size}/${tried}); technical fields skipped tonight`); break; }
+    if (i % 1000 === 0) log(`  history ${i}/${tickers.length}`);
+  }
+  return out;
 }
 async function riskFree() {
   if (env.RATE) return parseFloat(env.RATE);
@@ -202,7 +220,7 @@ function eachCompany(zipPath, wanted, onFacts) {
 /* ---------- 4. one company -> one row ---------- */
 const FIELD_KEYS = SC.FIELDS.map((f) => f[0]);
 const round = (v) => (v == null || !isFinite(v) ? null : Math.abs(v) >= 1000 ? Math.round(v) : Math.abs(v) >= 10 ? Math.round(v * 100) / 100 : Math.round(v * 10000) / 10000);
-function rowFor(facts, meta, px, rf, rate) {
+function rowFor(facts, meta, px, rf, rate, closes) {
   const basis = core.detectBasis(facts);
   const adrShares = basis.foreign && px && px.mcapNasdaq > 0 && px.price > 0 ? px.mcapNasdaq / px.price / 1000 : null;
   const result = core.compute(facts, mapping, meta.ticker, { fx: rate, adrShares });
@@ -213,6 +231,7 @@ function rowFor(facts, meta, px, rf, rate) {
   const q = core.quality(result, rat, val, sic);
   const r = SC.rowFor(core, result, rat, val, q, { rf });
   r.mcap_quote = px && px.mcapNasdaq > 0 ? px.mcapNasdaq / 1e6 : null;
+  Object.assign(r, SC.technicals(closes));
   return { cells: [meta.name, meta.ticker, meta.exchange, sector, px ? px.industry : "", ...FIELD_KEYS.map((k) => round(r[k]))],
            warnings: result.warnings.length, row: r };
 }
@@ -285,7 +304,12 @@ async function main() {
   }
   const rf = await riskFree();
   log(`10y Treasury: ${rf}%`);
-  const zip = await factsZip();
+  // price history and the big SEC download run side by side
+  const [zip, hist] = await Promise.all([
+    factsZip(),
+    histories([...companies.values()].map((c) => c.ticker)).catch((e) => { log("Price history failed:", e.message); return new Map(); }),
+  ]);
+  log(`Price history: ${hist.size} stocks`);
 
   const limit = env.LIMIT ? parseInt(env.LIMIT, 10) : Infinity;
   const table = [], failures = [], noPrice = [];
@@ -299,7 +323,7 @@ async function main() {
     try { writeFactsSnap(meta.ticker, facts); snaps++; } catch (e) { log(`snapshot ${meta.ticker}: ${e.message}`); }
     try {
       const cur = core.detectBasis(facts).cur;
-      const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur));
+      const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur), hist.get(meta.ticker));
       table.push(r.cells);
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
