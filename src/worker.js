@@ -8,6 +8,7 @@
  *  - GET /api/rate             10-yr US Treasury yield
  *  - GET/PUT /api/user/:doc   your synced watchlist, saved screens and custom peers (stored in KV)
  *  - GET /api/fx/:CCY           USD per 1 unit of a currency (Yahoo, ECB via Frankfurter as fallback)
+ *  - GET /api/item1?url=…      anchor of "Item 1. Business" (10-K) / "Item 4. Information on the Company" (20-F)
  *  - GET /api/concalls/:ticker  earnings 8-Ks (Item 2.02) with their exhibits classified
  *  - GET /api/transcript/:ticker/:YYYYQn   earnings call transcript (Alpha Vantage), stored permanently
  *
@@ -47,6 +48,7 @@ export default {
       if ((m = p.match(new RegExp(`^/api/company/${SYM}$`))))
         return cached(`company/${m[1].toUpperCase()}`, 21600, ctx, url, () => company(env, m[1]));
       if ((m = p.match(new RegExp(`^/api/facts/${SYM}$`)))) return facts(env, ctx, url, m[1]);
+      if (p === "/api/item1") return item1(env, ctx, url);
       if ((m = p.match(new RegExp(`^/api/concalls/${SYM}$`))))
         return cached(`concalls/${m[1].toUpperCase()}`, 21600, ctx, url, () => concalls(env, m[1]));
       if ((m = p.match(new RegExp(`^/api/transcript/${SYM}/(\\d{4})Q([1-4])$`)))) {
@@ -141,6 +143,40 @@ async function company(env, sym) {
   };
 }
 
+
+
+/* ---------------- Item 1 (Business) anchor inside a 10-K / 20-F ---------------- */
+// Reads only the start of the document (the table of contents) to keep within the free CPU budget.
+async function item1(env, ctx, url) {
+  const doc = url.searchParams.get("url") || "";
+  if (!/^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\/\d+\/\d+\/[\w.\-]+\.html?$/i.test(doc)) return json({ error: "bad url" }, 400);
+  const ck = new Request(`https://edgar-cache/item1/${encodeURIComponent(doc)}`);
+  const hit = await caches.default.match(ck);
+  if (hit) return withCors(hit, "HIT");
+  const r = await fetch(doc, { headers: { "User-Agent": env.SEC_UA, "Accept-Encoding": "gzip, deflate" }, cf: { cacheTtl: 30 * 86400, cacheEverything: true } });
+  if (!r.ok) { const e = await secError("10-K", r); return json({ error: e.message }, e.status); }
+  // read the first ~400 KB
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let head = "";
+  while (head.length < 400000) { const { done, value } = await reader.read(); if (done) break; head += dec.decode(value, { stream: true }); }
+  try { await reader.cancel(); } catch {}
+  const is20F = /20-?F/i.test(head.slice(0, 20000)) && !/FORM\s+10-K/i.test(head.slice(0, 20000));
+  const label = is20F ? /Information\s+on\s+the\s+Company/i : /(?:Item\s*1\.?\s*(?:&#160;|&nbsp;|\s)*)?Business\b/i;
+  let anchor = null;
+  // table-of-contents links: <a href="#id">...Business...</a>  (text may be split by tags)
+  for (const m of head.matchAll(/<a\b[^>]*href="#([^"]+)"[^>]*>([\s\S]{0,300}?)<\/a>/gi)) {
+    const text = m[2].replace(/<[^>]+>/g, " ").replace(/&#160;|&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+    if (label.test(text) && !/risk|legal|propert|unresolved|cybersecurity|segment/i.test(text) && (is20F || /^(item\s*1\.?\s*)?business$/i.test(text) || /^item\s*1\b/i.test(text) || text.length < 20)) { anchor = m[1]; break; }
+    if (!anchor && /^item\s*1\.?$/i.test(text)) {     // "Item 1." in one cell, "Business" in the next: accept if Business follows soon after
+      const after = head.slice(m.index, m.index + 600).replace(/<[^>]+>/g, " ");
+      if (/Item\s*1\.?\s+Business/i.test(after.replace(/&#160;|&nbsp;|\s+/g, " "))) { anchor = m[1]; break; }
+    }
+  }
+  const body = { url: doc, anchor, link: anchor ? `${doc}#${anchor}` : `${doc}#:~:text=${encodeURIComponent(is20F ? "Information on the Company" : "Business")}`, section: is20F ? "Item 4. Information on the Company" : "Item 1. Business" };
+  const res = new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": "public, max-age=2592000" } });
+  ctx.waitUntil(caches.default.put(ck, res.clone()));
+  return withCors(res, "MISS");
+}
 
 /* ---------------- concalls: earnings 8-Ks and their exhibits ---------------- */
 async function concalls(env, sym) {

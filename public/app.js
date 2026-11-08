@@ -234,26 +234,73 @@
     $("keybox").innerHTML = items.map(([l, v, t], i) => `<div class="kr${Math.floor(i / 3) % 2 ? " z3" : ""}${Math.floor(i / 2) % 2 ? " z2" : ""}${i % 2 ? " z1" : ""}"${t ? ` title="${esc(t)}"` : ""}><span class="l">${esc(l)}</span><span class="v">${v}</span></div>`).join("");
   }
 
+  // ---- About: Wikipedia summary (matched by SEC CIK on Wikidata) + link to the 10-K's business section ----
+  const aboutX = { ticker: null, wiki: undefined, item1: null };
+  async function loadWiki(cik) {
+    const key = `edgar.wiki.${cik}`, c = store.get(key, null);
+    if (c && c.at > Date.now() - (c.data ? 30 : 7) * 86400000) return c.data;
+    let data = null;
+    try {
+      const q = `SELECT ?article WHERE { VALUES ?cik { "${cik}" "${String(parseInt(cik, 10))}" } ?item wdt:P5531 ?cik . ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . } LIMIT 3`;
+      const r = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(q)}`, { headers: { Accept: "application/sparql-results+json" } });
+      const art = r.ok && (await r.json()).results.bindings.map((x) => x.article.value)[0];
+      if (art) {
+        const title = decodeURIComponent(art.split("/wiki/")[1]);
+        const s2 = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+        const j = s2.ok ? await s2.json() : null;
+        if (j && j.extract && j.type !== "disambiguation") data = { title: j.title, extract: j.extract, url: (j.content_urls && j.content_urls.desktop && j.content_urls.desktop.page) || art };
+      }
+    } catch (e) { return c ? c.data : null; }                       // offline / blocked: keep any older copy
+    store.set(key, { at: Date.now(), data });
+    return data;
+  }
+  function latestAnnual() { return co && co.filings && co.filings.find((x) => /^(10-K|20-F|40-F)$/.test(x.form)); }
+  async function loadAboutExtras() {
+    const t = ticker; aboutX.ticker = t; aboutX.wiki = undefined; aboutX.item1 = null;
+    const cik = (co && co.cik) || (facts._meta && facts._meta.cik);
+    const tasks = [];
+    if (cik) tasks.push(loadWiki(String(cik).padStart(10, "0")).then((w) => { if (aboutX.ticker === t) aboutX.wiki = w; }));
+    const ar = latestAnnual();
+    if (ar && /\.html?$/i.test(ar.url)) tasks.push(api(`/api/item1?url=${encodeURIComponent(ar.url)}`).then(({ j }) => { if (aboutX.ticker === t) aboutX.item1 = j; }).catch(() => {}));
+    await Promise.all(tasks);
+    if (aboutX.ticker === ticker) drawAbout();
+  }
+
   function drawAbout() {
     const el = $("about");
     if (!co) { el.innerHTML = `<h3>About</h3><p class="muted">Company profile unavailable.</p>`; return; }
+    if (aboutX.ticker !== ticker) { aboutX.ticker = ticker; aboutX.wiki = undefined; loadAboutExtras(); }
     const fye = co.fiscalYearEnd ? new Date(`2001-${co.fiscalYearEnd.slice(0, 2)}-${co.fiscalYearEnd.slice(2)}T00:00:00Z`).toLocaleDateString("en-US", { day: "numeric", month: "long", timeZone: "UTC" }) : null;
     const latest = (f) => co.filings.find((x) => x.form === f || x.form === f + "/A");
-    const tenK = latest("10-K") || latest("20-F"), tenQ = latest("10-Q"), eightK = latest("8-K"), proxy = latest("DEF 14A");
+    const ar = latestAnnual(), tenQ = latest("10-Q"), eightK = latest("8-K"), proxy = latest("DEF 14A");
     const name = title(co.name);
-    let p = `${esc(name)} is ${co.category ? `a ${esc(co.category.toLowerCase())}` : "a company"} filing with the SEC under industry code ${esc(co.sic)} (<i>${esc(title(co.sicDescription || ""))}</i>).`;
-    if (co.stateOfIncorporation) p += ` Incorporated in ${esc(co.stateOfIncorporation)}`;
-    if (co.address) p += `${co.stateOfIncorporation ? ", headquartered" : " Headquartered"} at ${esc(title(co.address))}`;
+    const w = aboutX.wiki;
+    let desc;
+    if (w === undefined) desc = `<p class="muted">Loading description…</p>`;
+    else if (w) {
+      const sentences = w.extract.match(/[^.!?]+[.!?]+(\s|$)/g) || [w.extract];
+      const short = sentences.slice(0, 4).join("").trim(), more = sentences.length > 4;
+      desc = `<p class="wiki" id="wikiText">${esc(short)}${more ? ` <a href="#" id="wikiMore">more</a>` : ""}</p>
+        <p class="sub" style="margin-top:-8px">From <a href="${esc(w.url)}" target="_blank" rel="noopener">Wikipedia ↗</a> (CC BY-SA), matched by SEC ID. For the company's own description, see the annual report below.</p>`;
+    } else desc = `<p class="muted">No Wikipedia article is linked to this company's SEC ID. Its own description is in the annual report's business section below.</p>`;
+    let p = `${esc(name)} is ${co.category ? `a ${esc(co.category.toLowerCase())}` : "a company"} in SEC industry ${esc(co.sic)} (<i>${esc(title(co.sicDescription || ""))}</i>)`;
+    if (co.stateOfIncorporation) p += `, incorporated in ${esc(co.stateOfIncorporation)}`;
+    if (co.address) p += `, headquartered at ${esc(title(co.address))}`;
     p += ".";
     if (fye) p += ` Fiscal year ends ${fye}.`;
     if (co.formerNames && co.formerNames.length) p += ` Formerly ${co.formerNames.slice(0, 2).map((x) => esc(title(x))).join(", ")}.`;
-    const li = (f, lbl) => (f ? `<li><a href="${esc(f.url)}" target="_blank" rel="noopener">${lbl}</a> <span class="muted">· ${day(f.date)}</span></li>` : "");
-    el.innerHTML = `<h3>About</h3><p>${p}</p>
-      <p class="sub">The SEC feed has no business description. For what the company does, read Item 1 (Business) of the annual report linked below.</p>
+    const li = (f, lbl, href) => (f ? `<li><a href="${esc(href || f.url)}" target="_blank" rel="noopener">${lbl}</a> <span class="muted">· ${day(f.date)}</span></li>` : "");
+    const i1 = aboutX.item1;
+    const busHref = ar ? (i1 && i1.link) || `${ar.url}#:~:text=${encodeURIComponent(/20-F/.test(ar.form) ? "Information on the Company" : "Business")}` : null;
+    const busLbl = ar ? `Business description (${/20-F/.test(ar.form) ? "20-F Item 4" : /40-F/.test(ar.form) ? "40-F" : "10-K Item 1"}) ↗` : "";
+    el.innerHTML = `<h3>About</h3>${desc}<p class="sub" style="font-size:13.5px">${p}</p>
       <h3>Key filings</h3><ul>
-        ${li(tenK, `Annual report (${tenK ? esc(tenK.form) : ""})`)}${li(tenQ, "Latest quarterly report (10-Q)")}${li(eightK, "Latest announcement (8-K)")}${li(proxy, "Proxy statement (DEF 14A)")}
+        ${ar ? li(ar, busLbl, busHref) : ""}
+        ${li(ar, `Annual report (${ar ? esc(ar.form) : ""})`)}${li(tenQ, "Latest quarterly report (10-Q)")}${li(eightK, "Latest announcement (8-K)")}${li(proxy, "Proxy statement (DEF 14A)")}
         ${co.investorWebsite ? `<li><a href="${esc(co.investorWebsite)}" target="_blank" rel="noopener">Investor relations site</a></li>` : ""}
       </ul>`;
+    const mo = $("wikiMore");
+    if (mo && w) mo.onclick = (e) => { e.preventDefault(); $("wikiText").textContent = w.extract; };
   }
 
   function drawAlerts() {
