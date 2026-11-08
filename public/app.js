@@ -843,6 +843,8 @@
       { label: "Cost of sales %", vals: pctOf((c) => c.cogs), f: "pct", child: "exp", tip: "Includes depreciation charged to cost of sales" },
       { label: "SG&A %", vals: pctOf((c) => c.sga), f: "pct", child: "exp" },
       { label: "R&D %", vals: pctOf((c) => c.rnd), f: "pct", child: "exp" },
+      { label: "Less: depreciation %", vals: get((c) => (c.sales && c.dep ? (-c.dep / c.sales) * 100 : null)), f: "pct", child: "exp",
+        tip: "US companies include depreciation inside cost of sales and SG&A. Operating Profit here is before depreciation (EBITDA), so it is taken back out: the rows above add up to Expenses ÷ Sales." },
       { label: "Operating Profit", vals: get((c) => c.ebitda), strong: true, tip: "Before depreciation (EBITDA), like screener.in. If depreciation isn't reported for a period, this is EBIT." },
       { label: "OPM %", vals: get((c) => (c.sales ? (c.ebitda / c.sales) * 100 : null)), f: "pct" },
       { label: "Other Income", vals: get((c) => c.otherNet), tg: "oi" },

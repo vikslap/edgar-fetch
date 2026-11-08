@@ -284,6 +284,7 @@ table.cc button.rd{padding:4px 10px;font-size:13px}
 #wlTable .x{border:none;background:none;color:var(--muted);cursor:pointer;padding:0 6px}
 table.pl tbody tr:nth-child(even) td{background:none}
 table.pl td:nth-child(even):not(:first-child),table.pl th:nth-child(even):not(:first-child){background:var(--zebra)}
+table.pl tbody tr td:first-child,table.pl thead th:first-child{background:var(--card)}   /* sticky name cell must stay opaque when scrolled */
 table.pl tr.child td{font-size:13px;color:var(--muted)}
 table.pl tr.child td:first-child{padding-left:26px}
 table.pl tr.grow td{font-size:12px;padding-top:2px;padding-bottom:6px;border-bottom-color:transparent}
