@@ -1191,7 +1191,7 @@
     if (!facts) { tbl.innerHTML = `<tr><td class="muted">Search for a company first.</td></tr>`; return; }
     const rows = EdgarCore.listTags(facts, $("tagSearch").value.trim()).slice(0, 300);
     tbl.innerHTML = `<thead><tr><th>Tag</th><th>Latest FY end</th><th>Value</th><th>Since</th><th style="text-align:left">Label</th></tr></thead><tbody>` +
-      rows.map((r) => `<tr><td style="font-family:var(--mono);font-size:12.5px">${esc(r.tag)} <span class="muted">[${esc(r.unit)}${r.instant ? ", instant" : ""}]</span></td>
+      rows.map((r) => `<tr><td class="tagname">${esc(r.tag).replace(/([a-z0-9])(?=[A-Z])|:/g, (m) => m + "<wbr>")} <span class="muted" style="white-space:nowrap">[${esc(r.unit)}${r.instant ? ", instant" : ""}]</span></td>
         <td>${r.end}</td><td class="num ${r.val < 0 ? "neg" : ""}">${fmtNum(r.val)}</td><td>${r.since}</td><td style="text-align:left" class="muted">${esc(r.label)}</td></tr>`).join("") +
       (rows.length ? "" : `<tr><td class="muted">No tags match.</td></tr>`) + "</tbody>";
   }
