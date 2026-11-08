@@ -1,0 +1,59 @@
+name: Nightly screener build
+
+on:
+  schedule:
+    # 09:17 UTC = 14:47 IST, Tuesday–Saturday: after each US trading day and SEC's nightly bulk refresh
+    - cron: "17 9 * * 2-6"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["public/**", "src/**", "wrangler.toml", "builder/**"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: builder/package-lock.json
+
+      - name: Install builder
+        working-directory: builder
+        run: npm ci
+
+      - name: Build screener data and send Telegram alerts
+        run: node builder/build.mjs
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+
+      - name: Deploy website + fresh data to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Save alert state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/
+          if ! git diff --cached --quiet; then
+            git commit -m "Update screen alert state [skip ci]"
+            git push
+          fi

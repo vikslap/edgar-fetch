@@ -1,0 +1,7 @@
+{
+  "name": "edgar-fetch-builder",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "yauzl": "3.2.0" }
+}

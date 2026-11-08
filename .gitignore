@@ -1,0 +1,5 @@
+node_modules/
+public/data/
+.wrangler/
+__pycache__/
+python/edgar_cache/

@@ -1,0 +1,401 @@
+{
+  "_readme": "Each line item lists XBRL tags to try IN ORDER, per period; the first tag that has a value for that period wins. 'section': PL (P&L + Quarters, default), BS (balance sheet, annual), CF (cash flow, annual). 'components' = add several items together (each component is its own fallback list). 'optional' = write 0 quietly if the company doesn't report it. 'negate' = flip the sign. 'skip' = write 0 and don't fetch. 'label' must match column A of the Data Sheet exactly. Use 'overrides' to change anything for one ticker. Not sure which tag a company uses? Run:  python fetch_edgar.py TICKER --list-tags word",
+  "scale": 1000,
+  "items": {
+    "_PL": "---------------- PROFIT & LOSS (annual + quarterly) ----------------",
+    "sales": {
+      "label": "Sales",
+      "unit": "USD",
+      "tags": [
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        "RevenueFromContractWithCustomerIncludingAssessedTax",
+        "SalesRevenueNet",
+        "SalesRevenueGoodsNet",
+        "RevenuesNetOfInterestExpense"
+      ]
+    },
+    "cogs": {
+      "label": "Cost of sales (COGS)",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "CostOfRevenue",
+        "CostOfGoodsAndServicesSold",
+        "CostOfGoodsSold",
+        "CostOfServices"
+      ]
+    },
+    "sga": {
+      "label": "Selling, General & Admin (SGA)",
+      "unit": "USD",
+      "tags": [
+        "SellingGeneralAndAdministrativeExpense"
+      ],
+      "components": [
+        [
+          "SellingAndMarketingExpense",
+          "MarketingExpense",
+          "MarketingAndAdvertisingExpense",
+          "AdvertisingExpense",
+          "SellingExpense"
+        ],
+        [
+          "GeneralAndAdministrativeExpense"
+        ]
+      ]
+    },
+    "rnd": {
+      "label": "Research & Development (R&D)",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "ResearchAndDevelopmentExpense",
+        "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost",
+        "TechnologyAndDevelopmentExpense"
+      ]
+    },
+    "interest": {
+      "label": "Interest Expenses",
+      "unit": "USD",
+      "optional": true,
+      "_note": "SEC retired 'InterestExpense' in 2024; most filers moved to InterestExpenseNonoperating (or ...Operating for lenders).",
+      "tags": [
+        "InterestExpense",
+        "InterestExpenseNonoperating",
+        "InterestExpenseOperating",
+        "InterestExpenseDebt",
+        "InterestAndDebtExpense"
+      ]
+    },
+    "other_income": {
+      "label": "Other Income / Expenses",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "NonoperatingIncomeExpense",
+        "OtherNonoperatingIncomeExpense",
+        "InvestmentIncomeInterestAndDividend",
+        "InvestmentIncomeInterest"
+      ]
+    },
+    "other_nonop": {
+      "label": "Other Nonoperating Expenses",
+      "unit": "USD",
+      "plug": true,
+      "_note": "Not fetched. Calculated so your sheet's Pre-tax Income equals the reported figure: anything the rows above miss lands here. Positive = expense."
+    },
+    "tax": {
+      "label": "Income Tax Provision",
+      "unit": "USD",
+      "tags": [
+        "IncomeTaxExpenseBenefit"
+      ]
+    },
+    "shares_diluted": {
+      "label": "Shares outstanding (Diluted)",
+      "unit": "shares",
+      "additive": false,
+      "split_adjust": true,
+      "tags": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding",
+        "WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
+      ]
+    },
+    "_BS": "---------------- BALANCE SHEET (annual, as at year end) ----------------",
+    "cash": {
+      "section": "BS",
+      "label": "Cash & Equivalents",
+      "unit": "USD",
+      "tags": [
+        "CashAndCashEquivalentsAtCarryingValue",
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+        "Cash"
+      ]
+    },
+    "st_investments": {
+      "section": "BS",
+      "label": "Short-term Investments",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "ShortTermInvestments",
+        "MarketableSecuritiesCurrent",
+        "AvailableForSaleSecuritiesDebtSecuritiesCurrent"
+      ]
+    },
+    "receivables": {
+      "section": "BS",
+      "label": "Receivables",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "AccountsReceivableNetCurrent",
+        "ReceivablesNetCurrent",
+        "AccountsNotesAndLoansReceivableNetCurrent"
+      ]
+    },
+    "inventory": {
+      "section": "BS",
+      "label": "Inventory",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "InventoryNet",
+        "InventoryFinishedGoodsNetOfReserves"
+      ]
+    },
+    "current_assets": {
+      "section": "BS",
+      "label": "Total Current Assets",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "AssetsCurrent"
+      ]
+    },
+    "ppe": {
+      "section": "BS",
+      "label": "Net Property, Plant & Equipment",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "PropertyPlantAndEquipmentNet",
+        "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization"
+      ]
+    },
+    "goodwill": {
+      "section": "BS",
+      "label": "Goodwill",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "Goodwill"
+      ]
+    },
+    "intangibles": {
+      "section": "BS",
+      "label": "Intangible Assets",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "IntangibleAssetsNetExcludingGoodwill",
+        "FiniteLivedIntangibleAssetsNet"
+      ]
+    },
+    "total_assets": {
+      "section": "BS",
+      "label": "Total Assets",
+      "unit": "USD",
+      "tags": [
+        "Assets"
+      ]
+    },
+    "payables": {
+      "section": "BS",
+      "label": "Accounts Payable",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "AccountsPayableCurrent",
+        "AccountsPayableAndAccruedLiabilitiesCurrent"
+      ]
+    },
+    "current_liabilities": {
+      "section": "BS",
+      "label": "Total Current Liabilities",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "LiabilitiesCurrent"
+      ]
+    },
+    "st_debt": {
+      "section": "BS",
+      "label": "Short-term Debt",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "DebtCurrent",
+        "LongTermDebtCurrent",
+        "ShortTermBorrowings",
+        "ShortTermDebtAndCurrentPortionOfLongTermDebt"
+      ]
+    },
+    "lt_debt": {
+      "section": "BS",
+      "label": "Long-term Debt",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "LongTermDebtNoncurrent",
+        "LongTermDebt",
+        "LongTermDebtAndCapitalLeaseObligations",
+        "DebtInstrumentCarryingAmount"
+      ]
+    },
+    "total_liabilities": {
+      "section": "BS",
+      "label": "Total Liabilities",
+      "unit": "USD",
+      "tags": [
+        "Liabilities"
+      ]
+    },
+    "equity": {
+      "section": "BS",
+      "label": "Shareholders' Equity",
+      "unit": "USD",
+      "tags": [
+        "StockholdersEquity"
+      ]
+    },
+    "equity_total": {
+      "section": "BS",
+      "label": "Total Equity (incl. minority)",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+        "StockholdersEquity"
+      ]
+    },
+    "retained_earnings": {
+      "section": "BS",
+      "label": "Retained Earnings",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "RetainedEarningsAccumulatedDeficit"
+      ]
+    },
+    "shares_out": {
+      "section": "BS",
+      "label": "Shares Outstanding (year end)",
+      "unit": "shares",
+      "optional": true,
+      "split_adjust": true,
+      "tags": [
+        "CommonStockSharesOutstanding"
+      ]
+    },
+    "_CF": "---------------- CASH FLOW (annual) ----------------",
+    "cfo": {
+      "section": "CF",
+      "label": "Cash from Operating Activities",
+      "unit": "USD",
+      "tags": [
+        "NetCashProvidedByUsedInOperatingActivities",
+        "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+      ]
+    },
+    "capex": {
+      "section": "CF",
+      "label": "Capital Expenditure",
+      "unit": "USD",
+      "optional": true,
+      "_note": "Shown as a positive number (cash spent).",
+      "tags": [
+        "PaymentsToAcquirePropertyPlantAndEquipment",
+        "PaymentsToAcquireProductiveAssets",
+        "PaymentsForCapitalImprovements"
+      ]
+    },
+    "cfi": {
+      "section": "CF",
+      "label": "Cash from Investing Activities",
+      "unit": "USD",
+      "tags": [
+        "NetCashProvidedByUsedInInvestingActivities",
+        "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations"
+      ]
+    },
+    "cff": {
+      "section": "CF",
+      "label": "Cash from Financing Activities",
+      "unit": "USD",
+      "tags": [
+        "NetCashProvidedByUsedInFinancingActivities",
+        "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations"
+      ]
+    },
+    "dna": {
+      "section": "CF",
+      "label": "Depreciation & Amortization",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "DepreciationDepletionAndAmortization",
+        "DepreciationAmortizationAndAccretionNet",
+        "DepreciationAndAmortization",
+        "Depreciation"
+      ]
+    },
+    "sbc": {
+      "section": "CF",
+      "label": "Stock-based Compensation",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "ShareBasedCompensation",
+        "AllocatedShareBasedCompensationExpense"
+      ]
+    },
+    "dividends": {
+      "section": "CF",
+      "label": "Dividends Paid",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "PaymentsOfDividends",
+        "PaymentsOfDividendsCommonStock"
+      ]
+    },
+    "buybacks": {
+      "section": "CF",
+      "label": "Share Buybacks",
+      "unit": "USD",
+      "optional": true,
+      "tags": [
+        "PaymentsForRepurchaseOfCommonStock"
+      ]
+    }
+  },
+  "checks": {
+    "pretax": [
+      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments",
+      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic"
+    ],
+    "net_income": [
+      "NetIncomeLoss",
+      "ProfitLoss",
+      "NetIncomeLossAvailableToCommonStockholdersBasic"
+    ]
+  },
+  "overrides": {
+    "NFLX": {
+      "_note": "Netflix 10-for-1 split, Nov 2025. Share counts in filings made before this date get multiplied by 10. Confirm the date.",
+      "splits": [
+        [
+          "2025-11-14",
+          10
+        ]
+      ]
+    },
+    "SOFI": {
+      "_note": "Lender: reported revenue is 'net revenue' (already after interest expense), so don't subtract interest again. Provision for credit losses ends up in the plug row.",
+      "items": {
+        "interest": {
+          "skip": true
+        },
+        "sales": {
+          "tags": [
+            "RevenuesNetOfInterestExpense",
+            "Revenues"
+          ]
+        }
+      }
+    }
+  }
+}

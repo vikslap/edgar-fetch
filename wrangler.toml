@@ -1,0 +1,9 @@
+name = "edgar-fetch"
+main = "src/worker.js"
+compatibility_date = "2025-06-01"
+
+# The web page (public/) is served as static assets; anything not found there
+# (i.e. /api/...) goes to src/worker.js
+[assets]
+directory = "./public"
+not_found_handling = "none"
