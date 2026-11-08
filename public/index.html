@@ -252,6 +252,26 @@ table.res td .tk{color:var(--muted);font-size:12px;margin-left:6px}
 table.res tr.self td{font-weight:600;background:var(--accent-soft)}
 table.res tr.med td{font-weight:600;border-top:2px solid var(--line)}
 
+
+/* concalls */
+table.cc td,table.cc th{text-align:left}
+table.cc td:first-child{min-width:150px}
+table.cc a.doc{display:inline-flex;gap:5px;align-items:center;margin-right:12px;white-space:nowrap}
+table.cc .tag{font-size:11px;padding:1px 6px;border-radius:4px;background:var(--soft);color:var(--muted);margin-left:4px}
+table.cc button.rd{padding:4px 10px;font-size:13px}
+.reader{position:fixed;inset:0;background:rgba(10,14,20,.55);z-index:40;display:flex;align-items:stretch;justify-content:center;padding:24px}
+.reader[hidden]{display:none}
+.rd-box{background:var(--card);border-radius:12px;max-width:920px;width:100%;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+.rd-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.rd-body{overflow:auto;padding:8px 20px 30px;font-size:15.5px;line-height:1.7}
+.rd-body .sp{margin-top:18px}
+.rd-body .who{font-weight:600}
+.rd-body .who small{color:var(--muted);font-weight:400;margin-left:6px}
+.rd-body p{margin:4px 0 0;white-space:pre-wrap}
+.rd-body mark{background:#ffe58a;color:#1b1f24;border-radius:2px}
+.rd-body mark.cur{background:#ffb84d}
+@media (max-width:640px){ .reader{padding:0} .rd-box{border-radius:0} }
+
 /* documents */
 .docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:12px}
 .docs h3{font-size:15px;margin:0 0 8px;font-weight:600}
@@ -308,6 +328,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
       <a href="#sec-BALANCE">Balance Sheet</a>
       <a href="#sec-CASH">Cash Flow</a>
       <a href="#ratios">Ratios</a>
+      <a href="#concalls">Concalls</a>
       <a href="#documents">Documents</a>
       <a href="#data">Data tools</a>
       <span class="spacer"></span>
@@ -403,6 +424,12 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
 
     <div id="tables"></div>
 
+    <section class="card" id="concalls">
+      <h2>Concalls</h2>
+      <div class="sub" id="ccSub">Earnings releases filed with the SEC (8-K, Item 2.02) and their attachments, newest first.</div>
+      <div class="tbl-wrap"><table id="ccTable" class="cc"></table></div>
+    </section>
+
     <section class="card" id="documents">
       <h2>Documents</h2>
       <div class="sub">Filings on SEC EDGAR, newest first. Opens the filing on sec.gov.</div>
@@ -486,6 +513,15 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
   </section>
 </main>
 <div id="tip"></div>
+<div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="rdTitle">
+  <div class="rd-box">
+    <div class="rd-head">
+      <div><h2 id="rdTitle">Transcript</h2><div class="sub" id="rdSub"></div></div>
+      <div class="row" style="margin:0"><input id="rdFind" placeholder="Find in transcript" style="width:200px"><span class="sub" id="rdCount"></span><button id="rdClose" aria-label="Close">✕</button></div>
+    </div>
+    <div class="rd-body" id="rdBody"></div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="core.js"></script>

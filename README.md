@@ -46,6 +46,17 @@ Actions → **Nightly screener build** → **Run workflow**. It takes about 15�
 
 > Deploy through GitHub from now on. A manual `wrangler deploy` from your PC would publish the site without `public/data/screener.json` (it isn't committed), and Screens would be empty until the next nightly run.
 
+## Concall transcripts (optional)
+
+The **Concalls** section on every company page lists each quarter's earnings release from SEC filings (press release, shareholder letter, slides, and any transcript the company filed). That part works with no setup.
+
+To read call transcripts inside the page:
+1. Get a free key at https://www.alphavantage.co/support/#api-key (about 25 transcripts a day).
+2. Cloudflare → Workers & Pages → **edgar-fetch** → Settings → Variables and Secrets → **Add** → type *Secret*, name `ALPHAVANTAGE_KEY`, paste the key.
+3. To keep every transcript permanently (so reopening one costs no request): Storage & databases → **Workers KV** → Create namespace `edgar-fetch-transcripts`, copy its **ID**, and paste it into the commented block at the bottom of `wrangler.toml` (uncomment the three lines). Commit; the workflow redeploys.
+
+Transcripts are only fetched when you click **Read**, never when a page opens. Each one is stored compressed (about 20 KB), so the free 1 GB holds tens of thousands.
+
 ## Alert screens
 
 Edit `screens.json` (the **Copy for Telegram alerts** button on the Screens page gives you a ready line):

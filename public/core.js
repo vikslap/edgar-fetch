@@ -728,6 +728,25 @@
   }
 
 
+
+  /* ---------- fiscal quarter labels: period end -> {fy, fq} from the filings themselves ---------- */
+  function fiscalPeriods(facts, cfg) {
+    const tags = [...((cfg.items && cfg.items.sales && cfg.items.sales.tags) || []), "NetIncomeLoss", "OperatingIncomeLoss"];
+    const best = new Map();
+    for (const tag of tags) {
+      const node = ((facts.facts || {})["us-gaap"] || {})[tag];
+      for (const f of (node && node.units && node.units.USD) || []) {
+        if (!f.start || !f.fp || !f.fy || !FORMS.has(f.form)) continue;
+        const k = kind(f.start, f.end);
+        const isQ = k === "Q" && /^Q[1-3]$/.test(f.fp), isFY = k === "FY" && f.fp === "FY";
+        if (!isQ && !isFY) continue;
+        const cur = best.get(f.end);
+        if (!cur || f.filed < cur.filed) best.set(f.end, { fy: f.fy, fq: isFY ? 4 : +f.fp[1], filed: f.filed });   // original filing wins
+      }
+    }
+    return best;
+  }
+
   /* ---------- other valuation models ----------
      All per-share values in USD. Shared inputs: r (discount / cost of equity, decimal), gT (terminal growth),
      g (DCF growth yrs 1–5), sbc (subtract SBC from FCF), rf (10y Treasury, %). */
@@ -820,7 +839,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { compute, ratios, valuation, quality, prosCons, models, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);

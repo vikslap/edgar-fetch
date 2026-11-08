@@ -142,7 +142,7 @@
     $("empty").hidden = true; $("result").hidden = view !== "company"; $("subnav").hidden = view !== "company";
     $("navName").textContent = shortName(result.name);
     $("priceIn").value = store.get("edgar.price." + ticker, "");
-    drawAll(); drawTables(); drawDocs(); drawTags();
+    drawAll(); drawTables(); drawDocs(); drawConcalls(); drawTags();
     document.title = `${ticker} · ${result.name} · EDGAR Fetch`;
   }
   const shortName = (n) => n.replace(/,?\s+(INC|CORP|CORPORATION|CO|LTD|PLC|HOLDINGS|GROUP|N\.?V\.?|S\.?A\.?)\.?$/i, "").slice(0, 24);
@@ -716,6 +716,91 @@
     return `<section class="card" id="ratios"><h2>Ratios</h2>
       <div class="sub">EBIT = Sales − COGS − SG&amp;A − R&amp;D. ROE and ROCE use average equity / capital employed. TTM = last 4 quarters.</div>
       <div class="tbl-wrap"><table><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }
+
+
+  // ---------------- concalls ----------------
+  let ccData = null;
+  async function drawConcalls() {
+    const forTicker = ticker;
+    $("ccTable").innerHTML = `<tr><td class="muted">Loading earnings filings…</td></tr>`;
+    let j;
+    try { j = (await api(`/api/concalls/${encodeURIComponent(ticker)}`)).j; }
+    catch (e) { if (forTicker === ticker) $("ccTable").innerHTML = `<tr><td class="err">Couldn't load earnings filings: ${esc(e.message)}</td></tr>`; return; }
+    if (forTicker !== ticker) return;
+    ccData = j;
+    const fps = EdgarCore.fiscalPeriods(facts, mapping);
+    const ends = [...fps.keys()].sort();
+    const qFor = (date) => {        // the latest fiscal period that ended before the release, within ~4 months
+      let best = null;
+      for (const e of ends) if (e < date && (Date.parse(date) - Date.parse(e)) / 86400000 <= 125) best = e;
+      return best ? { end: best, ...fps.get(best) } : null;
+    };
+    if (!j.calls.length) { $("ccTable").innerHTML = `<tr><td class="muted">No earnings releases (8-K Item 2.02) found in recent filings.</td></tr>`; return; }
+    const KIND = { press: "Press release", letter: "Shareholder letter", remarks: "Prepared remarks", transcript: "Transcript", slides: "Slides", supplement: "Supplement", other: "Other", filing: "8-K filing" };
+    const ORDER = ["press", "letter", "remarks", "slides", "supplement", "transcript", "other", "filing"];
+    const ir = j.investorWebsite ? (/^https?:/.test(j.investorWebsite) ? j.investorWebsite : "https://" + j.investorWebsite) : null;
+    const name = title(result.name).replace(/,?\s+(Inc|Corp|Co|Ltd|Plc)\.?$/i, "");
+    $("ccTable").innerHTML = `<thead><tr><th>Quarter</th><th>Released</th><th>Documents filed with the SEC</th><th>Call transcript</th></tr></thead><tbody>` +
+      j.calls.map((c, i) => {
+        const q = qFor(c.date);
+        const label = q ? `Q${q.fq} FY${q.fy}` : "Results";
+        const sub = q ? `<div class="sub">quarter ended ${mon(q.end)}</div>` : "";
+        const docs = [...c.docs].sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
+        const seen = {};
+        const links = docs.map((d) => { seen[d.kind] = (seen[d.kind] || 0) + 1; const n = seen[d.kind] > 1 ? ` ${seen[d.kind]}` : "";
+          return `<a class="doc" href="${esc(d.url)}" target="_blank" rel="noopener" title="${esc(d.desc || d.type)}">${KIND[d.kind]}${n}<span class="tag">${esc(d.type)}</span></a>`; }).join("");
+        const filedTranscript = docs.find((d) => d.kind === "transcript");
+        const search = `https://www.google.com/search?q=${encodeURIComponent(`${name} ${q ? `Q${q.fq} ${q.fy}` : c.date.slice(0, 4)} earnings call transcript`)}`;
+        const tr = (q ? `<button class="rd" data-i="${i}" data-q="${q.fy}Q${q.fq}" data-l="${esc(label)}">Read</button> ` : "") +
+          (filedTranscript ? `<a class="doc" href="${esc(filedTranscript.url)}" target="_blank" rel="noopener">Filed copy</a>` : "") +
+          `<a class="doc" href="${search}" target="_blank" rel="noopener" title="Search the web for this call's transcript">Search ↗</a>` +
+          (ir && i === 0 ? `<a class="doc" href="${esc(ir)}" target="_blank" rel="noopener" title="Webcast replays are usually here">IR site ↗</a>` : "") +
+          `<div class="sub cc-msg" id="ccMsg${i}"></div>`;
+        return `<tr><td><b>${label}</b>${sub}</td><td>${day(c.date)}<div class="sub"><a href="${esc(c.index)}" target="_blank" rel="noopener">filing index</a></div></td><td>${links}</td><td>${tr}</td></tr>`;
+      }).join("") + "</tbody>";
+    $("ccTable").querySelectorAll("button.rd").forEach((b) => (b.onclick = () => openTranscript(b.dataset.q, b.dataset.l, +b.dataset.i, b)));
+  }
+
+  async function openTranscript(quarter, label, i, btn) {
+    const msg = $(`ccMsg${i}`);
+    btn.disabled = true; msg.textContent = "Fetching transcript…";
+    try {
+      const r = await fetch(`/api/transcript/${encodeURIComponent(ticker)}/${quarter}`, { headers: headers() });
+      const j = await r.json().catch(() => ({}));
+      if (j.error === "nokey") { msg.innerHTML = "In-page transcripts need a free Alpha Vantage key on the Worker (see README). Use the search link for now."; return; }
+      if (j.error === "limit") { msg.innerHTML = "Today's free transcript limit (about 25) is used up. It resets tomorrow; saved transcripts still open. Use the search link meanwhile."; return; }
+      if (!r.ok) { msg.textContent = `Couldn't fetch: ${j.detail || j.error || r.status}`; return; }
+      if (j.empty || !j.transcript || !j.transcript.length) { msg.textContent = "No transcript available from the provider for this quarter. Try the search link."; return; }
+      msg.textContent = j.stored ? "✓ Saved in your library" : j.storeError ? "Shown, but couldn't be saved (storage full?)" : "";
+      showReader(j, label);
+    } catch (e) { msg.textContent = "Couldn't fetch: " + e.message; }
+    finally { btn.disabled = false; }
+  }
+  function showReader(j, label) {
+    $("rdTitle").textContent = `${title(result.name)} · ${label} earnings call`;
+    $("rdSub").textContent = `${j.transcript.length} speaker turns · source: ${j.source}${j.quarter ? ` (${j.quarter})` : ""}`;
+    $("rdBody").innerHTML = j.transcript.map((t) => `<div class="sp"><div class="who">${esc(t.speaker)}${t.title ? `<small>${esc(t.title)}</small>` : ""}</div><p>${esc(t.content)}</p></div>`).join("");
+    $("rdBody").dataset.raw = $("rdBody").innerHTML;
+    $("rdFind").value = ""; $("rdCount").textContent = "";
+    $("reader").hidden = false; document.body.style.overflow = "hidden"; $("rdBody").scrollTop = 0; $("rdFind").focus();
+  }
+  function closeReader() { $("reader").hidden = true; document.body.style.overflow = ""; }
+  $("rdClose").onclick = closeReader;
+  $("reader").onclick = (e) => { if (e.target === $("reader")) closeReader(); };
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("reader").hidden) closeReader(); });
+  let findIdx = 0;
+  $("rdFind").addEventListener("input", () => { findIdx = 0; highlight(); });
+  $("rdFind").addEventListener("keydown", (e) => { if (e.key === "Enter") { findIdx++; highlight(); } });
+  function highlight() {
+    const body = $("rdBody"), q = $("rdFind").value.trim();
+    body.innerHTML = body.dataset.raw;
+    if (q.length < 2) { $("rdCount").textContent = ""; return; }
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    body.querySelectorAll("p, .who").forEach((el) => { el.innerHTML = el.innerHTML.replace(/(^|>)([^<]+)/g, (m, a, txt) => a + txt.replace(rx, (x) => `<mark>${x}</mark>`)); });
+    const marks = body.querySelectorAll("mark");
+    $("rdCount").textContent = marks.length ? `${(findIdx % marks.length) + 1} of ${marks.length}` : "0 found";
+    if (marks.length) { const m = marks[findIdx % marks.length]; m.classList.add("cur"); m.scrollIntoView({ block: "center" }); }
   }
 
   // ---------------- documents ----------------
