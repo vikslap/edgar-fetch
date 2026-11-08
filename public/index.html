@@ -29,6 +29,10 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 
 /* top bar */
 .topbar{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.fresh{font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.fresh::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:#1baf7a;vertical-align:1px}
+.fresh.stale{color:#b45309;border-color:#f3c98b;background:#fff7ed}
+.fresh.stale::before{background:#eb6834}
 .topin{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center}
 .brand{font-weight:600;font-size:20px;letter-spacing:-.2px;white-space:nowrap;cursor:pointer}
 .brand span{color:var(--accent)}
@@ -325,6 +329,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
   <div class="topin">
     <div class="brand" id="home">EDGAR<span>·</span>Fetch</div>
     <nav class="toplinks"><a href="?view=screens" id="lnkScreens">Screens</a><a href="?view=watchlist" id="lnkWatch">Watchlist</a></nav>
+    <span id="fresh" class="fresh" hidden></span>
     <div class="spacer"></div>
     <form class="search" id="searchForm" autocomplete="off">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>

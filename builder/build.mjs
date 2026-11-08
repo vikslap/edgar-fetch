@@ -331,6 +331,7 @@ async function main() {
   });
   log(`Facts snapshots: ${snaps}`);
   // company profile + filings list for the same companies (SEC bulk submissions file)
+  let coSnaps = 0;
   try {
     const built = new Date().toISOString().slice(0, 10);
     let n = 0;
@@ -340,7 +341,7 @@ async function main() {
       fs.writeFileSync(path.join(SNAP, "c", `${meta.ticker}.json`), JSON.stringify(companySnap(s, cik, built)));
       n++;
     });
-    log(`Company snapshots: ${n}`);
+    log(`Company snapshots: ${n}`); coSnaps = n;
   } catch (e) { log("Company snapshots skipped:", e.message); }
   table.sort((a, b) => (b[5 + FIELD_KEYS.indexOf("mcap")] || 0) - (a[5 + FIELD_KEYS.indexOf("mcap")] || 0));
   log(`Rows: ${table.length}, failed: ${failures.length}, without price: ${noPrice.length}`);
@@ -364,8 +365,11 @@ async function main() {
   fs.mkdirSync(path.join(ROOT, "state"), { recursive: true });
   const byReason = {};
   for (const [t, why] of failures) { const k = why.replace(/\. Use the tag explorer.*$/, "").slice(0, 80); (byReason[k] = byReason[k] || []).push(t); }
+  const stats = { built: out.built, listed: companies.size, rows: table.length, failed: failures.length, prices: prices.size,
+    history: hist.size, factsSnaps: snaps, companySnaps: coSnaps, minutes: Math.round((Date.now() - t0) / 60000) };
+  fs.writeFileSync(path.join(ROOT, "public/data/status.json"), JSON.stringify(stats));   // shown on the site
   fs.writeFileSync(path.join(ROOT, "state/build_log.json"), JSON.stringify({
-    built: out.built, rows: table.length, failedCount: failures.length, noPrice: noPrice.length,
+    ...stats, failedCount: failures.length, noPrice: noPrice.length,
     failedByReason: Object.fromEntries(Object.entries(byReason).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => [k, { count: v.length, tickers: v.join(" ") }])),
     noPriceTickers: noPrice.join(" "),
   }, null, 1));

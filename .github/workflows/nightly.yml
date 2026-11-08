@@ -34,6 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build screener data and send Telegram alerts
+        id: build
         run: node builder/build.mjs
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
@@ -42,6 +43,7 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
 
       - name: Deploy website + fresh data to Cloudflare
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -57,3 +59,15 @@ jobs:
             git commit -m "Update screen alert state [skip ci]"
             git push
           fi
+
+      - name: Report the run on Telegram
+        if: always()
+        run: node builder/notify.mjs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BUILD: ${{ steps.build.outcome }}
+          DEPLOY: ${{ steps.deploy.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRIGGER: ${{ github.event_name }}
+          SITE_URL: ${{ vars.SITE_URL }}

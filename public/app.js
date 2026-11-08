@@ -60,6 +60,27 @@
   $("priceSave").onclick = () => { if (!ticker) return; store.set("edgar.price." + ticker, $("priceIn").value.trim()); drawAll(); };
   $("home").onclick = () => { history.replaceState(null, "", location.pathname); location.reload(); };
 
+  // ---------------- data freshness (from the nightly build) ----------------
+  // Runs are scheduled 09:17 UTC Tue–Sat and take under an hour; stale = the last scheduled run's data is missing.
+  function lastScheduled(now) {
+    const d = new Date(now);
+    for (let i = 0; i < 8; i++) {
+      const c = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - i, 9, 17));
+      if (c.getUTCDay() >= 2 && c.getUTCDay() <= 6 && c.getTime() + 3 * 3600000 <= now) return c.getTime();
+    }
+    return now - 7 * 86400000;
+  }
+  fetch("/data/status.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((st) => {
+    if (!st || !st.built) return;
+    const built = Date.parse(st.built), stale = built < lastScheduled(Date.now()) - 3600000;
+    const el = $("fresh");
+    el.textContent = `Data ${new Date(built).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    el.classList.toggle("stale", stale);
+    el.title = (stale ? "The last scheduled nightly update didn't arrive. Check GitHub → Actions.\n" : "Nightly update arrived on schedule.\n") +
+      `Built ${new Date(built).toLocaleString()} · ${st.rows?.toLocaleString?.() ?? st.rows} companies · price history ${st.history ?? "?"} · saved copies ${st.factsSnaps ?? "?"}`;
+    el.hidden = false;
+  }).catch(() => {});
+
   // ---------------- search with company-name typeahead ----------------
   // Company list for suggestions. First the static file the nightly build writes (no access key or
   // live SEC call needed), then the API. A failure is not remembered, so the next keystroke retries.

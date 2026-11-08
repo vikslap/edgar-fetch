@@ -49,6 +49,11 @@ Actions → **Nightly screener build** → **Run workflow**. It takes about 15�
 
 > Deploy through GitHub from now on. A manual `wrangler deploy` from your PC would publish the site without `public/data/screener.json` (it isn't committed), and Screens would be empty until the next nightly run.
 
+## Is the nightly update working?
+- **Telegram:** after every run, @SP500Filings_bot sends ✅ (with counts), ⚠️ (finished but something is thin, e.g. Yahoo refused price history) or ❌ (which step failed, with a link to the log). No message on a weekday evening means the run didn't start: check Actions.
+- **On the site:** the "Data Nov 8" label in the top bar is green when the last scheduled run (09:17 UTC, Tue–Sat) arrived, and turns amber when it didn't. Hover it for the counts.
+- GitHub turns off scheduled workflows in repositories with no activity for 60 days. The run commits `state/build_log.json` every time, which counts as activity.
+
 ## Where company pages get their data
 SEC often refuses requests from Cloudflare's shared servers (HTTP 403), sometimes for hours. So the nightly build also saves every listed company's financials and filings list from SEC's bulk files into `public/data/snap/`, and company pages load from that copy (up to a day old, no SEC request). The Worker asks SEC live only when a company isn't in the copy (e.g. OTC stocks) or when **Bypass the cache** is ticked in Settings, and falls back to the copy if SEC refuses.
 
