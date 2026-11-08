@@ -45,8 +45,13 @@ export default {
       if (p === "/api/tickers")
         return cached("tickers", 86400, ctx, url, async () =>
           Object.values(await tickerList(env)).map((v) => [v.ticker, v.title]));
-      if ((m = p.match(new RegExp(`^/api/company/${SYM}$`))))
-        return cached(`company/${m[1].toUpperCase()}`, 21600, ctx, url, () => company(env, m[1]));
+      if ((m = p.match(new RegExp(`^/api/company/${SYM}$`)))) {
+        const t = m[1].toUpperCase().replace(".", "-"), fresh = url.searchParams.get("fresh") === "1";
+        if (!fresh) { const s = await snapCompany(env, url, t, "snapshot"); if (s) return s; }
+        const res = await cached(`company/${m[1].toUpperCase()}`, 21600, ctx, url, () => company(env, m[1]));
+        if (!res.ok) { const s = await snapCompany(env, url, t, "fallback"); if (s) return s; }
+        return res;
+      }
       if ((m = p.match(new RegExp(`^/api/facts/${SYM}$`)))) return facts(env, ctx, url, m[1]);
       if (p === "/api/item1") return item1(env, ctx, url);
       if ((m = p.match(new RegExp(`^/api/concalls/${SYM}$`))))
@@ -98,21 +103,52 @@ async function cikFor(env, sym) {
 
 async function facts(env, ctx, url, sym) {
   const ticker = sym.toUpperCase().replace(".", "-");
+  const fresh = url.searchParams.get("fresh") === "1";
   const cacheKey = new Request(`https://edgar-cache/facts/${ticker}`);
-  if (url.searchParams.get("fresh") !== "1") {
+  if (!fresh) {
     const hit = await caches.default.match(cacheKey);
     if (hit) return withCors(hit, "HIT");
+    // last night's copy from the bulk file: no SEC request, so no Cloudflare-address refusals
+    const s = await snapFacts(env, url, ticker, "snapshot");
+    if (s) return s;
   }
-  const cik = await cikFor(env, ticker);
-  const r = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, env.SEC_UA, 0);
-  if (r.status === 404) return json({ error: `${ticker} has no XBRL financial data on EDGAR` }, 404);
-  if (!r.ok) { const e = await secError("companyfacts", r); return json({ error: e.message }, e.status); }
-  const out = new Response(r.body, {
-    headers: { "content-type": "application/json", "cache-control": "public, max-age=21600",
-               "x-cik": cik, "x-fetched": new Date().toISOString() },
-  });
-  ctx.waitUntil(caches.default.put(cacheKey, out.clone()));
-  return withCors(out, "MISS");
+  try {
+    const cik = await cikFor(env, ticker);
+    const r = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, env.SEC_UA, 0);
+    if (r.status === 404) return json({ error: `${ticker} has no XBRL financial data on EDGAR` }, 404);
+    if (!r.ok) throw await secError("companyfacts", r);
+    const out = new Response(r.body, {
+      headers: { "content-type": "application/json", "cache-control": "public, max-age=21600",
+                 "x-cik": cik, "x-fetched": new Date().toISOString(), "x-source": "live" },
+    });
+    ctx.waitUntil(caches.default.put(cacheKey, out.clone()));
+    return withCors(out, "MISS");
+  } catch (e) {
+    const s = await snapFacts(env, url, ticker, "fallback");
+    if (s) return s;
+    return json({ error: e.message }, e.status || 502);
+  }
+}
+
+/* ---------- nightly snapshot (public/data/snap, written by builder/build.mjs) ---------- */
+async function snapAsset(env, url, p) {
+  if (!env.ASSETS) return null;
+  try { const r = await env.ASSETS.fetch(new Request(new URL(p, url))); return r.ok ? r : null; } catch { return null; }
+}
+async function snapCompany(env, url, t, source) {
+  const r = await snapAsset(env, url, `/data/snap/c/${t}.json`);
+  if (!r) return null;
+  return new Response(r.body, { headers: { ...cors(), "content-type": "application/json", "x-source": source } });
+}
+async function snapFacts(env, url, t, source) {
+  const [rf, rc] = await Promise.all([snapAsset(env, url, `/data/snap/f/${t}.json.gz`), snapAsset(env, url, `/data/snap/c/${t}.json`)]);
+  if (!rf) return null;
+  let c = null;
+  try { if (rc) c = await rc.json(); } catch {}
+  const h = { ...cors(), "content-type": "application/json", "x-cik": (c && c.cik) || "", "x-fetched": (c && c.snapshot) || "", "x-source": source };
+  // the file is gzip bytes: pass them through untouched (no CPU spent decompressing)
+  if (/gzip/i.test(rf.headers.get("content-encoding") || "")) return new Response(rf.body, { headers: h });
+  return new Response(rf.body, { headers: { ...h, "content-encoding": "gzip" }, encodeBody: "manual" });
 }
 
 const KEEP_FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "DEF 14A", "20-F", "40-F", "6-K", "S-1", "10-KT"]);
@@ -411,7 +447,7 @@ function cors() {
     "access-control-allow-origin": "*",
     "access-control-allow-headers": "x-access-key, content-type",
     "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
-    "access-control-expose-headers": "x-cik, x-fetched, x-cache",
+    "access-control-expose-headers": "x-cik, x-fetched, x-cache, x-source",
   };
 }
 function withCors(res, state) {

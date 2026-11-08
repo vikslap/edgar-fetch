@@ -15,7 +15,9 @@ GitHub Actions (nightly, 14:47 IST Tue–Sat)
     ├─ Nasdaq screener download            → price + sector for every stock (Yahoo fallback)
     ├─ SEC companyfacts.zip (~1 GB)        → every company's XBRL financials
     ├─ public/core.js + screen-core.js     → same maths as the website
+    ├─ SEC submissions.zip                 → filings list per company
     ├─ public/data/screener.json           → the screener table (deployed, not committed)
+    ├─ public/data/snap/                   → per-company copy the site reads first
     └─ screens.json + state/               → Telegram alerts on changes
   wrangler deploy                          → website + fresh data to Cloudflare
 ```
@@ -45,6 +47,9 @@ And under the **Variables** tab: `SITE_URL` = your Worker address, e.g. `https:/
 Actions → **Nightly screener build** → **Run workflow**. It takes about 15–25 minutes. You'll get a "tracking started" Telegram message for each alert screen. After that you only hear about changes.
 
 > Deploy through GitHub from now on. A manual `wrangler deploy` from your PC would publish the site without `public/data/screener.json` (it isn't committed), and Screens would be empty until the next nightly run.
+
+## Where company pages get their data
+SEC often refuses requests from Cloudflare's shared servers (HTTP 403), sometimes for hours. So the nightly build also saves every listed company's financials and filings list from SEC's bulk files into `public/data/snap/`, and company pages load from that copy (up to a day old, no SEC request). The Worker asks SEC live only when a company isn't in the copy (e.g. OTC stocks) or when **Bypass the cache** is ticked in Settings, and falls back to the copy if SEC refuses.
 
 ## Concall transcripts (optional)
 

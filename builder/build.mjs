@@ -5,7 +5,8 @@
  *   2. Prices + sector for every US-listed stock (Nasdaq screener download; Yahoo fallback)
  *   3. SEC bulk companyfacts.zip, streamed one company at a time
  *   4. Same calculations as the website (public/core.js + public/screen-core.js)
- *   5. Writes public/data/screener.json, state/build_log.json
+ *   5. Writes public/data/screener.json, tickers.json, state/build_log.json, and a per-company
+ *      snapshot (public/data/snap/) the site serves when SEC refuses Cloudflare's servers
  *   6. Runs alert screens from screens.json and messages Telegram on changes
  *
  * Env:
@@ -13,7 +14,7 @@
  *   TELEGRAM_BOT_TOKEN  optional; with TELEGRAM_CHAT_ID sends alerts
  *   TELEGRAM_CHAT_ID    optional
  *   SITE_URL            optional, e.g. https://edgar-fetch.you.workers.dev (links in alerts)
- *   For local testing:  FACTS_ZIP, TICKERS_FILE, PRICES_FILE, RATE, LIMIT, TELEGRAM_API
+ *   For local testing:  FACTS_ZIP, SUBS_ZIP, TICKERS_FILE, PRICES_FILE, RATE, LIMIT, TELEGRAM_API
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -22,6 +23,7 @@ import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 import yauzl from "yauzl";
 
 const require = createRequire(import.meta.url);
@@ -113,15 +115,63 @@ async function fx(ccy) {
 }
 
 /* ---------- 3. bulk facts ---------- */
-async function factsZip() {
-  if (env.FACTS_ZIP) return env.FACTS_ZIP;
-  const dest = path.join(os.tmpdir(), "companyfacts.zip");
-  log("Downloading companyfacts.zip …");
-  const r = await fetch("https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip", { headers: { "User-Agent": UA } });
-  if (!r.ok) throw new Error(`companyfacts.zip: HTTP ${r.status}`);
+async function bulkZip(url, name, local) {
+  if (local) return local;
+  const dest = path.join(os.tmpdir(), name);
+  log(`Downloading ${name} …`);
+  const r = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
   await pipeline(Readable.fromWeb(r.body), fs.createWriteStream(dest));
   log(`Downloaded ${(fs.statSync(dest).size / 1e9).toFixed(2)} GB`);
   return dest;
+}
+const factsZip = () => bulkZip("https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip", "companyfacts.zip", env.FACTS_ZIP);
+const subsZip = () => bulkZip("https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip", "submissions.zip", env.SUBS_ZIP);
+
+/* ---------- 3b. per-company snapshot for the website ----------
+   SEC often refuses requests from Cloudflare's shared servers, so the site reads these files first.
+   Facts: every tag, filings forms only, gzip (served as-is by the Worker). Company: same shape as /api/company. */
+const SNAP = path.join(ROOT, "public/data/snap");
+const SNAP_FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "10-KT", "20-F", "20-F/A", "40-F", "40-F/A", "6-K", "6-K/A"]);
+function writeFactsSnap(ticker, facts) {
+  const out = { cik: facts.cik, entityName: facts.entityName, facts: {} };
+  for (const [ns, tags] of Object.entries(facts.facts || {})) {
+    const o = {};
+    for (const [tag, node] of Object.entries(tags)) {
+      const units = {};
+      for (const [u, arr] of Object.entries(node.units || {})) {
+        const keep = arr.filter((f) => SNAP_FORMS.has(f.form))
+          .map((f) => ({ start: f.start, end: f.end, val: f.val, accn: f.accn, fy: f.fy, fp: f.fp, form: f.form, filed: f.filed, frame: f.frame }));
+        if (keep.length) units[u] = keep;
+      }
+      if (Object.keys(units).length) o[tag] = { label: node.label, units };
+    }
+    if (Object.keys(o).length) out.facts[ns] = o;
+  }
+  fs.writeFileSync(path.join(SNAP, "f", `${ticker}.json.gz`), zlib.gzipSync(Buffer.from(JSON.stringify(out)), { level: 9 }));
+}
+const KEEP_FORMS = new Set(["10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "DEF 14A", "20-F", "40-F", "6-K", "S-1", "10-KT"]);
+function companySnap(s, cik, built) {      // mirrors company() in src/worker.js
+  const rec = (s.filings && s.filings.recent) || {};
+  const filings = [];
+  for (let i = 0; i < (rec.form || []).length && filings.length < 120; i++) {
+    if (!KEEP_FORMS.has(rec.form[i])) continue;
+    filings.push({
+      form: rec.form[i], date: rec.filingDate[i], period: rec.reportDate[i] || "",
+      desc: rec.primaryDocDescription ? rec.primaryDocDescription[i] : "", items: rec.items ? rec.items[i] : "",
+      url: `https://www.sec.gov/Archives/edgar/data/${cik}/${rec.accessionNumber[i].replace(/-/g, "")}/${rec.primaryDocument[i]}`,
+    });
+  }
+  const b = (s.addresses && s.addresses.business) || {};
+  return {
+    cik: String(cik).padStart(10, "0"), name: s.name, tickers: s.tickers || [], exchanges: s.exchanges || [],
+    sic: s.sic, sicDescription: s.sicDescription, category: s.category,
+    fiscalYearEnd: s.fiscalYearEnd, stateOfIncorporation: s.stateOfIncorporationDescription || s.stateOfIncorporation,
+    website: s.website || "", investorWebsite: s.investorWebsite || "", phone: s.phone || "",
+    address: [b.street1, b.city, b.stateOrCountryDescription || b.stateOrCountry].filter(Boolean).join(", "),
+    formerNames: (s.formerNames || []).map((f) => f.name),
+    filings, snapshot: built,
+  };
 }
 function eachCompany(zipPath, wanted, onFacts) {
   return new Promise((resolve, reject) => {
@@ -240,9 +290,13 @@ async function main() {
   const limit = env.LIMIT ? parseInt(env.LIMIT, 10) : Infinity;
   const table = [], failures = [], noPrice = [];
   let seen = 0;
+  fs.mkdirSync(path.join(SNAP, "f"), { recursive: true });
+  fs.mkdirSync(path.join(SNAP, "c"), { recursive: true });
+  let snaps = 0;
   await eachCompany(zip, new Set(companies.keys()), async (cik, facts) => {
     if (seen++ >= limit) return;
     const meta = companies.get(cik), px = prices.get(meta.ticker);
+    try { writeFactsSnap(meta.ticker, facts); snaps++; } catch (e) { log(`snapshot ${meta.ticker}: ${e.message}`); }
     try {
       const cur = core.detectBasis(facts).cur;
       const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur));
@@ -251,6 +305,19 @@ async function main() {
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
     if (seen % 1000 === 0) log(`  processed ${seen}`);
   });
+  log(`Facts snapshots: ${snaps}`);
+  // company profile + filings list for the same companies (SEC bulk submissions file)
+  try {
+    const built = new Date().toISOString().slice(0, 10);
+    let n = 0;
+    await eachCompany(await subsZip(), new Set(companies.keys()), async (cik, s) => {
+      const meta = companies.get(cik);
+      if (!fs.existsSync(path.join(SNAP, "f", `${meta.ticker}.json.gz`))) return;
+      fs.writeFileSync(path.join(SNAP, "c", `${meta.ticker}.json`), JSON.stringify(companySnap(s, cik, built)));
+      n++;
+    });
+    log(`Company snapshots: ${n}`);
+  } catch (e) { log("Company snapshots skipped:", e.message); }
   table.sort((a, b) => (b[5 + FIELD_KEYS.indexOf("mcap")] || 0) - (a[5 + FIELD_KEYS.indexOf("mcap")] || 0));
   log(`Rows: ${table.length}, failed: ${failures.length}, without price: ${noPrice.length}`);
 

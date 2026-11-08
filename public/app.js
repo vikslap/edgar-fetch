@@ -164,11 +164,13 @@
         const mq = row && row[d.ix.mcap_quote];
         if (mq > 0) facts._opts.adrShares = (mq * 1000) / px.last.price;
       }
-      facts._meta = { cik: r.headers.get("x-cik"), fetched: r.headers.get("x-fetched") };
+      facts._meta = { cik: r.headers.get("x-cik"), fetched: r.headers.get("x-fetched"), source: r.headers.get("x-source") };
       pushRecent(t);
       history.replaceState(null, "", `?t=${encodeURIComponent(t)}`);
       run();
-      status("");
+      status(facts._meta.source === "fallback"
+        ? `SEC isn't answering this server right now, so this is last night's copy (${facts._meta.fetched || "latest nightly build"}). Filings made today will show after tonight's update.`
+        : "");
       scrollTo({ top: 0 });
     } catch (e) { status(e.message, true); }
   }

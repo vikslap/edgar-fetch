@@ -6,6 +6,7 @@ compatibility_date = "2025-06-01"
 # (i.e. /api/...) goes to src/worker.js
 [assets]
 directory = "./public"
+binding = "ASSETS"
 not_found_handling = "none"
 
 # Permanent transcript library (optional). Create a KV namespace in the Cloudflare dashboard
