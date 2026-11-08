@@ -926,6 +926,36 @@
   }
 
 
+
+  // ---------------- TradingView advanced chart ----------------
+  function tvSymbol() {
+    const ex = ((co && co.exchanges && co.exchanges[0]) || (result && result.basis && "") || "").toUpperCase();
+    const map = { NASDAQ: "NASDAQ", NYSE: "NYSE", "NYSE AMERICAN": "AMEX", "NYSE MKT": "AMEX", "NYSE ARCA": "AMEX", CBOE: "CBOE", OTC: "OTC" };
+    const sym = ticker.replace(/-/g, ".");
+    return map[ex] ? `${map[ex]}:${sym}` : sym;
+  }
+  function openTV() {
+    if (!ticker) return;
+    const sym = tvSymbol();
+    $("tvTitle").textContent = `${title(result ? result.name : ticker)} · advanced chart`;
+    $("tvOpen").href = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}`;
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches && document.documentElement.dataset.theme !== "light";
+    const wrap = $("tvWrap");
+    wrap.innerHTML = `<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+      <div class="tradingview-widget-copyright sub" style="padding-top:6px"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">Track all markets on TradingView</a></div></div>`;
+    const sc = document.createElement("script");
+    sc.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"; sc.async = true;
+    sc.textContent = JSON.stringify({ autosize: true, symbol: sym, interval: "D", timezone: "Etc/UTC", theme: dark ? "dark" : "light", style: "1", locale: "en",
+      allow_symbol_change: true, calendar: false, details: true, withdateranges: true, hide_side_toolbar: false, support_host: "https://www.tradingview.com" });
+    wrap.querySelector(".tradingview-widget-container").appendChild(sc);
+    $("tvBox").hidden = false; document.body.style.overflow = "hidden";
+  }
+  function closeTV() { $("tvBox").hidden = true; $("tvWrap").innerHTML = ""; document.body.style.overflow = ""; }
+  $("advChart").onclick = openTV;
+  $("tvClose").onclick = closeTV;
+  $("tvBox").onclick = (e) => { if (e.target === $("tvBox")) closeTV(); };
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("tvBox").hidden) closeTV(); });
+
   // ---------------- concalls ----------------
   let ccData = null;
   async function drawConcalls() {

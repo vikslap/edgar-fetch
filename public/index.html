@@ -388,7 +388,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
           <button data-r="5Y">5Yr</button><button data-r="10Y">10Yr</button><button data-r="MAX">Max</button>
           <span class="ret" id="rangeRet"></span>
         </div>
-        <span class="seg" id="modeSeg"><button data-m="price">Price</button><button data-m="pe">PE Ratio</button><button data-m="ev_ebitda">EV/EBITDA</button><button data-m="pb">P/B</button><button data-m="ps">P/S</button></span>
+        <span class="row" style="margin:0;gap:8px"><button id="advChart" title="TradingView chart with indicators and drawing tools">📈 Advanced chart</button><span class="seg" id="modeSeg"><button data-m="price">Price</button><button data-m="pe">PE Ratio</button><button data-m="ev_ebitda">EV/EBITDA</button><button data-m="pb">P/B</button><button data-m="ps">P/S</button></span></span>
       </div>
       <div id="stock" class="chart stock"></div>
       <div class="ch-legend" id="chLegend"></div>
@@ -544,6 +544,15 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
   </section>
 </main>
 <div id="tip"></div>
+<div class="reader" id="tvBox" hidden role="dialog" aria-modal="true" aria-labelledby="tvTitle">
+  <div class="rd-box" style="max-width:1280px">
+    <div class="rd-head">
+      <div><h2 id="tvTitle">Advanced chart</h2><div class="sub">Chart by TradingView. Indicators and drawings here aren't saved; open on TradingView to use your own layouts.</div></div>
+      <div class="row" style="margin:0"><a id="tvOpen" class="btn" target="_blank" rel="noopener">Open on TradingView ↗</a><button id="tvClose" aria-label="Close">✕</button></div>
+    </div>
+    <div id="tvWrap" style="flex:1;min-height:520px;padding:0 12px 12px"></div>
+  </div>
+</div>
 <div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="rdTitle">
   <div class="rd-box">
     <div class="rd-head">
