@@ -795,11 +795,15 @@
       if (r.f === "growth") return v == null ? "" : `<span class="${v < 0 ? "neg-t" : "pos-t"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
       return cellFmt(v, r.f, r.shares);
     };
+    // a row is worth showing only if it adds information
+    const hasData = (r) => !(r.vals.every((v) => v == null || v === 0) && (r.child || r.key === "depreciation")) &&
+      !(r.same && r.vals.every((v, k) => v == null || np[k] == null || Math.abs(v - np[k]) < 0.5));
+    const tgWithKids = new Set(rows.filter((r) => r.child && hasData(r)).map((r) => r.child));
     let body = "";
-    for (const r of rows) {
+    for (let r of rows) {
       if (r.child && !expanded.has(`${b.title}:${r.child}`)) continue;
-      if (r.vals.every((v) => v == null || v === 0) && (r.child || r.key === "depreciation")) continue;
-      if (r.same && r.vals.every((v, k) => v == null || np[k] == null || Math.abs(v - np[k]) < 0.5)) continue;   // adds nothing when equal to net profit
+      if (!hasData(r)) continue;
+      if (r.tg && !tgWithKids.has(r.tg)) r = { ...r, tg: null };                   // nothing to reveal: no +/− button
       const open = r.tg && expanded.has(`${b.title}:${r.tg}`);
       const cls = [r.strong ? "strong" : "", r.child ? "child" : "", r.f === "growth" ? "grow" : ""].join(" ");
       body += `<tr class="${cls}"><td${r.tip ? ` title="${esc(r.tip)}"` : ""}>${r.tg ? `<button class="tg" data-tg="${esc(b.title)}:${r.tg}" aria-expanded="${open}">${esc(r.label)} <span>${open ? "−" : "+"}</span></button>` : esc(r.label)}</td>` +
