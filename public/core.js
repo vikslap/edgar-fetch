@@ -554,7 +554,24 @@
         ws.getCell(r + 2 + j, 1).value = row.label;
         row.values.forEach((v, i) => { const c = ws.getCell(r + 2 + j, 2 + i); c.value = v; c.numFmt = "#,##0"; });
       });
-      r += b.rows.length + 4;
+      let extra = 0;
+      if (b.title === "BALANCE SHEET") {          // show that it balances: L + E and a check, as formulas
+        const at = (k) => r + 2 + b.rows.findIndex((x) => x.key === k);
+        const [A, TL, TE] = ["total_assets", "total_liabilities", "equity_total"].map(at);
+        const le = r + 2 + b.rows.length, ck = le + 1;
+        ws.getCell(le, 1).value = "Total Liabilities + Equity"; ws.getCell(le, 1).font = { bold: true };
+        ws.getCell(ck, 1).value = "Check: Assets − (Liabilities + Equity)"; ws.getCell(ck, 1).font = { italic: true };
+        b.ends.forEach((e, i) => {
+          if (!e) return;
+          const col = String.fromCharCode(66 + i);
+          ws.getCell(le, 2 + i).value = { formula: `IF(OR(${col}${TL}="",${col}${TE}=""),"",${col}${TL}+${col}${TE})` };
+          ws.getCell(le, 2 + i).numFmt = "#,##0"; ws.getCell(le, 2 + i).font = { bold: true };
+          ws.getCell(ck, 2 + i).value = { formula: `IF(OR(${col}${A}="",${col}${le}=""),"",ROUND(${col}${A}-${col}${le},0))` };
+          ws.getCell(ck, 2 + i).numFmt = '#,##0;-#,##0;"OK"'; ws.getCell(ck, 2 + i).font = { italic: true };
+        });
+        extra = 2;
+      }
+      r += b.rows.length + 4 + extra;
     }
     for (let c = 2; c <= 12; c++) ws.getColumn(c).width = 14;
     if (rat) {
