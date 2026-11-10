@@ -658,6 +658,7 @@
     const old = wb.getWorksheet("EDGAR_Raw");
     if (old) wb.removeWorksheet(old.id);
     writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
+    standardSheet(wb, result);
     wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
     return wb;
   }
@@ -717,6 +718,7 @@
     return fillRawOnly(wb, result, facts);
   }
   function fillRawOnly(wb, result, facts) {
+    standardSheet(wb, result);
     writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
     return wb;
   }
@@ -762,6 +764,121 @@
     rs.getColumn(4).numFmt = "#,##0.##";
     rs.autoFilter = { from: { row: 2, column: 1 }, to: { row: rs.rowCount, column: 10 } };
     rs.views = [{ state: "frozen", ySplit: 2 }];
+  }
+
+  /* ---------- "Standard" sheet: one fixed, SF1-style layout for every company ----------
+     Subtotals come from the company's reported figures; the *_other lines absorb what doesn't fit,
+     so every identity holds. Inputs are values (blue), everything else is an Excel formula. */
+  const STD = [
+    ["h", "INCOME STATEMENT"],
+    ["revenue", "Revenue", "P", "sales"],
+    ["cor", "Cost of revenue", "P", "cogs"],
+    ["gp", "Gross profit = revenue − cor", "f", "{revenue}-{cor}"],
+    ["sgna", "Selling, general & administrative", "P", "sga"],
+    ["rnd", "Research & development", "P", "rnd"],
+    ["opex_other", "Other operating costs (fines, restructuring, impairments…)", "P", "other_opex"],
+    ["opex", "Operating expenses = sgna + rnd + opex_other", "f", "{sgna}+{rnd}+{opex_other}"],
+    ["opinc", "Operating income = gp − opex", "f", "{gp}-{opex}"],
+    ["intexp", "Interest expense", "P", "interest"],
+    ["nonop", "Other income (reported, net)", "P", "other_income"],
+    ["nonop_other", "Other non-operating items (balancing)", "Pn", "other_nonop"],
+    ["ebt", "Pre-tax income = opinc − intexp + nonop + nonop_other", "f", "{opinc}-{intexp}+{nonop}+{nonop_other}"],
+    ["taxexp", "Income tax", "P", "tax"],
+    ["netincdis", "Discontinued operations", "P", "disc_ops"],
+    ["consolinc", "Consolidated net income = ebt − taxexp + netincdis", "f", "{ebt}-{taxexp}+{netincdis}"],
+    ["netincnci", "Minority (non-controlling) share", "P", "minority"],
+    ["netinc_other", "Other items after tax (balancing, e.g. equity-method income)", "f", "IF({netinc_rep}=\"\",0,{netinc_rep}-({consolinc}-{netincnci}))"],
+    ["netinc", "Net income to shareholders = consolinc − netincnci + netinc_other", "f", "{consolinc}-{netincnci}+{netinc_other}"],
+    ["shareswadil", "Diluted weighted average shares", "P", "shares_diluted"],
+    ["epsdil", "Diluted EPS = netinc ÷ shareswadil ($)", "f", "IF(N({shareswadil})=0,\"\",{netinc}/{shareswadil})", "0.00"],
+    ["depamor", "Depreciation & amortisation (cash flow)", "C", "dna"],
+    ["ebitda", "EBITDA = opinc + depamor", "f", "{opinc}+{depamor}"],
+    ["h", "BALANCE SHEET"],
+    ["cashneq", "Cash & equivalents", "B", "cash"],
+    ["investmentsc", "Short-term investments", "B", "st_investments"],
+    ["receivables", "Receivables", "B", "receivables"],
+    ["inventory", "Inventory", "B", "inventory"],
+    ["assetsc_other", "Other current assets (balancing)", "f", "IF(N({assetsc})=0,0,{assetsc}-{cashneq}-{investmentsc}-{receivables}-{inventory})"],
+    ["assetsc", "Current assets", "B", "current_assets"],
+    ["ppnenet", "Property, plant & equipment (net)", "B", "ppe"],
+    ["goodwill", "Goodwill", "B", "goodwill"],
+    ["intangibles", "Intangible assets", "B", "intangibles"],
+    ["assetsnc_other", "Other non-current assets (balancing)", "f", "IF(N({assets})=0,0,{assets}-{assetsc}-{ppnenet}-{goodwill}-{intangibles})"],
+    ["assets", "Total assets", "B", "total_assets"],
+    ["payables", "Accounts payable", "B", "payables"],
+    ["debtc", "Short-term debt", "B", "st_debt"],
+    ["liabilitiesc_other", "Other current liabilities (balancing)", "f", "IF(N({liabilitiesc})=0,0,{liabilitiesc}-{payables}-{debtc})"],
+    ["liabilitiesc", "Current liabilities", "B", "current_liabilities"],
+    ["debtnc", "Long-term debt", "B", "lt_debt"],
+    ["liabilitiesnc_other", "Other non-current liabilities (balancing)", "f", "IF(N({liabilities})=0,0,{liabilities}-{liabilitiesc}-{debtnc})"],
+    ["liabilities", "Total liabilities", "B", "total_liabilities"],
+    ["equity", "Shareholders' equity", "B", "equity"],
+    ["equity_nci", "Minority interest in equity", "f", "IF(N({equity_total})=0,0,{equity_total}-{equity})"],
+    ["equity_total", "Total equity", "B", "equity_total"],
+    ["retearn", "Retained earnings", "B", "retained_earnings"],
+    ["debt", "Total debt = debtc + debtnc", "f", "{debtc}+{debtnc}"],
+    ["h", "CASH FLOW (outflows negative)"],
+    ["ncfo", "Cash from operations", "C", "cfo"],
+    ["capex", "Capital expenditure", "Cn", "capex"],
+    ["fcf", "Free cash flow = ncfo + capex", "f", "{ncfo}+{capex}"],
+    ["ncfi", "Cash from investing", "C", "cfi"],
+    ["ncff", "Cash from financing", "C", "cff"],
+    ["sbcomp", "Stock-based compensation", "C", "sbc"],
+    ["ncfdiv", "Dividends paid", "Cn", "dividends"],
+    ["ncfbuyback", "Share buybacks", "Cn", "buybacks"],
+    ["ncf_other", "FX & other cash movements (balancing)", "f", "IF(OR(N({cashneq})=0,{prev_cashneq}=\"\"),\"\",{cashneq}-{prev_cashneq}-{ncfo}-{ncfi}-{ncff})"],
+    ["h", "CHECKS (OK = identity holds against the reported figure)"],
+    ["chk_opinc", "opinc − reported operating income", "f", "IF({opinc_rep}=\"\",\"\",ROUND({opinc}-{opinc_rep},0))", "chk"],
+    ["chk_ebt", "ebt − reported pre-tax income", "f", "IF({ebt_rep}=\"\",\"\",ROUND({ebt}-{ebt_rep},0))", "chk"],
+    ["chk_bs", "assets − (liabilities + total equity)", "f", "IF(OR(N({assets})=0,N({liabilities})=0),\"\",ROUND({assets}-{liabilities}-{equity_total},0))", "chk"],
+    ["h", "REPORTED FIGURES USED FOR THE CHECKS"],
+    ["opinc_rep", "Operating income (reported)", "P", "operating_income"],
+    ["ebt_rep", "Pre-tax income (reported)", "P", "pretax_reported"],
+    ["netinc_rep", "Net income to shareholders (reported)", "P", "net_profit"],
+  ];
+  function standardSheet(wb, result) {
+    const old = wb.getWorksheet("Standard"); if (old) wb.removeWorksheet(old.id);
+    const ws = wb.addWorksheet("Standard");
+    const blk = { P: result.blocks.find((b) => b.title === "PROFIT & LOSS"), B: result.blocks.find((b) => b.title === "BALANCE SHEET"), C: result.blocks.find((b) => b.title === "CASH FLOW") };
+    if (!blk.P) return;
+    const ends = blk.P.ends.filter(Boolean);
+    const valOf = (b, key, e) => { const B = blk[b]; if (!B) return null; const r = B.rows.find((x) => x.key === key); const i = B.ends.indexOf(e); return r && i >= 0 ? r.values[i] : null; };
+    const filedOf = (e) => { const r = blk.P.rows.find((x) => x.key === "sales"); const i = blk.P.ends.indexOf(e); const f = r && r.src[i]; return f && f.filed ? f.filed : ""; };
+    const C0 = 3, col = (j) => { let n = C0 + j, s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+    ws.getCell(1, 1).value = `${result.name} (${result.ticker}) - standard layout, ${result.scale === 1000 ? "$ thousands" : "$ millions"} (shares in thousands, EPS in $)`;
+    ws.getCell(1, 1).font = { bold: true, size: 12 };
+    ws.getCell(2, 1).value = "Same rows for every company. Blue = from the filings, black = formula. '(balancing)' lines make each subtotal match the company's reported total. Filed = latest filing behind that year (restated figures win).";
+    ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
+    const H = 4;
+    ws.getCell(H, 1).value = "Field"; ws.getCell(H, 2).value = "Definition";
+    ws.getCell(H + 1, 2).value = "Filed";
+    ends.forEach((e, j) => { const c = ws.getCell(H, C0 + j); c.value = asDate(e); c.numFmt = "mmm-yy"; ws.getCell(H + 1, C0 + j).value = filedOf(e); });
+    ws.getRow(H).font = { bold: true }; ws.getRow(H + 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
+    const rowOf = {}; let r = H + 2;
+    for (const d of STD) { if (d[0] !== "h") rowOf[d[0]] = r; r++; }
+    r = H + 2;
+    for (const [code, label, kind, src, fmt] of STD) {
+      if (code === "h") { r++; const c = ws.getCell(r - 1, 1); c.value = label; c.font = { bold: true, color: { argb: "FF1F3864" } }; continue; }
+      ws.getCell(r, 1).value = code; ws.getCell(r, 1).font = { name: "Consolas", size: 10 };
+      ws.getCell(r, 2).value = label;
+      ends.forEach((e, j) => {
+        const c = ws.getCell(r, C0 + j), L = col(j);
+        if (kind === "f") {
+          const f = src.replace(/\{(prev_)?(\w+)\}/g, (m, prev, k) => prev ? (j === 0 ? '""' : `${col(j - 1)}${rowOf[k]}`) : `${L}${rowOf[k]}`);
+          c.value = { formula: f };
+        } else {
+          let v = valOf(kind[0], src, e);
+          if (v != null && kind.length > 1) v = -v;                      // flip to the standard sign
+          c.value = v; c.font = { color: { argb: "FF0000FF" } };
+        }
+        c.numFmt = fmt === "0.00" ? "0.00" : fmt === "chk" ? '#,##0;-#,##0;"OK"' : "#,##0;-#,##0;\"-\"";
+      });
+      if (["gp", "opinc", "ebt", "netinc", "assets", "liabilities", "equity_total", "fcf"].includes(code)) ws.getRow(r).font = { bold: true };
+      r++;
+    }
+    ws.getColumn(1).width = 20; ws.getColumn(2).width = 58;
+    ends.forEach((e, j) => (ws.getColumn(C0 + j).width = 13));
+    ws.views = [{ state: "frozen", xSplit: 2, ySplit: H + 1 }];
   }
 
   /* ---------- ratios (screener-style) ---------- */
@@ -1268,7 +1385,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { detectBasis, detectSplits, dataChecks, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { detectBasis, detectSplits, dataChecks, standardSheet, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);

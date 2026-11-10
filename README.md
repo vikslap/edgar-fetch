@@ -85,6 +85,9 @@ Costs are split so the model ties to the company's own subtotals:
 - Companies that don't report operating income (some industrials, banks, many REITs) fall back to one checkpoint: Other Operating Costs is 0 and everything goes to the nonoperating line. The P&L shows a warning when that line is over 5% of operating profit.
 - `python/My_Model.xlsx` has the new Data Sheet rows (26–28, 41–42) and a checks block on Income Statement and Quarters (rows 21–23). Older copies of the template still fill correctly: Other Operating Costs is folded into Other Nonoperating Expenses, as before.
 
+## "Standard" sheet in the Excel downloads
+Both Excel downloads include a **Standard** sheet: the same ~60 rows for every company (SF1-style field codes such as `revenue`, `cor`, `gp`, `opinc`, `ebt`, `netinc`, `assetsc`, `liabilities`, `ncfo`, `fcf`). Subtotals are formulas built from the company's reported figures, `*_other` balancing lines absorb what doesn't fit, and three check rows show **OK** when operating income, pre-tax income and the balance sheet match what the company reported. Point your own models at this sheet and the same formulas work for any company.
+
 ## Coverage notes
 - **Banks:** revenue = interest income + noninterest income; noninterest expense is used as SG&A. Bank ratios are still approximate (no bank-specific template yet).
 - **Foreign filers (20-F / 40-F):** IFRS line items are mapped; figures in other currencies are converted to USD at today's rate for every year (growth rates stay in the home currency). ADR share counts are scaled using the quoted market cap. Many foreign filers only file annual reports, so they have no quarterly data.
