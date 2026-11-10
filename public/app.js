@@ -818,7 +818,8 @@
       if (sales == null) return null;
       const cogs = z(val("cogs", i)), sga = z(val("sga", i)), rnd = z(val("rnd", i)), dep = val("depreciation", i);
       const hasDep = dep != null && dep !== 0;
-      const ebit = sales - cogs - sga - rnd, ebitda = hasDep ? ebit + dep : ebit;
+      const oopex = z(val("other_opex", i));
+      const ebit = sales - cogs - sga - rnd - oopex, ebitda = hasDep ? ebit + dep : ebit;
       const oi = z(val("other_income", i)), plug = z(val("other_nonop", i)), intr = z(val("interest", i)), tax = z(val("tax", i));
       const pbt = ebitda + oi - plug - intr - (hasDep ? dep : 0);
       let np = val("net_profit", i), clean = val("profit_clean", i);
@@ -826,7 +827,7 @@
       const sh = val("shares_diluted", i);
       const cfb = result.blocks.find((x) => x.title === "CASH FLOW");
       const div = i !== "ttm" && !isQ && cfb ? (cfb.rows.find((x) => x.key === "dividends") || { values: [] }).values[i] : null;
-      return { sales, cogs, sga, rnd, dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
+      return { sales, cogs, sga, rnd, oopex, opRep: val("operating_income", i), dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
         taxPct: pbt > 0 ? (tax / pbt) * 100 : null, np, pat: val("pat", i), minority: val("minority", i), disc: val("disc_ops", i), unusual: val("unusual", i), clean,
         eps: np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
         oiParts: OI_PARTS.map((k) => val(k, i) || null) };
@@ -846,6 +847,8 @@
       { label: "Cost of sales %", vals: pctOf((c) => c.cogs), f: "pct", child: "exp", tip: "Includes depreciation charged to cost of sales" },
       { label: "SG&A %", vals: pctOf((c) => c.sga), f: "pct", child: "exp" },
       { label: "R&D %", vals: pctOf((c) => c.rnd), f: "pct", child: "exp" },
+      { label: "Other operating costs %", vals: get((c) => (c.sales && c.oopex ? (c.oopex / c.sales) * 100 : null)), f: "pct", child: "exp", key: "other_opex",
+        tip: "Costs inside reported operating income that aren't COGS, SG&A or R&D: fines, restructuring, impairments, litigation, other operating lines. Worked out from the company's reported operating income." },
       { label: "Less: depreciation %", vals: get((c) => (c.sales && c.dep ? (-c.dep / c.sales) * 100 : null)), f: "pct", child: "exp",
         tip: "US companies include depreciation inside cost of sales and SG&A. Operating Profit here is before depreciation (EBITDA), so it is taken back out: the rows above add up to Expenses ÷ Sales." },
       { label: "Operating Profit", vals: get((c) => c.ebitda), strong: true, tip: "Before depreciation (EBITDA), like screener.in. If depreciation isn't reported for a period, this is EBIT." },
@@ -917,7 +920,13 @@
         }).join("") + "</tr>";
     }
     if (links.some(Boolean)) body += `<tr class="links"><td>${isQ ? "Earnings release" : "Annual report"}</td>${links.map((l) => `<td class="num">${l}</td>`).join("")}</tr>`;
-    return `<table class="pl"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    // warn when a large amount couldn't be placed in a line (balancing item > 5% of operating profit)
+    const warnYrs = isQ ? [] : idx.slice(-4).map((i, k) => [i, calc[idx.length - Math.min(4, idx.length) + k]])
+      .filter(([i, c]) => i !== "ttm" && c && c.ebit && Math.abs(c.plug) > 0.05 * Math.abs(c.ebit)).map(([i, c]) => [mon(ends[i]), c]);
+    const note = warnYrs.length ? `<div class="plwarn">⚠ ${warnYrs.map(([m]) => m).join(", ")}: ${warnYrs.some(([, c]) => !c.opRep)
+      ? "this company doesn't report operating income for " + (warnYrs.length > 1 ? "these years" : "this year") + ", so"
+      : "after matching reported operating income,"} more than 5% of operating profit couldn't be placed in a line (Other Income → <i>Unclassified items</i>). Check the 10-K income statement before relying on ${warnYrs.some(([, c]) => !c.opRep) ? "Operating Profit, OPM and " : ""}Other Income for ${warnYrs.length > 1 ? "those years" : "that year"}.</div>` : "";
+    return `${note}<table class="pl"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
 
   function genericTable(b) {

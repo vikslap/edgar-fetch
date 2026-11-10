@@ -124,7 +124,32 @@
       "label": "Other Nonoperating Expenses",
       "unit": "USD",
       "plug": true,
-      "_note": "Not fetched. Calculated so your sheet's Pre-tax Income equals the reported figure: anything the rows above miss lands here. Positive = expense."
+      "_note": "Not fetched. Below operating income: whatever makes pre-tax income equal the reported figure (interest counted elsewhere, tagging gaps). Positive = expense."
+    },
+    "other_opex": {
+      "label": "Other Operating Costs",
+      "unit": "USD",
+      "plug": "operating",
+      "_note": "Not fetched. Sales − COGS − SG&A − R&D − reported operating income: fines, restructuring, impairments, other operating lines. 0 when the company doesn't report operating income."
+    },
+    "operating_income": {
+      "label": "Operating Income (reported)",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "tags": [
+        "OperatingIncomeLoss"
+      ],
+      "ifrs": [
+        "ProfitLossFromOperatingActivities"
+      ],
+      "_note": "Checkpoint 1. Used to split costs above vs below operating income."
+    },
+    "pretax_reported": {
+      "label": "Pre-tax Income (reported)",
+      "unit": "USD",
+      "from_check": "pretax",
+      "_note": "Checkpoint 2, from the 'checks' tags. Your model's EBT should equal this."
     },
     "tax": {
       "label": "Income Tax Provision",

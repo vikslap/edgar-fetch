@@ -168,7 +168,7 @@
     if (basis.ns === "ifrs-full") basisNotes.push("Files under IFRS; line items are mapped from IFRS tags.");
 
     for (const [key, spec] of Object.entries(items)) {
-      if (spec.plug || spec.skip) continue;
+      if (spec.plug || spec.skip || spec.from_check) continue;
       const s = itemSeries(facts, spec);
       if (spec.split_adjust && splits.length)
         for (const f of s.values()) {
@@ -208,11 +208,21 @@
       for (const [be, f] of b) if (near(be, e)) return f;
       return null;
     };
+    // Checkpoint 1: reported operating income splits the leftover into costs above it (fines, restructuring,
+    // impairments…) and items below it. Ignored when missing or implausible (leftover > half of sales).
+    const opexResidual = (book, e) => {
+      const oi = lookup(book, "operating_income", e);
+      if (!oi) return null;
+      const g = (k) => (lookup(book, k, e) || {}).val || 0;
+      const r = g("sales") - g("cogs") - g("sga") - g("rnd") - oi.val;
+      return Math.abs(r) > 0.5 * Math.max(Math.abs(g("sales")), Math.abs(oi.val)) ? null : r;
+    };
+    // Checkpoint 2: reported pre-tax income
     const plug = (book, e) => {
       const g = (k) => (lookup(book, k, e) || {}).val || 0;
       const p = pretax[book === annual ? 0 : 1].get(e);
       if (!p) return null;
-      return g("sales") - g("cogs") - g("sga") - g("rnd") - g("interest") + g("other_income") - p.val;
+      return g("sales") - g("cogs") - g("sga") - g("rnd") - (opexResidual(book, e) || 0) - g("interest") + g("other_income") - p.val;
     };
 
     const blocks = [], raw = [], missing = new Map(), notes = [];
@@ -228,6 +238,21 @@
             const e = ends[i];
             if (!e) { row.values.push(null); row.src.push(null); continue; }
             if (spec.skip) { row.values.push(0); row.src.push({ tag: "(skipped for this ticker)" }); continue; }
+            if (spec.from_check) {
+              const f = ((chk[spec.from_check] || [])[freq === "annual" ? 0 : 1] || new Map()).get(e);
+              row.values.push(f ? r2(f.val / scale) : null); row.src.push(f || null);
+              if (f) raw.push([title, spec.label, e, r2(f.val / scale), f.tag, f.form, f.filed, f.accn, f.derived]);
+              continue;
+            }
+            if (spec.plug === "operating") {
+              const v = opexResidual(book, e);
+              row.values.push(v === null ? 0 : r2(v / scale));
+              const src = v === null ? { tag: "(operating income not reported: left in the lines below)", derived: "calculated" }
+                : { tag: "(sales − COGS − SG&A − R&D − reported operating income)", derived: "calculated" };
+              row.src.push(src);
+              if (v !== null) raw.push([title, spec.label, e, r2(v / scale), src.tag, "", "", "", "calculated"]);
+              continue;
+            }
             if (spec.plug) {
               const v = plug(book, e);
               row.values.push(v === null ? null : r2(v / scale));
@@ -264,7 +289,7 @@
       for (let i = 0; i < b.ncols; i++) {
         const sales = g("sales")[i];
         if (sales == null || !b.ends[i]) { pat.push(null); np.push(null); clean.push(null); npSrc.push(null); continue; }
-        const pbt = sales - zz(g("cogs")[i]) - zz(g("sga")[i]) - zz(g("rnd")[i]) - zz(g("interest")[i]) + zz(g("other_income")[i]) - zz(g("other_nonop")[i]);
+        const pbt = sales - zz(g("cogs")[i]) - zz(g("sga")[i]) - zz(g("rnd")[i]) - zz(g("other_opex")[i]) - zz(g("interest")[i]) + zz(g("other_income")[i]) - zz(g("other_nonop")[i]);
         const p = pbt - zz(g("tax")[i]);
         const rep = g("net_income")[i];
         const v = rep != null ? rep : p;
@@ -412,9 +437,16 @@
       if (b.title !== "PROFIT & LOSS" && b.title !== "QUARTERS")
         ensureSection(ws, b.title, b.rows.filter((r) => r.sheet !== false).map((r) => r.label), log);
     const SHEET_ANNUAL = 9;                                   // your template's annual columns (B..J)
+    // rows added in Nov 2026; older copies of the template don't have them
+    const NEW_ROWS = new Set(["Other Operating Costs", "Operating Income (reported)", "Pre-tax Income (reported)"]);
+    let oldTemplate = false;
     for (const b of result.blocks) {
       const { dateRow, rows } = findSection(ws, b.title);
       const filled = b.ends.filter(Boolean).length;
+      // no "Other Operating Costs" row: put it back into the nonoperating plug so EBT still ties to the reported figure
+      const oo = b.rows.find((r) => r.key === "other_opex");
+      const fold = oo && !rows[oo.label];
+      if (fold && b.title === "PROFIT & LOSS") oldTemplate = true;
       const from = b.freq === "annual" ? Math.max(0, filled - SHEET_ANNUAL) : 0;
       const ncols = b.freq === "annual" ? Math.min(SHEET_ANNUAL, b.ncols) : b.ncols;
       for (let k = 0; k < ncols; k++) {
@@ -423,11 +455,14 @@
         for (const row of b.rows) {
           if (row.sheet === false) continue;
           const r = rows[row.label];
-          if (!r) { if (i === 0) log && log(`Label '${row.label}' not found under ${b.title} - row not filled`); continue; }
-          ws.getCell(r, col).value = row.values[i];
+          if (!r) { if (i === 0 && !NEW_ROWS.has(row.label)) log && log(`Label '${row.label}' not found under ${b.title} - row not filled`); continue; }
+          let v = row.values[i];
+          if (fold && row.key === "other_nonop" && v != null) v = Math.round((v + (oo.values[i] || 0)) * 100) / 100;
+          ws.getCell(r, col).value = v;
         }
       }
     }
+    if (oldTemplate && log) log("Your template has no 'Other Operating Costs' row, so those costs are included in 'Other Nonoperating Expenses' as before. The latest My_Model.xlsx in the repo shows them separately, with checks.");
     const old = wb.getWorksheet("EDGAR_Raw");
     if (old) wb.removeWorksheet(old.id);
     const rs = wb.addWorksheet("EDGAR_Raw");
@@ -504,7 +539,7 @@
     const pl = (i, src) => {             // src(key) -> value for column i (annual) or TTM
       const sales = src("sales"), cogs = num(src("cogs")), sga = num(src("sga")), rnd = num(src("rnd"));
       const intr = num(src("interest")), oth = num(src("other_income")), plug = num(src("other_nonop")), tax = num(src("tax"));
-      const ebit = sales == null ? null : sales - cogs - sga - rnd;
+      const ebit = sales == null ? null : sales - cogs - sga - rnd - num(src("other_opex"));
       const ebt = ebit == null ? null : ebit - intr + oth - plug;
       const npv = src("net_profit"), clean = src("profit_clean");
       return { sales, cogs, ebit, ebt, tax, intr, ni: npv != null ? npv : ebt == null ? null : ebt - tax, niClean: clean, gp: sales == null ? null : sales - cogs };
@@ -670,13 +705,13 @@
     const BSv = (key) => row("BALANCE SHEET", key), CFv = (key) => row("CASH FLOW", key), PLv = (key) => row("PROFIT & LOSS", key);
     const fpts = [];
     result.aEnds.forEach((e, i) => {
-      const sales = PLv("sales")[i], eb = sales == null ? null : sales - num(PLv("cogs")[i]) - num(PLv("sga")[i]) - num(PLv("rnd")[i]);
+      const sales = PLv("sales")[i], eb = sales == null ? null : sales - num(PLv("cogs")[i]) - num(PLv("sga")[i]) - num(PLv("rnd")[i]) - num(PLv("other_opex")[i]);
       fpts.push({ d: e, shares: dil[i], equity: BSv("equity")[i], netDebt: BSv("total_assets")[i] == null ? null : num(BSv("st_debt")[i]) + num(BSv("lt_debt")[i]) - num(BSv("cash")[i]) - num(BSv("st_investments")[i]),
         ebitda: eb == null ? null : eb + num(CFv("dna")[i]), sales, da: num(CFv("dna")[i]), eps: fyEps[i] });
     });
     for (let i = 3; i < nq; i++) {
       let sales = 0, eb = 0, shs = 0;
-      for (let j = i - 3; j <= i; j++) { const sv = q("sales")[j]; sales += num(sv); eb += num(sv) - num(q("cogs")[j]) - num(q("sga")[j]) - num(q("rnd")[j]); shs += num(q("shares_diluted")[j]) / 4; }
+      for (let j = i - 3; j <= i; j++) { const sv = q("sales")[j]; sales += num(sv); eb += num(sv) - num(q("cogs")[j]) - num(q("sga")[j]) - num(q("rnd")[j]) - num(q("other_opex")[j]); shs += num(q("shares_diluted")[j]) / 4; }
       const d = result.qEnds[i], prev = fpts.filter((p) => p.d <= d && !p.q).pop() || {};
       fpts.push({ d, q: true, shares: shs || prev.shares, equity: prev.equity, netDebt: prev.netDebt, ebitda: eb + num(prev.da), sales, da: prev.da,
         eps: (epsPts.find((x) => x[0] === d) || [])[1] });
@@ -746,8 +781,8 @@
     const P = (k) => row("PROFIT & LOSS", k), B = (k) => row("BALANCE SHEET", k), C = (k) => row("CASH FLOW", k);
     const n = result.aEnds.length, t1 = n - 1, t0 = n - 2;
     const z = (v) => v || 0, has = (v) => v != null && v !== 0;
-    const ni = (i) => { const v = P("net_profit")[i]; if (v != null) return v; const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
-    const ebit = (i) => { const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]); };
+    const ni = (i) => { const v = P("net_profit")[i]; if (v != null) return v; const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("other_opex")[i]) - z(P("interest")[i]) + z(P("other_income")[i]) - z(P("other_nonop")[i]) - z(P("tax")[i]); };
+    const ebit = (i) => { const s = P("sales")[i]; return s == null ? null : s - z(P("cogs")[i]) - z(P("sga")[i]) - z(P("rnd")[i]) - z(P("other_opex")[i]); };
     const TA = B("total_assets"), CA = B("current_assets"), CL = B("current_liabilities"), LTD = B("lt_debt"), STD = B("st_debt");
     const TL = B("total_liabilities"), RE = B("retained_earnings"), EQ = B("equity"), PPE = B("ppe"), REC = B("receivables");
     const CFO = C("cfo"), DA = C("dna"), SALES = P("sales"), COGS = P("cogs"), SGA = P("sga"), SH = P("shares_diluted");

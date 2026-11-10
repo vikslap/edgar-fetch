@@ -78,6 +78,13 @@ Your watchlist (☆ on any company page, or the **Watchlist** link), saved scree
 ## Profit & Loss layout
 Quarterly Results and Profit & Loss follow screener.in's layout: Operating Profit is before depreciation (EBITDA), Expenses / Other Income / Net Profit / EPS expand with **+**, and YoY growth rows sit under Sales, Net Profit and EPS. **Net Profit is the reported net income attributable to shareholders** (used for EPS, P/E, ROE and screens); the breakdown shows minority share, discontinued operations and unusual items, and "P/E excl. unusual items" is available in Screens. The page shows up to 12 years; *Fill my model* still writes the latest 9 so your template is unchanged.
 
+## Two checkpoints: reported operating income and pre-tax income
+Costs are split so the model ties to the company's own subtotals:
+- **Other Operating Costs** = Sales − COGS − SG&A − R&D − reported operating income (`OperatingIncomeLoss`). Fines, restructuring, impairments and other operating lines land here, inside Operating Profit / EBIT.
+- **Other Nonoperating Expenses** (the "Unclassified items" under Other Income) = whatever makes pre-tax income equal the reported figure.
+- Companies that don't report operating income (some industrials, banks, many REITs) fall back to one checkpoint: Other Operating Costs is 0 and everything goes to the nonoperating line. The P&L shows a warning when that line is over 5% of operating profit.
+- `python/My_Model.xlsx` has the new Data Sheet rows (26–28, 41–42) and a checks block on Income Statement and Quarters (rows 21–23). Older copies of the template still fill correctly: Other Operating Costs is folded into Other Nonoperating Expenses, as before.
+
 ## Coverage notes
 - **Banks:** revenue = interest income + noninterest income; noninterest expense is used as SG&A. Bank ratios are still approximate (no bank-specific template yet).
 - **Foreign filers (20-F / 40-F):** IFRS line items are mapped; figures in other currencies are converted to USD at today's rate for every year (growth rates stay in the home currency). ADR share counts are scaled using the quoted market cap. Many foreign filers only file annual reports, so they have no quarterly data.
