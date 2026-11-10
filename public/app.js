@@ -790,6 +790,8 @@
   const expanded = new Set();
 
   // P&L and Quarterly Results, laid out like screener.in
+  const OI_PARTS = ["oi_interest", "oi_equity", "oi_debt", "oi_fx", "oi_eqmethod"];
+  const OI_LABELS = ["Interest & dividend income", "Gains on equity investments", "Gains on debt investments", "Foreign exchange", "Share of associates"];
   function plTable(b) {
     const isQ = b.title === "QUARTERS";
     const g = (key) => (b.rows.find((r) => r.key === key) || { values: [] }).values;
@@ -826,7 +828,8 @@
       const div = i !== "ttm" && !isQ && cfb ? (cfb.rows.find((x) => x.key === "dividends") || { values: [] }).values[i] : null;
       return { sales, cogs, sga, rnd, dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
         taxPct: pbt > 0 ? (tax / pbt) * 100 : null, np, pat: val("pat", i), minority: val("minority", i), disc: val("disc_ops", i), unusual: val("unusual", i), clean,
-        eps: np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null };
+        eps: np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
+        oiParts: OI_PARTS.map((k) => val(k, i) || null) };
     });
     const get = (f) => calc.map((c) => (c ? f(c) : null));
     const growth = (arr, lag) => arr.map((v, k) => {
@@ -849,7 +852,11 @@
       { label: "OPM %", vals: get((c) => (c.sales ? (c.ebitda / c.sales) * 100 : null)), f: "pct" },
       { label: "Other Income", vals: get((c) => c.otherNet), tg: "oi" },
       { label: "Reported other income / expense", vals: get((c) => c.oi), child: "oi", key: "other_income" },
-      { label: "Unclassified items (balancing)", vals: get((c) => -c.plug), child: "oi", plug: true, tip: "The difference between the lines above and reported pre-tax profit" },
+      ...OI_PARTS.map((k, j) => ({ label: "· " + OI_LABELS[j], vals: get((c) => c.oiParts[j]), child: "oi", key: k })),
+      { label: "· Rest of the reported figure", child: "oi",
+        vals: get((c) => (c.oiParts.some((v) => v) ? c.oi - c.oiParts.reduce((a, v) => a + (v || 0), 0) : null)),
+        tip: "Reported other income minus the parts above: other items, and interest cost if the company nets it into this figure" },
+      { label: "Unclassified items (balancing)", vals: get((c) => -c.plug), child: "oi", plug: true, tip: "Makes Profit before tax equal the reported figure. Usually: interest cost already inside the reported other income (it has its own Interest row, so it's added back here), and costs outside COGS / SG&A / R&D such as fines, restructuring or impairments" },
       { label: "Interest", vals: get((c) => c.intr), key: "interest" },
       { label: "Depreciation", vals: get((c) => c.dep), key: "depreciation" },
       { label: "Profit before tax", vals: get((c) => c.pbt), strong: true },

@@ -212,7 +212,7 @@
       "unit": "USD",
       "optional": true,
       "sheet": false,
-      "_note": "Net one-off charges (positive = reduces profit): impairments + restructuring \u2212 gains on asset/business sales \u2212 gains on debt extinguishment. Already included in the lines above; shown to work out profit excluding unusual items.",
+      "_note": "Net one-off charges (positive = reduces profit): impairments + restructuring − gains on asset/business sales − gains on debt extinguishment. Already included in the lines above; shown to work out profit excluding unusual items.",
       "groups": [
         {
           "sign": 1,
@@ -261,6 +261,73 @@
           "ifrs": []
         }
       ]
+    },
+    "oi_interest": {
+      "label": "Interest & dividend income",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "InvestmentIncomeInterest",
+        "InvestmentIncomeInterestAndDividend",
+        "InterestIncomeOther",
+        "InvestmentIncomeNonoperating"
+      ],
+      "ifrs": [],
+      "_note": "Display only: part of the 'Other income' note in the 10-K, shown under Other Income on the P&L."
+    },
+    "oi_equity": {
+      "label": "Gains/(losses) on equity investments",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "EquitySecuritiesFvNiGainLoss",
+        "GainLossOnInvestments",
+        "EquitySecuritiesFvNiRealizedGainLoss"
+      ],
+      "ifrs": [],
+      "_note": "Display only: part of the 'Other income' note in the 10-K, shown under Other Income on the P&L."
+    },
+    "oi_debt": {
+      "label": "Gains/(losses) on debt investments",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "DebtSecuritiesAvailableForSaleRealizedGainLoss",
+        "AvailableForSaleSecuritiesGrossRealizedGainLossNet",
+        "MarketableSecuritiesRealizedGainLoss"
+      ],
+      "ifrs": [],
+      "_note": "Display only: part of the 'Other income' note in the 10-K, shown under Other Income on the P&L."
+    },
+    "oi_fx": {
+      "label": "Foreign exchange gains/(losses)",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "ForeignCurrencyTransactionGainLossBeforeTax"
+      ],
+      "ifrs": [],
+      "_note": "Display only: part of the 'Other income' note in the 10-K, shown under Other Income on the P&L."
+    },
+    "oi_eqmethod": {
+      "label": "Share of associates' profit/(loss)",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "IncomeLossFromEquityMethodInvestments"
+      ],
+      "ifrs": [],
+      "_note": "Display only: part of the 'Other income' note in the 10-K, shown under Other Income on the P&L."
     },
     "_BS": "---------------- BALANCE SHEET (annual, as at year end) ----------------",
     "cash": {
