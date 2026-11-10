@@ -1,5 +1,5 @@
 {
- "built": "2026-11-10T08:04:34.309Z",
+ "built": "2026-11-10T09:03:05.884Z",
  "listed": 6056,
  "rows": 5214,
  "failed": 685,
@@ -7,7 +7,7 @@
  "history": 6056,
  "factsSnaps": 5899,
  "companySnaps": 5899,
- "minutes": 11,
+ "minutes": 7,
  "failedCount": 685,
  "noPrice": 125,
  "failedByReason": {
