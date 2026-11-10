@@ -1,0 +1,653 @@
+{
+ "built": "2026-11-10T17:39:17.332Z",
+ "companies": 5214,
+ "checks": {
+  "op_income": {
+   "label": "Operating profit matches reported operating income",
+   "ok": 2229,
+   "warn": 0,
+   "fail": 2093,
+   "na": 892,
+   "pctOk": 51.6
+  },
+  "unplaced": {
+   "label": "Little left unplaced between operating profit and pre-tax profit",
+   "ok": 1315,
+   "warn": 3899,
+   "fail": 0,
+   "na": 0,
+   "pctOk": 25.2
+  },
+  "net_profit": {
+   "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
+   "ok": 3382,
+   "warn": 1832,
+   "fail": 0,
+   "na": 0,
+   "pctOk": 64.9
+  },
+  "eps": {
+   "label": "EPS matches reported EPS",
+   "ok": 2471,
+   "warn": 1081,
+   "fail": 961,
+   "na": 701,
+   "pctOk": 54.8
+  },
+  "bs_balance": {
+   "label": "Balance sheet balances (Assets = Liabilities + Equity)",
+   "ok": 3471,
+   "warn": 0,
+   "fail": 1662,
+   "na": 81,
+   "pctOk": 67.6
+  },
+  "bs_parts": {
+   "label": "Listed balance-sheet lines fit inside their totals",
+   "ok": 4896,
+   "warn": 318,
+   "fail": 0,
+   "na": 0,
+   "pctOk": 93.9
+  },
+  "cash": {
+   "label": "Cash flows explain the change in cash",
+   "ok": 2320,
+   "warn": 2532,
+   "fail": 0,
+   "na": 362,
+   "pctOk": 47.8
+  },
+  "shares": {
+   "label": "Share count has no unexplained jumps",
+   "ok": 3295,
+   "warn": 0,
+   "fail": 1745,
+   "na": 174,
+   "pctOk": 65.4
+  },
+  "coverage": {
+   "label": "Key lines reported every year",
+   "ok": 3600,
+   "warn": 1614,
+   "fail": 0,
+   "na": 0,
+   "pctOk": 69
+  },
+  "splits": {
+   "label": "Stock splits adjusted",
+   "ok": 1560,
+   "warn": 0,
+   "fail": 0,
+   "na": 0,
+   "pctOk": 100
+  }
+ },
+ "missingTags": {
+  "st_investments": {
+   "companiesWithGaps": 4712,
+   "candidates": [
+    [
+     "ProceedsFromSaleAndMaturityOfMarketableSecurities",
+     476
+    ],
+    [
+     "PaymentsToAcquireMarketableSecurities",
+     455
+    ],
+    [
+     "PaymentsToAcquireShortTermInvestments",
+     333
+    ],
+    [
+     "MarketableSecurities",
+     285
+    ],
+    [
+     "ProceedsFromSaleOfShortTermInvestments",
+     202
+    ],
+    [
+     "MarketableSecuritiesUnrealizedGainLoss",
+     169
+    ]
+   ]
+  },
+  "buybacks": {
+   "companiesWithGaps": 4143,
+   "candidates": []
+  },
+  "dividends": {
+   "companiesWithGaps": 3800,
+   "candidates": [
+    [
+     "PaymentsOfDividendsPreferredStockAndPreferenceStock",
+     204
+    ],
+    [
+     "PaymentsOfDividendsMinorityInterest",
+     187
+    ]
+   ]
+  },
+  "lt_debt": {
+   "companiesWithGaps": 3692,
+   "candidates": [
+    [
+     "LongTermDebtCurrent",
+     215
+    ],
+    [
+     "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearTwo",
+     165
+    ],
+    [
+     "LongTermDebtMaturitiesRepaymentsOfPrincipalInNextTwelveMonths",
+     164
+    ],
+    [
+     "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearThree",
+     150
+    ],
+    [
+     "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFour",
+     146
+    ],
+    [
+     "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFive",
+     134
+    ]
+   ]
+  },
+  "inventory": {
+   "companiesWithGaps": 3556,
+   "candidates": [
+    [
+     "InventoryWriteDown",
+     214
+    ],
+    [
+     "InventoryValuationReserves",
+     46
+    ],
+    [
+     "InventoryFinishedGoods",
+     41
+    ],
+    [
+     "InventoryGross",
+     40
+    ],
+    [
+     "InventoryWorkInProcess",
+     32
+    ],
+    [
+     "InventoryRawMaterialsAndSupplies",
+     27
+    ]
+   ]
+  },
+  "rnd": {
+   "companiesWithGaps": 3089,
+   "candidates": [
+    [
+     "DeferredTaxAssetsInProcessResearchAndDevelopment",
+     186
+    ],
+    [
+     "DeferredTaxLiabilitiesDeferredExpenseCapitalizedResearchAndDevelopmentCosts",
+     30
+    ],
+    [
+     "EffectiveIncomeTaxRateReconciliationNondeductibleExpenseResearchAndDevelopment",
+     24
+    ],
+    [
+     "ResearchAndDevelopmentExpenseSoftwareExcludingAcquiredInProcessCost",
+     23
+    ],
+    [
+     "IncomeTaxReconciliationNondeductibleExpenseResearchAndDevelopment",
+     19
+    ],
+    [
+     "OtherResearchAndDevelopmentExpense",
+     18
+    ]
+   ]
+  },
+  "receivables": {
+   "companiesWithGaps": 3008,
+   "candidates": [
+    [
+     "AllowanceForDoubtfulAccountsReceivableCurrent",
+     304
+    ],
+    [
+     "FinancingReceivableRecordedInvestmentCurrent",
+     259
+    ],
+    [
+     "OtherReceivablesNetCurrent",
+     228
+    ],
+    [
+     "AccountsAndOtherReceivablesNetCurrent",
+     170
+    ],
+    [
+     "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
+     165
+    ],
+    [
+     "FinancingReceivableExcludingAccruedInterestYearFourOriginatedThreeYearsBeforeCurrentFiscalYear",
+     164
+    ]
+   ]
+  },
+  "cogs": {
+   "companiesWithGaps": 2708,
+   "candidates": [
+    [
+     "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
+     203
+    ],
+    [
+     "CostOfGoodsAndServicesSoldDepreciationAndAmortization",
+     65
+    ],
+    [
+     "CostOfGoodsSoldExcludingDepreciationDepletionAndAmortization",
+     37
+    ],
+    [
+     "CostOfGoodsAndServicesSoldDepreciation",
+     36
+    ],
+    [
+     "CostOfServicesExcludingDepreciationDepletionAndAmortization",
+     34
+    ],
+    [
+     "CostOfGoodsAndServicesSoldAmortization",
+     26
+    ]
+   ]
+  },
+  "interest": {
+   "companiesWithGaps": 2298,
+   "candidates": [
+    [
+     "InterestExpenseOther",
+     127
+    ],
+    [
+     "InterestExpenseRelatedParty",
+     51
+    ],
+    [
+     "InterestExpenseDebtExcludingAmortization",
+     33
+    ],
+    [
+     "InterestExpenseBorrowings",
+     31
+    ],
+    [
+     "InterestExpenseLongTermDebt",
+     28
+    ],
+    [
+     "InterestExpenseShortTermBorrowings",
+     24
+    ]
+   ]
+  },
+  "sga": {
+   "companiesWithGaps": 2136,
+   "candidates": [
+    [
+     "OtherGeneralAndAdministrativeExpense",
+     190
+    ],
+    [
+     "OtherSellingGeneralAndAdministrativeExpense",
+     57
+    ],
+    [
+     "DisposalGroupIncludingDiscontinuedOperationGeneralAndAdministrativeExpense",
+     54
+    ],
+    [
+     "RelatedPartyTransactionSellingGeneralAndAdministrativeExpensesFromTransactionsWithRelatedParty",
+     49
+    ],
+    [
+     "OtherSellingAndMarketingExpense",
+     7
+    ],
+    [
+     "GeneralAndAdministrativeExpenseRatio",
+     2
+    ]
+   ]
+  },
+  "current_liabilities": {
+   "companiesWithGaps": 2055,
+   "candidates": []
+  },
+  "current_assets": {
+   "companiesWithGaps": 2040,
+   "candidates": []
+  },
+  "capex": {
+   "companiesWithGaps": 1560,
+   "candidates": []
+  },
+  "sbc": {
+   "companiesWithGaps": 1442,
+   "candidates": [
+    [
+     "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+     228
+    ],
+    [
+     "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
+     208
+    ],
+    [
+     "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
+     152
+    ],
+    [
+     "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsExercisesInPeriodWeightedAverageExercisePrice",
+     146
+    ],
+    [
+     "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsGrantsInPeriodWeightedAverageExercisePrice",
+     134
+    ],
+    [
+     "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
+     127
+    ]
+   ]
+  },
+  "tax": {
+   "companiesWithGaps": 1196,
+   "candidates": [
+    [
+     "IncomeTaxExpenseBenefitContinuingOperationsAdjustmentOfDeferredTaxAssetLiability",
+     17
+    ],
+    [
+     "IncomeTaxExpenseBenefitIntraperiodTaxAllocation",
+     4
+    ],
+    [
+     "IncomeTaxExpenseBenefitContinuingOperations",
+     3
+    ],
+    [
+     "IncomeTaxExpenseBenefitContinuingOperationsGovernmentGrants",
+     3
+    ],
+    [
+     "IncomeTaxExpenseBenefitContinuingOperationsDiscontinuedOperationsExtraordinaryItems",
+     1
+    ]
+   ]
+  },
+  "depreciation": {
+   "companiesWithGaps": 903,
+   "candidates": [
+    [
+     "FiniteLivedIntangibleAssetsAccumulatedAmortization",
+     134
+    ],
+    [
+     "DepreciationNonproduction",
+     52
+    ],
+    [
+     "FinanceLeaseRightOfUseAssetAmortization",
+     49
+    ],
+    [
+     "AdjustmentForAmortization",
+     47
+    ],
+    [
+     "OtherDepreciationAndAmortization",
+     27
+    ],
+    [
+     "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization",
+     21
+    ]
+   ]
+  },
+  "shares_diluted": {
+   "companiesWithGaps": 889,
+   "candidates": [
+    [
+     "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
+     43
+    ],
+    [
+     "WeightedAverageLimitedPartnershipUnitsOutstandingDiluted",
+     27
+    ],
+    [
+     "WeightedAverageNumberOfLimitedPartnershipAndGeneralPartnershipUnitOutstandingBasicAndDiluted",
+     8
+    ],
+    [
+     "WeightedAverageNumerDilutedLimitedPartnershipUnitsOutstandingAdjustment",
+     6
+    ]
+   ]
+  },
+  "cash": {
+   "companiesWithGaps": 294,
+   "candidates": [
+    [
+     "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsIncludingDisposalGroupAndDiscontinuedOperations",
+     140
+    ],
+    [
+     "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
+     128
+    ],
+    [
+     "CashAndDueFromBanks",
+     68
+    ],
+    [
+     "CashAndCashEquivalentsPeriodIncreaseDecrease",
+     60
+    ],
+    [
+     "CashCashEquivalentsAndFederalFundsSold",
+     41
+    ],
+    [
+     "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseExcludingExchangeRateEffect",
+     28
+    ]
+   ]
+  },
+  "cfo": {
+   "companiesWithGaps": 149,
+   "candidates": []
+  }
+ },
+ "worstFailing": [
+  "NVDA: bs_balance",
+  "MSFT: bs_balance",
+  "TSM: eps",
+  "TSLA: bs_balance",
+  "BRK-B: bs_balance",
+  "ASML: bs_balance",
+  "PLTR: bs_balance, shares",
+  "UNH: op_income, bs_balance",
+  "GE: eps, bs_balance",
+  "HSBC: op_income, eps",
+  "PM: op_income",
+  "AMAT: bs_balance",
+  "TM: op_income, bs_balance",
+  "RY: shares",
+  "LRCX: bs_balance",
+  "PANW: bs_balance",
+  "TMO: op_income",
+  "RTX: op_income",
+  "MUFG: op_income",
+  "WFC: eps",
+  "BABA: bs_balance",
+  "LIN: op_income",
+  "CRWD: bs_balance, shares",
+  "DELL: bs_balance",
+  "BHP: op_income, eps",
+  "DIS: op_income",
+  "MCD: op_income, eps, shares",
+  "TTE: op_income",
+  "VZ: op_income",
+  "BLK: op_income, bs_balance",
+  "DE: op_income",
+  "NVO: shares",
+  "NEE: op_income, bs_balance",
+  "WELL: bs_balance",
+  "SAN: op_income",
+  "TMUS: op_income",
+  "CRM: bs_balance, shares",
+  "UNP: op_income",
+  "WMB: op_income",
+  "ISRG: bs_balance, shares"
+ ],
+ "testSet": {
+  "companies": 19,
+  "notBuilt": [
+   "XOM"
+  ],
+  "changesSinceLastRun": [],
+  "checkStatusChanges": [],
+  "mismatchesVs10K": [],
+  "perCompany": {
+   "JPM": {
+    "ok": 6,
+    "warn": 2,
+    "fail": 0,
+    "na": 1
+   },
+   "KO": {
+    "ok": 7,
+    "warn": 3,
+    "fail": 0,
+    "na": 0
+   },
+   "INTC": {
+    "ok": 8,
+    "warn": 1,
+    "fail": 0,
+    "na": 0
+   },
+   "PFE": {
+    "ok": 7,
+    "warn": 2,
+    "fail": 0,
+    "na": 1
+   },
+   "PG": {
+    "ok": 5,
+    "warn": 4,
+    "fail": 0,
+    "na": 0
+   },
+   "WMT": {
+    "ok": 8,
+    "warn": 2,
+    "fail": 0,
+    "na": 0
+   },
+   "JNJ": {
+    "ok": 6,
+    "warn": 3,
+    "fail": 0,
+    "na": 0
+   },
+   "AAPL": {
+    "ok": 9,
+    "warn": 1,
+    "fail": 0,
+    "na": 0
+   },
+   "O": {
+    "ok": 4,
+    "warn": 3,
+    "fail": 1,
+    "na": 1
+   },
+   "MSFT": {
+    "ok": 8,
+    "warn": 1,
+    "fail": 1,
+    "na": 0
+   },
+   "COST": {
+    "ok": 9,
+    "warn": 0,
+    "fail": 0,
+    "na": 0
+   },
+   "AMZN": {
+    "ok": 8,
+    "warn": 2,
+    "fail": 0,
+    "na": 0
+   },
+   "NVDA": {
+    "ok": 8,
+    "warn": 1,
+    "fail": 1,
+    "na": 0
+   },
+   "TSM": {
+    "ok": 6,
+    "warn": 2,
+    "fail": 1,
+    "na": 0
+   },
+   "NFLX": {
+    "ok": 9,
+    "warn": 1,
+    "fail": 0,
+    "na": 0
+   },
+   "BRK-B": {
+    "ok": 5,
+    "warn": 1,
+    "fail": 1,
+    "na": 2
+   },
+   "TSLA": {
+    "ok": 6,
+    "warn": 3,
+    "fail": 1,
+    "na": 0
+   },
+   "META": {
+    "ok": 9,
+    "warn": 0,
+    "fail": 0,
+    "na": 0
+   },
+   "GOOGL": {
+    "ok": 10,
+    "warn": 0,
+    "fail": 0,
+    "na": 0
+   }
+  }
+ }
+}
