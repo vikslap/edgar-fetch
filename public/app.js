@@ -1223,7 +1223,7 @@
   }
   $("exportBtn").onclick = async () => {
     if (!result) return;
-    download(await EdgarCore.dataWorkbook(ExcelJS, result, rat).xlsx.writeBuffer(), `${ticker}_EDGAR_data.xlsx`);
+    download(await EdgarCore.dataWorkbook(ExcelJS, result, rat, facts).xlsx.writeBuffer(), `${ticker}_EDGAR_data.xlsx`);
   };
   $("modelFile").onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = "";
@@ -1233,7 +1233,7 @@
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(await file.arrayBuffer());
       const log = [];
-      EdgarCore.fillWorkbook(wb, result, (m) => log.push(m));
+      EdgarCore.fillWorkbook(wb, result, (m) => log.push(m), facts);
       const base = file.name.replace(/\.xlsx$/i, "").replace(/_[A-Z.\-]{1,10}$/, "");
       download(await wb.xlsx.writeBuffer(), `${base}_${ticker}.xlsx`);
       status(`Done: ${base}_${ticker}.xlsx downloaded. Excel recalculates the model when you open it.` + (log.length ? "  " + log.join(" · ") : ""));

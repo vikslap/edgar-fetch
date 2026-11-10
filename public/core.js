@@ -429,7 +429,7 @@
   }
   const asDate = (s) => new Date(t(s));
 
-  function fillWorkbook(wb, result, log) {
+  function fillWorkbook(wb, result, log, facts) {
     const ws = wb.getWorksheet("Data Sheet");
     if (!ws) throw new Error("This workbook has no sheet called 'Data Sheet'.");
     ws.getCell("B1").value = result.name.toUpperCase();
@@ -465,18 +465,13 @@
     if (oldTemplate && log) log("Your template has no 'Other Operating Costs' row, so those costs are included in 'Other Nonoperating Expenses' as before. The latest My_Model.xlsx in the repo shows them separately, with checks.");
     const old = wb.getWorksheet("EDGAR_Raw");
     if (old) wb.removeWorksheet(old.id);
-    const rs = wb.addWorksheet("EDGAR_Raw");
-    rs.addRow([`${result.name} (${result.ticker}) - pulled ${new Date().toISOString().slice(0, 10)} from data.sec.gov - values in USD / ${result.scale.toLocaleString()} (shares / ${result.scale.toLocaleString()})`]);
-    rs.addRow(["Section", "Line item", "Period end", "Value", "XBRL tag", "Form", "Filed", "Accession", "Derived"]).font = { bold: true };
-    for (const r of result.raw) rs.addRow([r[0], r[1], asDate(r[2]), ...r.slice(3)]);
-    [14, 30, 12, 16, 60, 8, 12, 22, 34].forEach((w, i) => (rs.getColumn(i + 1).width = w));
-    rs.getColumn(3).numFmt = "yyyy-mm-dd";
+    writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
     wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
     return wb;
   }
 
   /* A standalone workbook with just the data (no model) */
-  function dataWorkbook(ExcelJS, result, rat) {
+  function dataWorkbook(ExcelJS, result, rat, facts) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Data Sheet");
     ws.getCell("A1").value = "COMPANY NAME"; ws.getCell("B1").value = result.name.toUpperCase();
@@ -510,15 +505,54 @@
         for (const [k, v] of b.rows) { const row = rs.addRow([k, v == null ? null : v / 100]); row.getCell(2).numFmt = "0.0%"; }
       }
     }
-    return fillRawOnly(wb, result);
+    return fillRawOnly(wb, result, facts);
   }
-  function fillRawOnly(wb, result) {
-    const rs = wb.addWorksheet("EDGAR_Raw");
-    rs.addRow(["Section", "Line item", "Period end", "Value", "XBRL tag", "Form", "Filed", "Accession", "Derived"]).font = { bold: true };
-    for (const r of result.raw) rs.addRow([r[0], r[1], asDate(r[2]), ...r.slice(3)]);
-    [14, 30, 12, 16, 60, 8, 12, 22, 34].forEach((w, i) => (rs.getColumn(i + 1).width = w));
-    rs.getColumn(3).numFmt = "yyyy-mm-dd";
+  function fillRawOnly(wb, result, facts) {
+    writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
     return wb;
+  }
+
+  /* Every line item the company reported (all tags, not just the mapped ones), one row per tag and period,
+     for the same fiscal years and quarters as the Data Sheet. As reported: no Q4 derivation, no currency
+     conversion. Money and share counts are divided by the scale; per-share and ratio units are not. */
+  function allFactRows(facts, result) {
+    const out = [], scale = result.scale || 1;
+    const periods = [["ALL TAGS · ANNUAL", result.aEnds || [], "FY"], ["ALL TAGS · QUARTERLY", (result.qEnds || []).filter(Boolean), "Q"]];
+    const nsOrder = (n) => (n === "dei" ? 2 : n === "us-gaap" || n === "ifrs-full" ? 0 : 1);
+    for (const ns of Object.keys(facts.facts || {}).sort((a, b) => nsOrder(a) - nsOrder(b))) {
+      for (const [tag, node] of Object.entries(facts.facts[ns]).sort(([a], [b]) => a.localeCompare(b))) {
+        const name = ns === "us-gaap" ? tag : `${ns}:${tag}`;
+        for (const [unit, arr] of Object.entries(node.units || {})) {
+          const div = /\/|pure/i.test(unit) ? 1 : scale;
+          const fs = arr.filter((f) => FORMS.has(f.form));
+          for (const [section, ends, want] of periods) {
+            for (const e of ends) {
+              let best = null;
+              for (const f of fs) {
+                if (!near(f.end, e)) continue;
+                if (f.start && kind(f.start, f.end) !== want) continue;
+                if (!best || f.filed > best.filed) best = f;
+              }
+              if (best) out.push([section, node.label || tag, e, Math.round((best.val / div) * 100) / 100, name, best.form, best.filed, best.accn || "",
+                best.start ? `${best.start} to ${best.end}` : "as at period end", unit]);
+            }
+          }
+        }
+      }
+    }
+    return out;
+  }
+  function writeRaw(rs, result, facts) {
+    rs.addRow([`${result.name} (${result.ticker}) - pulled ${new Date().toISOString().slice(0, 10)} from data.sec.gov - money and shares in units / ${result.scale.toLocaleString()} (per-share and ratios as reported) - filter column A to switch between the mapped items and ALL TAGS`]);
+    const head = rs.addRow(["Section", "Line item", "Period end", "Value", "XBRL tag", "Form", "Filed", "Accession", "Derived / period", "Unit"]);
+    head.font = { bold: true };
+    for (const r of result.raw) rs.addRow([r[0], r[1], asDate(r[2]), ...r.slice(3), /share/i.test(r[1]) ? "shares" : "USD"]);
+    if (facts) for (const r of allFactRows(facts, result)) rs.addRow([r[0], r[1], asDate(r[2]), ...r.slice(3)]);
+    [24, 44, 12, 16, 60, 8, 12, 22, 26, 12].forEach((w, i) => (rs.getColumn(i + 1).width = w));
+    rs.getColumn(3).numFmt = "yyyy-mm-dd";
+    rs.getColumn(4).numFmt = "#,##0.##";
+    rs.autoFilter = { from: { row: 2, column: 1 }, to: { row: rs.rowCount, column: 10 } };
+    rs.views = [{ state: "frozen", ySplit: 2 }];
   }
 
   /* ---------- ratios (screener-style) ---------- */
