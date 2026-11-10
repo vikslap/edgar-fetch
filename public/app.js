@@ -893,7 +893,7 @@
     const head = idx.map((i) => {
       if (i === "ttm") return `<th>TTM</th>`;
       const fp = fps && fps.get(ends[i]);
-      return `<th>${mon(ends[i])}${fp ? `<br><span class="fq">Q${fp.fq} FY${String(fp.fy).slice(2)}</span>` : ""}</th>`;
+      return `<th>${mon(ends[i])}${isQ ? "" : qflag("PROFIT & LOSS", ends[i])}${fp ? `<br><span class="fq">Q${fp.fq} FY${String(fp.fy).slice(2)}</span>` : ""}</th>`;
     }).join("");
     const fmtCell = (r, v) => {
       if (r.f === "growth") return v == null ? "" : `<span class="${v < 0 ? "neg-t" : "pos-t"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
@@ -952,12 +952,42 @@
       }
       return s + "</tr>";
     };
-    return `<table><thead><tr><th></th>${b.ends.slice(0, n).map((e) => `<th>${mon(e)}</th>`).join("")}</tr></thead><tbody>${b.rows.map((r) => line(r, true)).join("")}${tail.map((r) => line(r, false)).join("")}</tbody></table>`;
+    return `<table><thead><tr><th></th>${b.ends.slice(0, n).map((e) => `<th>${mon(e)}${qflag(b.title, e)}</th>`).join("")}</tr></thead><tbody>${b.rows.map((r) => line(r, true)).join("")}${tail.map((r) => line(r, false)).join("")}</tbody></table>`;
+  }
+
+  // ---------------- data checks ----------------
+  let dq = null;
+  const DQ_ICON = { ok: "✓", warn: "⚠", fail: "✗", na: "–" };
+  function dqCard() {
+    if (!dq) return "";
+    const s = dq.summary, bad = s.fail + s.warn;
+    const head = s.fail ? `${s.fail} issue${s.fail > 1 ? "s" : ""} to check` : s.warn ? `${s.warn} warning${s.warn > 1 ? "s" : ""}` : "All checks pass";
+    return `<section class="card" id="sec-checks"><details class="dq"${s.fail ? " open" : ""}>
+      <summary><h2 style="display:inline">Data checks</h2> <span class="dqs ${s.fail ? "fail" : s.warn ? "warn" : "ok"}">${DQ_ICON[s.fail ? "fail" : s.warn ? "warn" : "ok"]} ${head}</span>
+        <span class="sub" style="margin-left:8px">${s.ok} passed${s.na ? ` · ${s.na} not applicable` : ""} · what we show, reconciled against the company's own reported totals</span></summary>
+      <ul class="dq-list">${dq.checks.map((c) => `<li class="${c.status}"><b>${DQ_ICON[c.status]}</b><div><div>${esc(c.label)}</div><div class="sub">${esc(c.detail)}</div></div></li>`).join("")}</ul>
+      ${bad ? '<div class="sub">Years with a problem are marked <span class="qflag">⚠</span> in the tables below; hover the mark for details.</div>' : ""}
+    </details></section>`;
+  }
+  const qflag = (title, e) => {
+    const m = dq && dq.flags[title] && dq.flags[title][e];
+    return m ? ` <span class="qflag" title="${esc(m.join("\n"))}">⚠</span>` : "";
+  };
+  function drawBadge() {
+    const b = $("dqBadge"); if (!b) return;
+    if (!dq) { b.hidden = true; return; }
+    const s = dq.summary;
+    b.className = "dqb " + (s.fail ? "fail" : s.warn ? "warn" : "ok");
+    b.textContent = s.fail ? `✗ ${s.fail} data issue${s.fail > 1 ? "s" : ""}` : s.warn ? `⚠ ${s.warn} data warning${s.warn > 1 ? "s" : ""}` : "✓ Data checks pass";
+    b.title = dq.checks.filter((c) => c.status === "fail" || c.status === "warn").map((c) => `${DQ_ICON[c.status]} ${c.label}`).join("\n") || "Every reconciliation check passed";
+    b.hidden = false;
   }
 
   function drawTables() {
+    try { dq = EdgarCore.dataChecks(result); } catch (e) { dq = null; console.error(e); }
+    drawBadge();
     const blocks = [...result.blocks].sort((a, b) => ORDER.indexOf(a.title) - ORDER.indexOf(b.title));
-    let h = "";
+    let h = dqCard();
     for (const b of blocks) {
       const pl = b.title === "PROFIT & LOSS" || b.title === "QUARTERS";
       if (!b.ends.filter(Boolean).length) continue;

@@ -1,0 +1,15 @@
+{
+  "_note": "Figures checked by hand against each company's 10-K, in $ thousands (the site's internal unit). Key = '<line> <period end>'. The nightly report flags any difference over 0.5%. Add more companies or years in the same format.",
+  "GOOGL": { "source": "Alphabet 10-K FY2024", "values": {
+    "Sales 2024-12-31": 350018000, "Operating income 2024-12-31": 112390000, "Net profit 2024-12-31": 100118000,
+    "Total assets 2024-12-31": 450256000, "Equity 2024-12-31": 325084000 } },
+  "AAPL": { "source": "Apple 10-K FY2024", "values": {
+    "Sales 2024-09-28": 391035000, "Operating income 2024-09-28": 123216000, "Net profit 2024-09-28": 93736000,
+    "Total assets 2024-09-28": 364980000, "Equity 2024-09-28": 56950000 } },
+  "MSFT": { "source": "Microsoft 10-K FY2024", "values": {
+    "Sales 2024-06-30": 245122000, "Operating income 2024-06-30": 109433000, "Net profit 2024-06-30": 88136000,
+    "Total assets 2024-06-30": 512163000, "Equity 2024-06-30": 268477000 } },
+  "NVDA": { "source": "NVIDIA 10-K FY2025", "values": {
+    "Sales 2025-01-26": 130497000, "Operating income 2025-01-26": 81453000, "Net profit 2025-01-26": 72880000,
+    "Total assets 2025-01-26": 111601000, "Equity 2025-01-26": 79327000 } }
+}

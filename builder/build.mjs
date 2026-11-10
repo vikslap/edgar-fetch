@@ -25,6 +25,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 import yauzl from "yauzl";
+import { makeQuality } from "./quality.mjs";
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -235,7 +236,7 @@ function rowFor(facts, meta, px, rf, rate, closes) {
   r.mcap_quote = px && px.mcapNasdaq > 0 ? px.mcapNasdaq / 1e6 : null;
   Object.assign(r, SC.technicals(closes));
   return { cells: [meta.name, meta.ticker, meta.exchange, sector, px ? px.industry : "", ...FIELD_KEYS.map((k) => round(r[k]))],
-           warnings: result.warnings.length, row: r };
+           warnings: result.warnings.length, row: r, result };
 }
 
 /* ---------- 5. alerts ---------- */
@@ -319,6 +320,7 @@ async function main() {
   fs.mkdirSync(path.join(SNAP, "f"), { recursive: true });
   fs.mkdirSync(path.join(SNAP, "c"), { recursive: true });
   let snaps = 0;
+  const quality = makeQuality(core, mapping);
   await eachCompany(zip, new Set(companies.keys()), async (cik, facts) => {
     if (seen++ >= limit) return;
     const meta = companies.get(cik), px = prices.get(meta.ticker);
@@ -328,6 +330,7 @@ async function main() {
       const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur), hist.get(meta.ticker));
       table.push(r.cells);
       techRows.push({ cells: r.cells, _rs: r.row._rs, _s2: r.row._s2 });
+      try { quality.add(meta.ticker, meta.name, px && px.mcapNasdaq, r.result, facts); } catch (e) { log(`quality ${meta.ticker}: ${e.message}`); }
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
     if (seen % 1000 === 0) log(`  processed ${seen}`);
@@ -371,8 +374,17 @@ async function main() {
   fs.mkdirSync(path.join(ROOT, "state"), { recursive: true });
   const byReason = {};
   for (const [t, why] of failures) { const k = why.replace(/\. Use the tag explorer.*$/, "").slice(0, 80); (byReason[k] = byReason[k] || []).push(t); }
+  let dq = null;
+  try {
+    const q = quality.write(ROOT, out.built);
+    const pick = ["op_income", "bs_balance", "eps", "net_profit", "shares"];
+    dq = { pctOk: Object.fromEntries(pick.filter((k) => q.checks[k]).map((k) => [k, q.checks[k].pctOk])),
+      topGap: Object.entries(q.missingTags).map(([k, g]) => [k, g.candidates[0]]).filter(([, c]) => c && c[1] >= 20).slice(0, 3),
+      test: { changes: q.testSet.changesSinceLastRun.length, statusChanges: q.testSet.checkStatusChanges.length, mismatches: q.testSet.mismatchesVs10K, notBuilt: q.testSet.notBuilt.length } };
+    log("Data quality:", JSON.stringify(dq));
+  } catch (e) { log("Data-quality report failed:", e.message); }
   const stats = { built: out.built, listed: companies.size, rows: table.length, failed: failures.length, prices: prices.size,
-    history: hist.size, factsSnaps: snaps, companySnaps: coSnaps, minutes: Math.round((Date.now() - t0) / 60000) };
+    history: hist.size, factsSnaps: snaps, companySnaps: coSnaps, minutes: Math.round((Date.now() - t0) / 60000), dq };
   fs.writeFileSync(path.join(ROOT, "public/data/status.json"), JSON.stringify(stats));   // shown on the site
   fs.writeFileSync(path.join(ROOT, "state/build_log.json"), JSON.stringify({
     ...stats, failedCount: failures.length, noPrice: noPrice.length,

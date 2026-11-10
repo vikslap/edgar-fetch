@@ -332,7 +332,7 @@
             }
             const f = lookup(book, key, e);
             if (!f) {
-              row.values.push(spec.optional ? 0 : null); row.src.push(null);
+              row.values.push(null); row.src.push(null);   // not reported: blank, never 0
               if (spec.quiet) continue;
               const mk = `${title}|${spec.label}|${spec.optional ? 1 : 0}`;
               if (!missing.has(mk)) missing.set(mk, []);
@@ -434,8 +434,131 @@
       }
     }
     for (const n of basisNotes) notes.unshift(n);
+    // reported EPS (split-adjusted to today's share basis) for the data checks
+    const reportedEps = {};
+    if (basis.cur === "USD") {
+      const epsTags = basis.ns === "ifrs-full" ? ["DilutedEarningsLossPerShare", "BasicEarningsLossPerShare"] : ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"];
+      for (const [e, f] of byEnd(mergedSeries(facts, epsTags, "USD/shares"), "FY"))
+        reportedEps[e] = { val: f.val / splitFactor(f.filed, splits), raw: f.val, filed: f.filed, tag: f.tag };
+    }
     return { name: facts.entityName || ticker, ticker, scale, aEnds, qEnds, blocks, raw,
-             warnings, notes, quiet, latestBS, sharesLatest, basis, noRevenue, adrRatio };
+             warnings, notes, quiet, latestBS, sharesLatest, basis, noRevenue, adrRatio, splits, reportedEps };
+  }
+
+  /* ---------- data checks: reconcile what we show against the company's own reported totals ----------
+     Returns { checks: [{id,label,status: ok|warn|fail|na, detail, years}], flags: {blockTitle: {end: [msg]}}, summary } */
+  function dataChecks(result) {
+    const blk = (t) => result.blocks.find((b) => b.title === t);
+    const P = blk("PROFIT & LOSS"), B = blk("BALANCE SHEET"), C = blk("CASH FLOW");
+    const at = (b, k) => { if (!b) return () => null; const r = b.rows.find((x) => x.key === k); const idx = new Map(b.ends.map((e, i) => [e, i]));
+      return (e) => { const i = idx.get(e); return r && i != null ? r.values[i] : null; }; };
+    const z = (v) => v || 0, pct = (v) => `${(v * 100).toFixed(1)}%`, money = (v) => fmt(v);
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const yr = (e) => `${MON[+e.slice(5, 7) - 1]} ${e.slice(0, 4)}`;
+    const ends = (P ? P.ends : []).filter((e) => e && at(P, "sales")(e) != null);
+    const flags = {}, checks = [];
+    const flag = (title, e, msg) => { ((flags[title] = flags[title] || {})[e] = flags[title][e] || []).push(msg); };
+    const add = (id, label, bad, warnOnly, okDetail, naDetail, applicable, explain) => {
+      const yrs = Object.keys(bad).sort();
+      const status = !applicable ? "na" : !yrs.length ? "ok" : warnOnly ? "warn" : "fail";
+      checks.push({ id, label, status, years: yrs, detail: status === "na" ? naDetail : status === "ok" ? okDetail : explain(yrs) });
+    };
+    // 1. operating income: our lines must add up to the company's reported operating income
+    { const S = at(P, "sales"), op = at(P, "operating_income"), bad = {}; let n = 0;
+      for (const e of ends) {
+        const r = op(e); if (r == null) continue; n++;
+        const ebit = S(e) - z(at(P, "cogs")(e)) - z(at(P, "sga")(e)) - z(at(P, "rnd")(e)) - z(at(P, "other_opex")(e));
+        if (Math.abs(ebit - r) > Math.max(1, 0.005 * Math.abs(S(e)))) { bad[e] = ebit - r; flag("PROFIT & LOSS", e, `Operating profit differs from reported by ${money(ebit - r)}`); }
+      }
+      add("op_income", "Operating profit matches reported operating income", bad, false, `All ${n} years match.`,
+        "The company doesn't report operating income, so the split between operating and other items can't be checked.", n > 0,
+        (y) => `Off in ${y.map(yr).join(", ")}: the cost lines don't fit the reported total (an unusual tag or a big one-off). Treat Operating Profit and OPM for these years with care.`); }
+    // 2. items that couldn't be placed in any line
+    { const S = at(P, "sales"), u = at(P, "other_nonop"), bad = {};
+      for (const e of ends) {
+        const ebit = S(e) - z(at(P, "cogs")(e)) - z(at(P, "sga")(e)) - z(at(P, "rnd")(e)) - z(at(P, "other_opex")(e));
+        const v = u(e); if (v == null || !ebit) continue;
+        if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) { bad[e] = v; flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
+      }
+      add("unplaced", "Little left unplaced between operating profit and pre-tax profit", bad, true, "Under 5% of operating profit in every year.", "", ends.length > 0,
+        (y) => `Over 5% of operating profit in ${y.map(yr).join(", ")} ended up in "Unclassified items". Other Income for these years may include items that belong elsewhere.`); }
+    // 3. net profit explained by pre-tax − tax ± discontinued ops − minority share
+    { const bad = {};
+      for (const e of ends) {
+        const np = at(P, "net_profit")(e), pat = at(P, "pat")(e); if (np == null || pat == null) continue;
+        const gap = np - (pat + z(at(P, "disc_ops")(e)) - z(at(P, "minority")(e)));
+        if (Math.abs(gap) > Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)))) { bad[e] = gap; flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
+      }
+      add("net_profit", "Net profit = pre-tax − tax ± discontinued ops − minority share", bad, true, "Every year adds up.", "", ends.length > 0,
+        (y) => `Unexplained gap in ${y.map(yr).join(", ")}: usually equity-method income reported after tax, or a line the site doesn't map yet.`); }
+    // 4. EPS: net profit ÷ diluted shares vs the EPS the company reported (catches split and share-count errors)
+    { const eps = result.reportedEps || {}, sh = at(P, "shares_diluted"), bad = {}; let n = 0, worst = 1;
+      for (const e of ends) {
+        const r = eps[e], np = at(P, "net_profit")(e), s = sh(e);
+        if (!r || np == null || !s || Math.abs(r.val) < 0.05) continue; n++;
+        const ratio = (np / s) / r.val;
+        if (!(ratio > 0.95 && ratio < 1.05)) {
+          bad[e] = ratio; if (Math.abs(Math.log(ratio)) > Math.abs(Math.log(worst))) worst = ratio;
+          flag("PROFIT & LOSS", e, `EPS from net profit ÷ shares is ${(np / s).toFixed(2)} vs reported ${r.val.toFixed(2)}`);
+        }
+      }
+      const split = worst > 1.8 || worst < 0.55;
+      add("eps", "EPS matches reported EPS", bad, !split, `All ${n} years within 5% of reported EPS (split-adjusted).`,
+        "No reported EPS to compare (or not in USD).", n > 0,
+        (y) => split ? `Off by about ${worst >= 1 ? worst.toFixed(1) + "×" : "1/" + (1 / worst).toFixed(1)} in ${y.map(yr).join(", ")}: looks like a stock split or share-class change that isn't adjusted. Per-share figures for these years are wrong.`
+          : `More than 5% off in ${y.map(yr).join(", ")}: often dual share classes or preferred dividends. Per-share figures are approximate.`); }
+    // 5. balance sheet balances
+    const bEnds = (B ? B.ends : []).filter(Boolean);
+    { const A = at(B, "total_assets"), L = at(B, "total_liabilities"), E = at(B, "equity_total"), bad = {}; let n = 0;
+      for (const e of bEnds) {
+        if (A(e) == null || L(e) == null || E(e) == null) continue; n++;
+        const d = A(e) - L(e) - E(e);
+        if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; flag("BALANCE SHEET", e, `Assets − (Liabilities + Equity) = ${money(d)}`); }
+      }
+      add("bs_balance", "Balance sheet balances (Assets = Liabilities + Equity)", bad, false, `All ${n} years balance.`, "Totals not reported.", n > 0,
+        (y) => `Doesn't balance in ${y.map(yr).join(", ")}: a total is missing or tagged differently (often equity with/without minority interest).`); }
+    // 6. listed lines never exceed their reported total
+    { const A = at(B, "total_assets"), bad = {}; const g = (k) => at(B, k);
+      for (const e of bEnds) {
+        const ta = Math.abs(z(A(e))); if (!ta) continue;
+        const parts = [];
+        if (g("current_assets")(e) != null) parts.push(["current assets", g("current_assets")(e) - z(g("cash")(e)) - z(g("st_investments")(e)) - z(g("receivables")(e)) - z(g("inventory")(e))]);
+        if (g("current_assets")(e) != null) parts.push(["non-current assets", A(e) - g("current_assets")(e) - z(g("ppe")(e)) - z(g("goodwill")(e)) - z(g("intangibles")(e))]);
+        if (g("current_liabilities")(e) != null) parts.push(["current liabilities", g("current_liabilities")(e) - z(g("payables")(e)) - z(g("st_debt")(e))]);
+        for (const [nm, v] of parts) if (v < -0.01 * ta) { bad[e] = v; flag("BALANCE SHEET", e, `Listed ${nm} exceed the reported total by ${money(-v)}`); }
+      }
+      add("bs_parts", "Listed balance-sheet lines fit inside their totals", bad, true, "Every 'Other' line is zero or positive.", "", bEnds.length > 0,
+        (y) => `In ${y.map(yr).join(", ")} the listed lines add up to more than the reported total: one line probably includes another (e.g. cash tagged together with investments).`); }
+    // 7. cash flow explains the change in cash
+    const cEnds = (C ? C.ends : []).filter(Boolean);
+    { const O = at(C, "cfo"), I = at(C, "cfi"), F = at(C, "cff"), K = at(B, "cash"), A = at(B, "total_assets"), bad = {}; let n = 0;
+      for (let j = 1; j < cEnds.length; j++) {
+        const e = cEnds[j], p = cEnds[j - 1];
+        if (O(e) == null || I(e) == null || F(e) == null || K(e) == null || K(p) == null) continue; n++;
+        const d = O(e) + I(e) + F(e) - (K(e) - K(p));
+        if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
+      }
+      add("cash", "Cash flows explain the change in cash", bad, true, `All ${n} years agree.`, "Not enough cash-flow data.", n > 0,
+        (y) => `Gap in ${y.map(yr).join(", ")}: usually exchange-rate effects or restricted cash, which the cash line may exclude. Large gaps mean a cash-flow line is missing.`); }
+    // 8. share count doesn't jump
+    { const sh = at(P, "shares_diluted"), bad = {};
+      for (let j = 1; j < ends.length; j++) {
+        const a = sh(ends[j - 1]), b = sh(ends[j]); if (!a || !b) continue;
+        const r = b / a; if (r > 1.8 || r < 0.55) { bad[ends[j]] = r; flag("PROFIT & LOSS", ends[j], `Diluted shares changed ${r.toFixed(1)}× from the year before`); }
+      }
+      add("shares", "Share count has no unexplained jumps", bad, false, "No jumps between years.", "", ends.length > 1,
+        (y) => `Shares jump in ${y.map(yr).join(", ")}: an unadjusted split, a big acquisition paid in shares, or a change in share classes. Check per-share figures around these years.`); }
+    // 9. key lines present
+    { const bad = {}, need = [["Net profit", at(P, "net_profit")], ["Total assets", at(B, "total_assets")], ["Shareholders' equity", at(B, "equity")], ["Operating cash flow", at(C, "cfo")]];
+      const miss = {};
+      for (const e of ends) for (const [nm, f] of need) if (f(e) == null) { (miss[e] = miss[e] || []).push(nm); bad[e] = 1; }
+      add("coverage", "Key lines reported every year", bad, true, "Net profit, total assets, equity and operating cash flow are there for every year.", "", ends.length > 0,
+        (y) => `Missing: ${y.map((e) => `${yr(e)} (${miss[e].join(", ")})`).join("; ")}.`); }
+    if (result.splits && result.splits.length) checks.push({ id: "splits", label: "Stock splits adjusted", status: "ok", years: [],
+      detail: result.splits.map(([d, r]) => `${r >= 1 ? `${+r.toFixed(2)}-for-1` : `1-for-${+(1 / r).toFixed(2)}`} (filings from ${d})`).join(", ") });
+    const summary = { ok: 0, warn: 0, fail: 0, na: 0 };
+    for (const c of checks) summary[c.status]++;
+    return { checks, flags, summary };
   }
 
   function fmt(v) {
@@ -1145,7 +1268,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { detectBasis, detectSplits, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { detectBasis, detectSplits, dataChecks, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);

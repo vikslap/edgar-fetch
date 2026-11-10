@@ -12,6 +12,17 @@ const n = (v) => (v == null ? "?" : Number(v).toLocaleString("en-US"));
 const day = (iso) => (iso ? new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) : "unknown");
 const why = env.TRIGGER === "push" ? " (after a code update)" : env.TRIGGER === "workflow_dispatch" ? " (run by hand)" : "";
 const ok = env.BUILD === "success" && env.DEPLOY === "success";
+const DQ_NAMES = { op_income: "op. income", bs_balance: "balance sheet", eps: "EPS", net_profit: "net profit", shares: "share count" };
+function dqLines(d) {
+  const p = Object.entries(d.pctOk || {}).filter(([, v]) => v != null).map(([k, v]) => `${DQ_NAMES[k] || k} ${v}%`).join(" · ");
+  let t = p ? `\nData checks passing: ${p}` : "";
+  if (d.topGap && d.topGap.length) t += `\nMost common unmapped tags: ${d.topGap.map(([k, [tag, n]]) => `${tag} (${k}, ${n} cos)`).join("; ")}`;
+  const ts = d.test || {};
+  if (ts.mismatches && ts.mismatches.length) t += `\n❗ Test set vs 10-K: ${ts.mismatches.slice(0, 4).join("; ")}${ts.mismatches.length > 4 ? ` (+${ts.mismatches.length - 4} more)` : ""}`;
+  else t += `\nTest set: ${20 - (ts.notBuilt || 0)}/20 companies built, hand-checked 10-K figures match`;
+  if (ts.changes || ts.statusChanges) t += ` · ${ts.changes} value(s) changed since last run${ts.statusChanges ? `, ${ts.statusChanges} check status change(s)` : ""} (see state/data_quality.json)`;
+  return t;
+}
 let text;
 if (ok) {
   const warn = [];
@@ -24,6 +35,7 @@ if (ok) {
     `Data built ${day(L.built)} IST · ${n(L.minutes)} min\n` +
     `Companies: ${n(L.rows)} of ${n(L.listed)} listed · prices ${n(L.prices)} · history ${n(L.history)}\n` +
     `Saved copies: ${n(L.factsSnaps)} financials, ${n(L.companySnaps)} filings lists` +
+    (L.dq ? dqLines(L.dq) : "") +
     (warn.length ? `\n\n<b>Check:</b> ${warn.join("; ")}` : "");
 } else {
   const step = env.BUILD !== "success" ? "building the data" : "deploying to Cloudflare";
