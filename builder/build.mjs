@@ -99,10 +99,12 @@ async function histories(tickers) {
     const got = await Promise.all(tickers.slice(i, i + 8).map(async (t) => {
       try {
         const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?range=2y&interval=1d`, { "User-Agent": BROWSER_UA }, 2);
-        return (j.chart.result[0].indicators.quote[0].close || []).filter((x) => x != null && x > 0);
+        const q = j.chart.result[0].indicators.quote[0], c = [], v = [];
+        (q.close || []).forEach((x, i) => { if (x != null && x > 0) { c.push(x); v.push((q.volume || [])[i] || 0); } });
+        return c.length ? { c, v } : null;
       } catch { return null; }
     }));
-    got.forEach((c, k) => c && c.length && out.set(tickers[i + k], c));
+    got.forEach((h, k) => h && out.set(tickers[i + k], h));
     tried += got.length;
     if (tried >= 400 && out.size < tried * 0.1) { log(`Price history: Yahoo is refusing (${out.size}/${tried}); technical fields skipped tonight`); break; }
     if (i % 1000 === 0) log(`  history ${i}/${tickers.length}`);
@@ -312,7 +314,7 @@ async function main() {
   log(`Price history: ${hist.size} stocks`);
 
   const limit = env.LIMIT ? parseInt(env.LIMIT, 10) : Infinity;
-  const table = [], failures = [], noPrice = [];
+  const table = [], failures = [], noPrice = [], techRows = [];
   let seen = 0;
   fs.mkdirSync(path.join(SNAP, "f"), { recursive: true });
   fs.mkdirSync(path.join(SNAP, "c"), { recursive: true });
@@ -325,6 +327,7 @@ async function main() {
       const cur = core.detectBasis(facts).cur;
       const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur), hist.get(meta.ticker));
       table.push(r.cells);
+      techRows.push({ cells: r.cells, _rs: r.row._rs, _s2: r.row._s2 });
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
     if (seen % 1000 === 0) log(`  processed ${seen}`);
@@ -343,6 +346,9 @@ async function main() {
     });
     log(`Company snapshots: ${n}`); coSnaps = n;
   } catch (e) { log("Company snapshots skipped:", e.message); }
+  // RS rating needs every stock's performance, so it (and the final Stage 2 flag) is filled in now
+  SC.finishTechnicals(techRows);
+  for (const t of techRows) for (const k of ["rs_rating", "stage2_score", "stage2"]) t.cells[5 + FIELD_KEYS.indexOf(k)] = t[k] ?? null;
   table.sort((a, b) => (b[5 + FIELD_KEYS.indexOf("mcap")] || 0) - (a[5 + FIELD_KEYS.indexOf("mcap")] || 0));
   log(`Rows: ${table.length}, failed: ${failures.length}, without price: ${noPrice.length}`);
 

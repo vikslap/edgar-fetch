@@ -110,11 +110,26 @@
     ["from_high", "Down from 52 week high", "%", "Technicals", ["52 week high", "below 52 week high"], "% below the highest close of the last 52 weeks (0 = at the high)"],
     ["ret_3m", "Return over 3 months", "%", "Technicals", ["3 month return"], "Price change over the last 63 trading days"],
     ["ret_1y", "Return over 1 year", "%", "Technicals", ["1 year return", "52 week return"], "Price change over the last 252 trading days"],
+    ["dma150", "DMA 150", "$", "Technicals", ["150 dma", "sma 150", "dma150"], "150-day simple moving average of the close"],
+    ["dma50_rising", "DMA 50 rising", "", "Technicals", ["50 dma rising"], "1 if the 50 DMA is higher than 10 trading days ago, otherwise 0"],
+    ["dma200_rising", "DMA 200 rising", "", "Technicals", ["200 dma rising"], "1 if the 200 DMA is higher than a month (21 trading days) ago, otherwise 0"],
+    ["from_low", "Up from 52 week low", "%", "Technicals", ["52 week low", "above 52 week low"], "% above the lowest close of the last 52 weeks"],
+    ["rsi14", "RSI 14", "", "Technicals", ["rsi", "relative strength index"], "Wilder's 14-day RSI (0–100). Under 30 oversold, over 70 overbought"],
+    ["vol_ratio", "Volume vs 50 day average", "x", "Technicals", ["relative volume", "volume ratio"], "Last session's volume ÷ the average of the 50 sessions before it"],
+    ["new_high_vol", "New 52 week high on volume", "", "Technicals", ["52 week high on volume", "breakout on volume"], "1 if the last close is the highest of 52 weeks and volume is at least 1.5× its 50-day average"],
+    ["bb_width", "Bollinger band width", "%", "Technicals", ["band width", "bbw"], "Width of the 20-day, 2-standard-deviation Bollinger bands as % of the 20-day average"],
+    ["squeeze_pct", "Squeeze percentile", "%", "Technicals", ["volatility squeeze", "squeeze"], "Where today's Bollinger band width sits within the last 6 months: 0 = the narrowest (tightest) of the period"],
+    ["rs_rating", "RS rating", "/99", "Technicals", ["relative strength", "rs"], "Price performance vs every US stock, 1–99 (99 = top 1%). Last 3 months count double, plus 6, 9 and 12 months"],
+    ["stage2_score", "Stage 2 checks passed", "/8", "Technicals", ["trend template score", "minervini score"], "How many of the 8 Stage 2 trend-template checks the stock meets"],
+    ["stage2", "Stage 2 trend template", "", "Technicals", ["stage 2", "minervini", "trend template"], "1 if all 8 checks pass: price above the 150 and 200 DMA; 150 above 200; 200 DMA rising for a month; 50 above 150 and 200; price above the 50 DMA; 30%+ above the 52-week low; within 25% of the 52-week high; RS rating 70+"],
   ];
 
-  /* ---------- technicals from daily closes (oldest → newest) ---------- */
-  function technicals(c) {
+  /* ---------- technicals from daily history (oldest → newest) ----------
+     h = closes array, or { c: closes, v: volumes } (same length). RS rating and the final Stage 2 flag
+     need every stock's numbers, so the builder finishes them with finishTechnicals(). */
+  function technicals(h) {
     const out = {};
+    const c = Array.isArray(h) ? h : h && h.c, v = Array.isArray(h) ? null : h && h.v;
     if (!c || c.length < 50) return out;
     const n = c.length, last = c[n - 1];
     const sma = (len) => {                         // rolling simple average; null until enough bars
@@ -122,9 +137,11 @@
       for (let i = 0; i < n; i++) { s += c[i]; if (i >= len) s -= c[i - len]; if (i >= len - 1) a[i] = s / len; }
       return a;
     };
-    const s50 = sma(50), s200 = sma(200);
+    const s50 = sma(50), s150 = sma(150), s200 = sma(200);
     out.dma50 = s50[n - 1];
     out.vs_dma50 = (last / s50[n - 1] - 1) * 100;
+    if (n > 60) out.dma50_rising = s50[n - 1] > s50[n - 11] ? 1 : 0;
+    if (n >= 150) out.dma150 = s150[n - 1];
     if (n >= 200) {
       out.dma200 = s200[n - 1];
       out.vs_dma200 = (last / s200[n - 1] - 1) * 100;
@@ -136,12 +153,71 @@
       const days = s200[i - 1] != null && i > 0 ? n - 1 - i : null;
       out.golden_days = up ? days : null;
       out.death_days = up ? null : days;
+      if (n >= 221) out.dma200_rising = s200[n - 1] > s200[n - 22] ? 1 : 0;
     }
-    const yr = c.slice(-252);
-    out.from_high = (1 - last / Math.max(...yr)) * 100;
+    const yr = c.slice(-252), hi = Math.max(...yr), lo = Math.min(...yr);
+    out.from_high = (1 - last / hi) * 100;
+    out.from_low = (last / lo - 1) * 100;
     if (n > 63) out.ret_3m = (last / c[n - 64] - 1) * 100;
     if (n > 252) out.ret_1y = (last / c[n - 253] - 1) * 100;
+
+    // RSI 14 (Wilder smoothing)
+    if (n > 30) {
+      let g = 0, l = 0;
+      for (let i = 1; i <= 14; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d; }
+      g /= 14; l /= 14;
+      for (let i = 15; i < n; i++) { const d = c[i] - c[i - 1]; g = (g * 13 + Math.max(d, 0)) / 14; l = (l * 13 + Math.max(-d, 0)) / 14; }
+      out.rsi14 = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+    }
+    // volume vs the 50 sessions before; 52-week closing high on 1.5× volume
+    if (v && v.length === n && n > 51) {
+      let s = 0, k = 0;
+      for (let i = n - 51; i < n - 1; i++) if (v[i] > 0) { s += v[i]; k++; }
+      if (k > 30 && s > 0 && v[n - 1] > 0) {
+        out.vol_ratio = v[n - 1] / (s / k);
+        const prevHi = Math.max(...c.slice(Math.max(0, n - 252), n - 1));
+        out.new_high_vol = n >= 200 && last > prevHi && out.vol_ratio >= 1.5 ? 1 : 0;
+      }
+    }
+    // Bollinger band width (20, 2σ) and where today's width sits in the last 6 months
+    if (n >= 20 + 126) {
+      const bw = [];
+      for (let e = n - 126; e < n; e++) {
+        let m = 0; for (let i = e - 19; i <= e; i++) m += c[i]; m /= 20;
+        let q = 0; for (let i = e - 19; i <= e; i++) q += (c[i] - m) ** 2;
+        bw.push(m ? (4 * Math.sqrt(q / 20)) / m * 100 : null);
+      }
+      const now = bw[bw.length - 1];
+      if (now != null) {
+        out.bb_width = now;
+        const ok = bw.filter((x) => x != null);
+        out.squeeze_pct = (ok.filter((x) => x < now).length / (ok.length - 1 || 1)) * 100;
+      }
+    }
+    // RS raw score (IBD-style: last quarter double weight); ranked across all stocks later
+    if (n > 252) out._rs = 2 * (last / c[n - 64]) + last / c[n - 127] + last / c[n - 190] + last / c[n - 253];
+    // Stage 2 checks that don't need the cross-stock rank (7 of 8)
+    if (n >= 221) {
+      const p150 = s150[n - 1], p200 = s200[n - 1], p50 = s50[n - 1];
+      out._s2 = [last > p150 && last > p200, p150 > p200, out.dma200_rising === 1, p50 > p150 && p50 > p200,
+        last > p50, last >= lo * 1.3, last >= hi * 0.75].filter(Boolean).length;
+    }
     return out;
+  }
+
+  // rows: objects carrying _rs / _s2 from technicals(); sets rs_rating (1–99), stage2_score, stage2; removes the helpers
+  function finishTechnicals(rows) {
+    const withRs = rows.filter((r) => r._rs != null).sort((a, b) => a._rs - b._rs);
+    withRs.forEach((r, i) => { r.rs_rating = withRs.length > 1 ? Math.max(1, Math.min(99, Math.round((i / (withRs.length - 1)) * 98 + 1))) : null; });
+    for (const r of rows) {
+      if (r._s2 != null) {
+        const rsOk = r.rs_rating != null && r.rs_rating >= 70;
+        r.stage2_score = r._s2 + (rsOk ? 1 : 0);
+        r.stage2 = r.stage2_score === 8 ? 1 : 0;
+      }
+      delete r._rs; delete r._s2;
+    }
+    return rows;
   }
   const TEXT = ["name", "ticker", "exchange", "sector", "industry"];
 
@@ -366,9 +442,15 @@
     ["Golden cross (last 10 days)", "Days since golden cross <= 10 AND Market Capitalization > 1000"],
     ["Death cross (last 10 days)", "Days since death cross <= 10 AND Market Capitalization > 1000"],
     ["Uptrend near highs", "DMA 50 above DMA 200 = 1 AND Down from 52 week high < 5 AND Market Capitalization > 1000"],
+    ["Stage 2 trend template", "Stage 2 trend template = 1 AND Market Capitalization > 1000"],
+    ["RS leaders (top 10%)", "RS rating >= 90 AND Market Capitalization > 1000"],
+    ["52-week high on volume", "New 52 week high on volume = 1 AND Market Capitalization > 500"],
+    ["Pullback to rising 50 DMA", "DMA 50 above DMA 200 = 1 AND DMA 50 rising = 1 AND Price vs DMA 50 >= -3 AND Price vs DMA 50 <= 3 AND RSI 14 >= 40 AND RSI 14 <= 55 AND Market Capitalization > 1000"],
+    ["Quality on sale", "Piotroski score >= 7 AND Debt to equity < 1 AND Price vs DMA 200 <= -10 AND Price vs DMA 200 >= -25 AND Market Capitalization > 1000"],
+    ["Volatility squeeze in uptrend", "Squeeze percentile <= 5 AND DMA 50 above DMA 200 = 1 AND Market Capitalization > 1000"],
   ];
 
-  const api = { FIELDS, TEXT, rowFor, technicals, compile, tokenize, resolve, suggest, PRESETS };
+  const api = { FIELDS, TEXT, rowFor, technicals, finishTechnicals, compile, tokenize, resolve, suggest, PRESETS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ScreenCore = api;
 })(typeof window !== "undefined" ? window : this);
