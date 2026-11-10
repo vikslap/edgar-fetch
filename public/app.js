@@ -934,7 +934,12 @@
     const n = b.ends.filter(Boolean).length, z = (a, i) => a[i] || 0;
     const tail = b.title === "CASH FLOW" ? (() => { const c = g("cfo"), k = g("capex");
       return [{ label: "Free Cash Flow", values: c.map((v, i) => (v == null ? null : v - z(k, i))), strong: true },
-        { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }]; })() : [];
+        { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }]; })()
+      : b.title === "BALANCE SHEET" ? (() => { const L = g("total_liabilities"), E = g("equity_total"), A = g("total_assets");
+        const le = L.map((v, i) => (v == null || E[i] == null ? null : v + E[i]));
+        return [{ label: "Total Liabilities + Equity", values: le, strong: true },
+          { label: "Check: Assets − (Liabilities + Equity)", values: le.map((v, i) => (v == null || A[i] == null ? null : Math.round(A[i] - v))), check: true }]; })()
+      : [];
     const line = (r, raw) => {
       const isShares = /share/i.test(r.label);
       let s = `<tr class="${r.strong ? "strong" : ""}"><td>${esc(r.label)}${isShares ? ' <span class="muted">(Mn)</span>' : ""}</td>`;
@@ -942,6 +947,7 @@
         const v = r.values[i], src = raw && r.src[i], cls = ["num"];
         if (v == null) cls.push("na"); else if (v < 0) cls.push("neg");
         if (src && src.derived && src.derived !== "calculated") cls.push("derived");
+        if (r.check && v != null) { s += `<td class="num ${Math.abs(v) <= 1 ? "pos-t" : "neg-t"}">${Math.abs(v) <= 1 ? "OK" : cellFmt(v)}</td>`; continue; }
         s += `<td class="${cls.join(" ")}"${raw ? ` data-b="${esc(b.title)}" data-k="${r.key}" data-i="${i}"` : ""}>${cellFmt(v, r.f, isShares)}</td>`;
       }
       return s + "</tr>";

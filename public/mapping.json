@@ -376,7 +376,8 @@
       "tags": [
         "ShortTermInvestments",
         "MarketableSecuritiesCurrent",
-        "AvailableForSaleSecuritiesDebtSecuritiesCurrent"
+        "AvailableForSaleSecuritiesDebtSecuritiesCurrent",
+        "AvailableForSaleSecuritiesCurrent"
       ],
       "ifrs": [
         "ShorttermDepositsNotClassifiedAsCashEquivalents",
@@ -541,7 +542,27 @@
       ],
       "ifrs": [
         "Liabilities"
-      ]
+      ],
+      "diff": [
+        [
+          "LiabilitiesAndStockholdersEquity",
+          "Assets"
+        ],
+        [
+          "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+          "StockholdersEquity"
+        ]
+      ],
+      "ifrs_diff": [
+        [
+          "EquityAndLiabilities",
+          "Assets"
+        ],
+        [
+          "Equity"
+        ]
+      ],
+      "_note": "When 'Total liabilities' isn't a line on the balance sheet: total liabilities & equity − total equity."
     },
     "equity": {
       "section": "BS",

@@ -91,8 +91,73 @@
                      tag: hits.map(([sg, f]) => (sg < 0 ? "−" : "+") + f.tag).join(" "), derived: "sum of unusual items" });
       }
     }
+    const diff = ifrs ? spec.ifrs_diff : spec.diff;              // A − B, only where both are reported
+    if (diff) {
+      const [A, B] = diff.map((tags) => mergedSeries(facts, tags, unit));
+      for (const [key, a] of A) {
+        if (s.has(key) || !B.has(key)) continue;
+        const b = B.get(key);
+        s.set(key, { ...a, val: a.val - b.val, tag: `${a.tag} − ${b.tag}`, filed: [a.filed, b.filed].sort().pop(), derived: "total − equity" });
+      }
+    }
     if (spec.negate) for (const f of s.values()) f.val = -f.val;
     return s;
+  }
+
+  /* Stock splits, found in the filings themselves: after a split, companies restate earlier periods'
+     EPS and share counts, so the same period appears in two filings at an exact split ratio.
+     Returns [[first filing date after the split, ratio]] (ratio = new shares per old share). */
+  const NICE_RATIOS = [1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50, 100];
+  function detectSplits(facts) {
+    const gaap = (facts.facts || {})["us-gaap"] || {};
+    const SRC = [["WeightedAverageNumberOfDilutedSharesOutstanding", 1], ["WeightedAverageNumberOfSharesOutstandingBasic", 1],
+      ["CommonStockSharesOutstanding", 1], ["EarningsPerShareDiluted", -1], ["EarningsPerShareBasic", -1]];
+    const snap = (r) => {
+      const inv = r < 1, x = inv ? 1 / r : r;
+      const hit = NICE_RATIOS.find((n) => Math.abs(x / n - 1) < 0.03);
+      return hit ? (inv ? 1 / hit : hit) : null;
+    };
+    const cand = [];
+    for (const [tag, dir] of SRC) {
+      const node = gaap[tag];
+      if (!node) continue;
+      for (const arr of Object.values(node.units || {})) {
+        const byPeriod = new Map();
+        for (const f of arr) {
+          if (!FORMS.has(f.form) || !f.val) continue;
+          const k = `${f.start || ""}|${f.end}`;
+          (byPeriod.get(k) || byPeriod.set(k, []).get(k)).push(f);
+        }
+        for (const [k, fs] of byPeriod) {
+          fs.sort((a, b) => (a.filed < b.filed ? -1 : 1));
+          for (let i = 1; i < fs.length; i++) {
+            const a = fs[i - 1], b = fs[i];
+            if (a.filed === b.filed || Math.sign(a.val) !== Math.sign(b.val)) continue;
+            const raw = dir > 0 ? b.val / a.val : a.val / b.val;
+            if (raw > 0.85 && raw < 1.18) continue;
+            const r = snap(raw);
+            if (r) cand.push({ r, lo: a.filed, hi: b.filed, ev: `${tag}|${k}` });
+          }
+        }
+      }
+    }
+    // group by ratio where the filing windows overlap; the split sits between the last pre-split and first post-split filing
+    const groups = [];
+    for (const c of cand.sort((a, b) => (a.hi < b.hi ? -1 : 1))) {
+      const g = groups.find((g) => g.r === c.r && c.lo < g.hi && g.lo < c.hi);
+      if (g) { g.lo = c.lo > g.lo ? c.lo : g.lo; g.hi = c.hi < g.hi ? c.hi : g.hi; g.ev.add(c.ev); }
+      else groups.push({ r: c.r, lo: c.lo, hi: c.hi, ev: new Set([c.ev]) });
+    }
+    const ok = groups.filter((g) => g.ev.size >= 2 && g.lo < g.hi).sort((a, b) => b.ev.size - a.ev.size);
+    const out = [];
+    for (const g of ok) {
+      // skip a "split" that is just two real ones seen across a long gap between filings
+      const inside = out.filter(([d]) => d > g.lo && d <= g.hi).reduce((p, [, r]) => p * r, 1);
+      if (inside !== 1 && Math.abs(inside / g.r - 1) < 0.03) continue;
+      if (out.some(([d, r]) => d === g.hi)) continue;
+      out.push([g.hi, g.r]);
+    }
+    return out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
   }
 
   function byEnd(series, k) {
@@ -158,7 +223,9 @@
   function compute(facts, cfg, ticker, opts = {}) {
     const ANNUAL = opts.annualCols || 12, QUARTERS = opts.quarterCols || 10;
     ticker = (ticker || "").toUpperCase();
-    const { items, splits, scale } = resolveItems(cfg, ticker);
+    const { items, splits: splitsCfg, scale } = resolveItems(cfg, ticker);
+    // splits listed in the mapping win; otherwise use the ones the filings reveal
+    const splits = splitsCfg.length ? splitsCfg : detectSplits(facts);
     const annual = {}, quarterly = {};
     const basis = detectBasis(facts), basisNotes = [];
     facts._fx = basis.cur !== "USD" && opts.fx ? opts.fx : null;
@@ -166,6 +233,8 @@
       ? `Reports in ${basis.cur}; all years converted to USD at today's rate (1 ${basis.cur} = ${facts._fx.toFixed(4)} USD), so growth rates are in ${basis.cur} terms.`
       : `Reports in ${basis.cur}; no exchange rate available, so figures are in ${basis.cur} (valuation vs the USD price will be wrong).`);
     if (basis.ns === "ifrs-full") basisNotes.push("Files under IFRS; line items are mapped from IFRS tags.");
+    if (splits.length) basisNotes.push("Share counts adjusted for stock splits: " + splits.map(([d, r]) =>
+      `${r >= 1 ? `${+r.toFixed(2)}-for-1` : `1-for-${+(1 / r).toFixed(2)} (reverse)`} (filings from ${d})`).join(", ") + ".");
 
     for (const [key, spec] of Object.entries(items)) {
       if (spec.plug || spec.skip || spec.from_check) continue;
@@ -1059,7 +1128,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { detectBasis, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { detectBasis, detectSplits, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);
