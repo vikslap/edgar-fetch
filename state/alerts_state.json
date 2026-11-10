@@ -173,7 +173,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-08"
+  "at": "2026-11-10"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -230,7 +230,6 @@
    "DFIN",
    "DHI",
    "DKS",
-   "DLO",
    "DOV",
    "DRD",
    "DVN",
@@ -377,6 +376,7 @@
    "TDC",
    "TER",
    "TGLS",
+   "TJX",
    "TORO",
    "TOYO",
    "TRMD",
@@ -395,6 +395,7 @@
    "VINP",
    "VLO",
    "WDC",
+   "WSO",
    "XNET",
    "XP",
    "XPEL",
@@ -409,7 +410,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-08"
+  "at": "2026-11-10"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -429,6 +430,7 @@
    "ALG",
    "ALL",
    "AMAL",
+   "AMN",
    "AMP",
    "AMPH",
    "AMTB",
@@ -467,6 +469,7 @@
    "BILL",
    "BKE",
    "BKU",
+   "BL",
    "BLBD",
    "BLX",
    "BMA",
@@ -521,6 +524,7 @@
    "CRUS",
    "CTBI",
    "CTRE",
+   "CTSH",
    "CTVA",
    "CUBI",
    "CVE",
@@ -535,6 +539,7 @@
    "DHI",
    "DINO",
    "DLO",
+   "DMC",
    "DOCS",
    "DOX",
    "DRH",
@@ -542,6 +547,7 @@
    "DV",
    "DVN",
    "DXC",
+   "ED",
    "EDU",
    "EFOR",
    "EFSC",
@@ -592,6 +598,7 @@
    "GIII",
    "GL",
    "GLBE",
+   "GLIBA",
    "GLOB",
    "GM",
    "GMAB",
@@ -652,6 +659,7 @@
    "JXN",
    "KBH",
    "KC",
+   "KEY",
    "KFY",
    "KGC",
    "KMPR",
@@ -694,7 +702,6 @@
    "MU",
    "MUR",
    "NBHC",
-   "NBIX",
    "NEM",
    "NIC",
    "NICE",
@@ -722,6 +729,7 @@
    "ORI",
    "OSBC",
    "OSCR",
+   "OSK",
    "OVV",
    "PAAS",
    "PAC",
@@ -740,10 +748,12 @@
    "PFS",
    "PGR",
    "PHM",
+   "PINS",
    "PIPR",
    "PJT",
    "PLMR",
    "PNFP",
+   "PODD",
    "PPC",
    "PR",
    "PRDO",
@@ -831,7 +841,6 @@
    "TMDX",
    "TME",
    "TOL",
-   "TPC",
    "TRLV",
    "TRMK",
    "TRV",
@@ -872,6 +881,7 @@
    "WF",
    "WHD",
    "WKC",
+   "WLDN",
    "WRB",
    "WSBC",
    "WSE",
@@ -893,6 +903,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-08"
+  "at": "2026-11-10"
  }
 }
