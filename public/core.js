@@ -330,7 +330,14 @@
               if (v !== null) raw.push([title, spec.label, e, r2(v / scale), src.tag, "", "", "", "calculated"]);
               continue;
             }
-            const f = lookup(book, key, e);
+            let f = lookup(book, key, e);
+            if (!f && spec.residual) {                    // e.g. temporary equity = L&E total − liabilities − equity
+              const parts = spec.residual.map((k) => [k.startsWith("-") ? -1 : 1, lookup(book, k.replace(/^-/, ""), e)]);
+              if (parts.every(([, p]) => p) && !parts.some(([, p]) => p.derived)) {
+                const v = parts.reduce((a, [sg, p]) => a + sg * p.val, 0);
+                if (Math.abs(v) > 0.0005 * Math.abs(parts[0][1].val)) f = { val: v, tag: "(total liabilities & equity − liabilities − equity)", derived: "balancing", filed: parts[0][1].filed, end: e };
+              }
+            }
             if (!f) {
               row.values.push(null); row.src.push(null);   // not reported: blank, never 0
               if (spec.quiet) continue;
@@ -509,13 +516,13 @@
           : `More than 5% off in ${y.map(yr).join(", ")}: often dual share classes or preferred dividends. Per-share figures are approximate.`); }
     // 5. balance sheet balances
     const bEnds = (B ? B.ends : []).filter(Boolean);
-    { const A = at(B, "total_assets"), L = at(B, "total_liabilities"), E = at(B, "equity_total"), bad = {}; let n = 0;
+    { const A = at(B, "total_assets"), L = at(B, "total_liabilities"), T = at(B, "temp_equity"), E = at(B, "equity_total"), bad = {}; let n = 0;
       for (const e of bEnds) {
         if (A(e) == null || L(e) == null || E(e) == null) continue; n++;
-        const d = A(e) - L(e) - E(e);
-        if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; flag("BALANCE SHEET", e, `Assets − (Liabilities + Equity) = ${money(d)}`); }
+        const d = A(e) - L(e) - z(T(e)) - E(e);
+        if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; flag("BALANCE SHEET", e, `Assets − (Liabilities + Temporary equity + Equity) = ${money(d)}`); }
       }
-      add("bs_balance", "Balance sheet balances (Assets = Liabilities + Equity)", bad, false, `All ${n} years balance.`, "Totals not reported.", n > 0,
+      add("bs_balance", "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)", bad, false, `All ${n} years balance.`, "Totals not reported.", n > 0,
         (y) => `Doesn't balance in ${y.map(yr).join(", ")}: a total is missing or tagged differently (often equity with/without minority interest).`); }
     // 6. listed lines never exceed their reported total
     { const A = at(B, "total_assets"), bad = {}; const g = (k) => at(B, k);
@@ -630,7 +637,7 @@
         ensureSection(ws, b.title, b.rows.filter((r) => r.sheet !== false).map((r) => r.label), log);
     const SHEET_ANNUAL = 9;                                   // your template's annual columns (B..J)
     // rows added in Nov 2026; older copies of the template don't have them
-    const NEW_ROWS = new Set(["Other Operating Costs", "Operating Income (reported)", "Pre-tax Income (reported)"]);
+    const NEW_ROWS = new Set(["Other Operating Costs", "Operating Income (reported)", "Pre-tax Income (reported)", "Temporary Equity"]);
     let oldTemplate = false;
     for (const b of result.blocks) {
       const { dateRow, rows } = findSection(ws, b.title);
@@ -681,14 +688,14 @@
       let extra = 0;
       if (b.title === "BALANCE SHEET") {          // show that it balances: L + E and a check, as formulas
         const at = (k) => r + 2 + b.rows.findIndex((x) => x.key === k);
-        const [A, TL, TE] = ["total_assets", "total_liabilities", "equity_total"].map(at);
+        const [A, TL, TE, TQ] = ["total_assets", "total_liabilities", "equity_total", "temp_equity"].map(at);
         const le = r + 2 + b.rows.length, ck = le + 1;
-        ws.getCell(le, 1).value = "Total Liabilities + Equity"; ws.getCell(le, 1).font = { bold: true };
-        ws.getCell(ck, 1).value = "Check: Assets − (Liabilities + Equity)"; ws.getCell(ck, 1).font = { italic: true };
+        ws.getCell(le, 1).value = "Total Liabilities + Temporary Equity + Equity"; ws.getCell(le, 1).font = { bold: true };
+        ws.getCell(ck, 1).value = "Check: Assets − (Liabilities + Temp. Equity + Equity)"; ws.getCell(ck, 1).font = { italic: true };
         b.ends.forEach((e, i) => {
           if (!e) return;
           const col = String.fromCharCode(66 + i);
-          ws.getCell(le, 2 + i).value = { formula: `IF(OR(${col}${TL}="",${col}${TE}=""),"",${col}${TL}+${col}${TE})` };
+          ws.getCell(le, 2 + i).value = { formula: `IF(OR(${col}${TL}="",${col}${TE}=""),"",${col}${TL}+${col}${TE}${TQ > r + 1 ? `+N(${col}${TQ})` : ""})` };
           ws.getCell(le, 2 + i).numFmt = "#,##0"; ws.getCell(le, 2 + i).font = { bold: true };
           ws.getCell(ck, 2 + i).value = { formula: `IF(OR(${col}${A}="",${col}${le}=""),"",ROUND(${col}${A}-${col}${le},0))` };
           ws.getCell(ck, 2 + i).numFmt = '#,##0;-#,##0;"OK"'; ws.getCell(ck, 2 + i).font = { italic: true };
@@ -812,6 +819,7 @@
     ["debtnc", "Long-term debt", "B", "lt_debt"],
     ["liabilitiesnc_other", "Other non-current liabilities (balancing)", "f", "IF(N({liabilities})=0,0,{liabilities}-{liabilitiesc}-{debtnc})"],
     ["liabilities", "Total liabilities", "B", "total_liabilities"],
+    ["tempequity", "Temporary equity (convertible / redeemable, between liabilities and equity)", "B", "temp_equity"],
     ["equity", "Shareholders' equity", "B", "equity"],
     ["equity_nci", "Minority interest in equity", "f", "IF(N({equity_total})=0,0,{equity_total}-{equity})"],
     ["equity_total", "Total equity", "B", "equity_total"],
@@ -830,7 +838,7 @@
     ["h", "CHECKS (OK = identity holds against the reported figure)"],
     ["chk_opinc", "opinc − reported operating income", "f", "IF({opinc_rep}=\"\",\"\",ROUND({opinc}-{opinc_rep},0))", "chk"],
     ["chk_ebt", "ebt − reported pre-tax income", "f", "IF({ebt_rep}=\"\",\"\",ROUND({ebt}-{ebt_rep},0))", "chk"],
-    ["chk_bs", "assets − (liabilities + total equity)", "f", "IF(OR(N({assets})=0,N({liabilities})=0),\"\",ROUND({assets}-{liabilities}-{equity_total},0))", "chk"],
+    ["chk_bs", "assets − (liabilities + temporary equity + total equity)", "f", "IF(OR(N({assets})=0,N({liabilities})=0),\"\",ROUND({assets}-{liabilities}-{tempequity}-{equity_total},0))", "chk"],
     ["h", "REPORTED FIGURES USED FOR THE CHECKS"],
     ["opinc_rep", "Operating income (reported)", "P", "operating_income"],
     ["ebt_rep", "Pre-tax income (reported)", "P", "pretax_reported"],

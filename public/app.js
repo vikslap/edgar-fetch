@@ -935,10 +935,11 @@
     const tail = b.title === "CASH FLOW" ? (() => { const c = g("cfo"), k = g("capex");
       return [{ label: "Free Cash Flow", values: c.map((v, i) => (v == null ? null : v - z(k, i))), strong: true },
         { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }]; })()
-      : b.title === "BALANCE SHEET" ? (() => { const L = g("total_liabilities"), E = g("equity_total"), A = g("total_assets");
-        const le = L.map((v, i) => (v == null || E[i] == null ? null : v + E[i]));
-        return [{ label: "Total Liabilities + Equity", values: le, strong: true },
-          { label: "Check: Assets − (Liabilities + Equity)", values: le.map((v, i) => (v == null || A[i] == null ? null : Math.round(A[i] - v))), check: true }]; })()
+      : b.title === "BALANCE SHEET" ? (() => { const L = g("total_liabilities"), E = g("equity_total"), A = g("total_assets"), T = g("temp_equity");
+        const le = L.map((v, i) => (v == null || E[i] == null ? null : v + E[i] + ((T && T[i]) || 0)));
+        const hasT = T && T.some((v) => v);
+        return [{ label: hasT ? "Total Liabilities + Temp. Equity + Equity" : "Total Liabilities + Equity", values: le, strong: true },
+          { label: hasT ? "Check: Assets − (Liabilities + Temp. Equity + Equity)" : "Check: Assets − (Liabilities + Equity)", values: le.map((v, i) => (v == null || A[i] == null ? null : Math.round(A[i] - v))), check: true }]; })()
       : [];
     const line = (r, raw) => {
       const isShares = /share/i.test(r.label);

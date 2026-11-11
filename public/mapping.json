@@ -564,6 +564,40 @@
       ],
       "_note": "When 'Total liabilities' isn't a line on the balance sheet: total liabilities & equity − total equity."
     },
+    "temp_equity": {
+      "label": "Temporary Equity",
+      "unit": "USD",
+      "section": "BS",
+      "optional": true,
+      "quiet": true,
+      "tags": [
+        "TemporaryEquityCarryingAmountAttributableToParent",
+        "TemporaryEquityCarryingAmountIncludingPortionAttributableToNoncontrollingInterests",
+        "RedeemableNoncontrollingInterestEquityCarryingAmount",
+        "TemporaryEquityCarryingAmount"
+      ],
+      "ifrs": [],
+      "residual": [
+        "liab_and_equity",
+        "-total_liabilities",
+        "-equity_total"
+      ],
+      "_note": "Between liabilities and equity: convertible-debt conversion obligations, redeemable preferred stock, redeemable minority interests. If not tagged, worked out as total liabilities & equity − liabilities − equity."
+    },
+    "liab_and_equity": {
+      "label": "Total Liabilities & Equity (reported)",
+      "unit": "USD",
+      "section": "BS",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "LiabilitiesAndStockholdersEquity"
+      ],
+      "ifrs": [
+        "EquityAndLiabilities"
+      ]
+    },
     "equity": {
       "section": "BS",
       "label": "Shareholders' Equity",
