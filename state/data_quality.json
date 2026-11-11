@@ -1,50 +1,50 @@
 {
- "built": "2026-11-10T17:54:42.323Z",
- "companies": 5214,
+ "built": "2026-11-11T00:59:59.300Z",
+ "companies": 5210,
  "checks": {
   "op_income": {
    "label": "Operating profit matches reported operating income",
    "ok": 2229,
    "warn": 0,
-   "fail": 2093,
-   "na": 892,
+   "fail": 2090,
+   "na": 891,
    "pctOk": 51.6
   },
   "unplaced": {
    "label": "Little left unplaced between operating profit and pre-tax profit",
-   "ok": 1315,
-   "warn": 3899,
+   "ok": 1313,
+   "warn": 3897,
    "fail": 0,
    "na": 0,
    "pctOk": 25.2
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 3382,
-   "warn": 1832,
+   "ok": 3381,
+   "warn": 1829,
    "fail": 0,
    "na": 0,
    "pctOk": 64.9
   },
   "eps": {
    "label": "EPS matches reported EPS",
-   "ok": 2471,
+   "ok": 2469,
    "warn": 1081,
    "fail": 961,
-   "na": 701,
-   "pctOk": 54.8
+   "na": 699,
+   "pctOk": 54.7
   },
   "bs_balance": {
-   "label": "Balance sheet balances (Assets = Liabilities + Equity)",
-   "ok": 3471,
+   "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
+   "ok": 4626,
    "warn": 0,
-   "fail": 1662,
+   "fail": 503,
    "na": 81,
-   "pctOk": 67.6
+   "pctOk": 90.2
   },
   "bs_parts": {
    "label": "Listed balance-sheet lines fit inside their totals",
-   "ok": 4896,
+   "ok": 4892,
    "warn": 318,
    "fail": 0,
    "na": 0,
@@ -52,31 +52,31 @@
   },
   "cash": {
    "label": "Cash flows explain the change in cash",
-   "ok": 2320,
-   "warn": 2532,
+   "ok": 2318,
+   "warn": 2531,
    "fail": 0,
-   "na": 362,
+   "na": 361,
    "pctOk": 47.8
   },
   "shares": {
    "label": "Share count has no unexplained jumps",
-   "ok": 3295,
+   "ok": 3293,
    "warn": 0,
-   "fail": 1745,
-   "na": 174,
+   "fail": 1744,
+   "na": 173,
    "pctOk": 65.4
   },
   "coverage": {
    "label": "Key lines reported every year",
-   "ok": 3600,
-   "warn": 1614,
+   "ok": 3597,
+   "warn": 1613,
    "fail": 0,
    "na": 0,
    "pctOk": 69
   },
   "splits": {
    "label": "Stock splits adjusted",
-   "ok": 1560,
+   "ok": 1559,
    "warn": 0,
    "fail": 0,
    "na": 0,
@@ -85,7 +85,7 @@
  },
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4712,
+   "companiesWithGaps": 4708,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
@@ -114,11 +114,11 @@
    ]
   },
   "buybacks": {
-   "companiesWithGaps": 4143,
+   "companiesWithGaps": 4139,
    "candidates": []
   },
   "dividends": {
-   "companiesWithGaps": 3800,
+   "companiesWithGaps": 3796,
    "candidates": [
     [
      "PaymentsOfDividendsPreferredStockAndPreferenceStock",
@@ -131,7 +131,7 @@
    ]
   },
   "lt_debt": {
-   "companiesWithGaps": 3692,
+   "companiesWithGaps": 3688,
    "candidates": [
     [
      "LongTermDebtCurrent",
@@ -160,7 +160,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3556,
+   "companiesWithGaps": 3552,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -189,7 +189,7 @@
    ]
   },
   "rnd": {
-   "companiesWithGaps": 3089,
+   "companiesWithGaps": 3085,
    "candidates": [
     [
      "DeferredTaxAssetsInProcessResearchAndDevelopment",
@@ -218,7 +218,7 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 3008,
+   "companiesWithGaps": 3004,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
@@ -230,11 +230,11 @@
     ],
     [
      "OtherReceivablesNetCurrent",
-     228
+     226
     ],
     [
      "AccountsAndOtherReceivablesNetCurrent",
-     170
+     169
     ],
     [
      "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
@@ -247,7 +247,7 @@
    ]
   },
   "cogs": {
-   "companiesWithGaps": 2708,
+   "companiesWithGaps": 2705,
    "candidates": [
     [
      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
@@ -276,7 +276,7 @@
    ]
   },
   "interest": {
-   "companiesWithGaps": 2298,
+   "companiesWithGaps": 2295,
    "candidates": [
     [
      "InterestExpenseOther",
@@ -305,11 +305,11 @@
    ]
   },
   "sga": {
-   "companiesWithGaps": 2136,
+   "companiesWithGaps": 2132,
    "candidates": [
     [
      "OtherGeneralAndAdministrativeExpense",
-     190
+     188
     ],
     [
      "OtherSellingGeneralAndAdministrativeExpense",
@@ -334,19 +334,19 @@
    ]
   },
   "current_liabilities": {
-   "companiesWithGaps": 2055,
+   "companiesWithGaps": 2054,
    "candidates": []
   },
   "current_assets": {
-   "companiesWithGaps": 2040,
+   "companiesWithGaps": 2039,
    "candidates": []
   },
   "capex": {
-   "companiesWithGaps": 1560,
+   "companiesWithGaps": 1557,
    "candidates": []
   },
   "sbc": {
-   "companiesWithGaps": 1442,
+   "companiesWithGaps": 1438,
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
@@ -375,7 +375,7 @@
    ]
   },
   "tax": {
-   "companiesWithGaps": 1196,
+   "companiesWithGaps": 1193,
    "candidates": [
     [
      "IncomeTaxExpenseBenefitContinuingOperationsAdjustmentOfDeferredTaxAssetLiability",
@@ -400,7 +400,7 @@
    ]
   },
   "depreciation": {
-   "companiesWithGaps": 903,
+   "companiesWithGaps": 900,
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
@@ -429,7 +429,7 @@
    ]
   },
   "shares_diluted": {
-   "companiesWithGaps": 889,
+   "companiesWithGaps": 887,
    "candidates": [
     [
      "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
@@ -484,46 +484,46 @@
   }
  },
  "worstFailing": [
-  "NVDA: bs_balance",
-  "MSFT: bs_balance",
   "TSM: eps",
   "TSLA: bs_balance",
-  "BRK-B: bs_balance",
-  "ASML: bs_balance",
-  "PLTR: bs_balance, shares",
-  "UNH: op_income, bs_balance",
+  "PLTR: shares",
+  "UNH: op_income",
   "GE: eps, bs_balance",
+  "INTC: bs_balance",
   "HSBC: op_income, eps",
   "PM: op_income",
-  "AMAT: bs_balance",
-  "TM: op_income, bs_balance",
+  "TM: op_income",
   "RY: shares",
-  "LRCX: bs_balance",
   "PANW: bs_balance",
   "TMO: op_income",
   "RTX: op_income",
   "MUFG: op_income",
   "WFC: eps",
-  "BABA: bs_balance",
   "LIN: op_income",
-  "CRWD: bs_balance, shares",
+  "CRWD: shares",
   "DELL: bs_balance",
   "BHP: op_income, eps",
-  "DIS: op_income",
+  "DIS: op_income, bs_balance",
   "MCD: op_income, eps, shares",
   "TTE: op_income",
   "VZ: op_income",
-  "BLK: op_income, bs_balance",
+  "BLK: op_income",
   "DE: op_income",
   "NVO: shares",
-  "NEE: op_income, bs_balance",
-  "WELL: bs_balance",
+  "NEE: op_income",
   "SAN: op_income",
   "TMUS: op_income",
   "CRM: bs_balance, shares",
   "UNP: op_income",
+  "ACN: bs_balance",
   "WMB: op_income",
-  "ISRG: bs_balance, shares"
+  "ISRG: shares",
+  "COP: eps, shares",
+  "SMFG: shares",
+  "TJX: op_income",
+  "BBVA: op_income, shares",
+  "T: op_income, bs_balance",
+  "UBER: op_income, bs_balance, shares"
  ],
  "testSet": {
   "companies": 19,
@@ -531,7 +531,12 @@
    "XOM"
   ],
   "changesSinceLastRun": [],
-  "checkStatusChanges": [],
+  "checkStatusChanges": [
+   "INTC bs_balance: ok → fail",
+   "MSFT bs_balance: fail → ok",
+   "NVDA bs_balance: fail → ok",
+   "BRK-B bs_balance: fail → ok"
+  ],
   "mismatchesVs10K": [],
   "perCompany": {
    "JPM": {
@@ -547,9 +552,9 @@
     "na": 0
    },
    "INTC": {
-    "ok": 8,
+    "ok": 7,
     "warn": 1,
-    "fail": 0,
+    "fail": 1,
     "na": 0
    },
    "PFE": {
@@ -589,9 +594,9 @@
     "na": 1
    },
    "MSFT": {
-    "ok": 8,
+    "ok": 9,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 0
    },
    "COST": {
@@ -607,9 +612,9 @@
     "na": 0
    },
    "NVDA": {
-    "ok": 8,
+    "ok": 9,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 0
    },
    "TSM": {
@@ -625,9 +630,9 @@
     "na": 0
    },
    "BRK-B": {
-    "ok": 5,
+    "ok": 6,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 2
    },
    "TSLA": {

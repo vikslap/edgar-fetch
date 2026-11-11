@@ -1,5 +1,5 @@
 {
- "built": "2026-11-10T17:54:42.323Z",
+ "built": "2026-11-11T00:59:59.300Z",
  "companies": {
   "JPM": {
    "name": "JPMORGAN CHASE & CO",
@@ -205,9 +205,9 @@
   "INTC": {
    "name": "INTEL CORP",
    "summary": {
-    "ok": 8,
+    "ok": 7,
     "warn": 1,
-    "fail": 0,
+    "fail": 1,
     "na": 0
    },
    "checks": {
@@ -215,7 +215,7 @@
     "unplaced": "warn",
     "net_profit": "ok",
     "eps": "ok",
-    "bs_balance": "ok",
+    "bs_balance": "fail",
     "bs_parts": "ok",
     "cash": "ok",
     "shares": "ok",
@@ -895,9 +895,9 @@
   "MSFT": {
    "name": "MICROSOFT CORP",
    "summary": {
-    "ok": 8,
+    "ok": 9,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 0
    },
    "checks": {
@@ -905,7 +905,7 @@
     "unplaced": "warn",
     "net_profit": "ok",
     "eps": "ok",
-    "bs_balance": "fail",
+    "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
     "shares": "ok",
@@ -1215,9 +1215,9 @@
   "NVDA": {
    "name": "NVIDIA CORP",
    "summary": {
-    "ok": 8,
+    "ok": 9,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 0
    },
    "checks": {
@@ -1225,7 +1225,7 @@
     "unplaced": "warn",
     "net_profit": "ok",
     "eps": "ok",
-    "bs_balance": "fail",
+    "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
     "shares": "ok",
@@ -1507,9 +1507,9 @@
   "BRK-B": {
    "name": "BERKSHIRE HATHAWAY INC",
    "summary": {
-    "ok": 5,
+    "ok": 6,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 2
    },
    "checks": {
@@ -1517,7 +1517,7 @@
     "unplaced": "warn",
     "net_profit": "ok",
     "eps": "na",
-    "bs_balance": "fail",
+    "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
     "shares": "ok",
