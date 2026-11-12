@@ -1,42 +1,42 @@
 {
- "built": "2026-11-11T17:17:47.803Z",
- "companies": 5213,
+ "built": "2026-11-12T17:45:15.568Z",
+ "companies": 5209,
  "checks": {
   "op_income": {
    "label": "Operating profit matches reported operating income",
    "ok": 2229,
    "warn": 0,
-   "fail": 2092,
-   "na": 892,
+   "fail": 2089,
+   "na": 891,
    "pctOk": 51.6
   },
   "unplaced": {
    "label": "Little left unplaced between operating profit and pre-tax profit",
-   "ok": 1313,
-   "warn": 3900,
+   "ok": 1311,
+   "warn": 3898,
    "fail": 0,
    "na": 0,
    "pctOk": 25.2
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 3382,
-   "warn": 1831,
+   "ok": 3381,
+   "warn": 1828,
    "fail": 0,
    "na": 0,
    "pctOk": 64.9
   },
   "eps": {
    "label": "EPS matches reported EPS",
-   "ok": 2471,
-   "warn": 1081,
-   "fail": 961,
-   "na": 700,
-   "pctOk": 54.8
+   "ok": 2469,
+   "warn": 1082,
+   "fail": 960,
+   "na": 698,
+   "pctOk": 54.7
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
-   "ok": 4629,
+   "ok": 4625,
    "warn": 0,
    "fail": 503,
    "na": 81,
@@ -44,7 +44,7 @@
   },
   "bs_parts": {
    "label": "Listed balance-sheet lines fit inside their totals",
-   "ok": 4896,
+   "ok": 4892,
    "warn": 317,
    "fail": 0,
    "na": 0,
@@ -52,31 +52,31 @@
   },
   "cash": {
    "label": "Cash flows explain the change in cash",
-   "ok": 2318,
-   "warn": 2533,
+   "ok": 2316,
+   "warn": 2532,
    "fail": 0,
-   "na": 362,
+   "na": 361,
    "pctOk": 47.8
   },
   "shares": {
    "label": "Share count has no unexplained jumps",
-   "ok": 3294,
+   "ok": 3292,
    "warn": 0,
-   "fail": 1745,
-   "na": 174,
+   "fail": 1744,
+   "na": 173,
    "pctOk": 65.4
   },
   "coverage": {
    "label": "Key lines reported every year",
-   "ok": 3599,
-   "warn": 1614,
+   "ok": 3596,
+   "warn": 1613,
    "fail": 0,
    "na": 0,
    "pctOk": 69
   },
   "splits": {
    "label": "Stock splits adjusted",
-   "ok": 1563,
+   "ok": 1562,
    "warn": 0,
    "fail": 0,
    "na": 0,
@@ -85,7 +85,7 @@
  },
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4711,
+   "companiesWithGaps": 4707,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
@@ -114,11 +114,11 @@
    ]
   },
   "buybacks": {
-   "companiesWithGaps": 4142,
+   "companiesWithGaps": 4138,
    "candidates": []
   },
   "dividends": {
-   "companiesWithGaps": 3799,
+   "companiesWithGaps": 3795,
    "candidates": [
     [
      "PaymentsOfDividendsPreferredStockAndPreferenceStock",
@@ -131,7 +131,7 @@
    ]
   },
   "lt_debt": {
-   "companiesWithGaps": 3691,
+   "companiesWithGaps": 3687,
    "candidates": [
     [
      "LongTermDebtCurrent",
@@ -160,7 +160,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3555,
+   "companiesWithGaps": 3551,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -189,7 +189,7 @@
    ]
   },
   "rnd": {
-   "companiesWithGaps": 3089,
+   "companiesWithGaps": 3085,
    "candidates": [
     [
      "DeferredTaxAssetsInProcessResearchAndDevelopment",
@@ -218,7 +218,7 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 3007,
+   "companiesWithGaps": 3003,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
@@ -230,11 +230,11 @@
     ],
     [
      "OtherReceivablesNetCurrent",
-     227
+     225
     ],
     [
      "AccountsAndOtherReceivablesNetCurrent",
-     170
+     169
     ],
     [
      "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
@@ -247,7 +247,7 @@
    ]
   },
   "cogs": {
-   "companiesWithGaps": 2708,
+   "companiesWithGaps": 2705,
    "candidates": [
     [
      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
@@ -276,7 +276,7 @@
    ]
   },
   "interest": {
-   "companiesWithGaps": 2298,
+   "companiesWithGaps": 2295,
    "candidates": [
     [
      "InterestExpenseOther",
@@ -305,11 +305,11 @@
    ]
   },
   "sga": {
-   "companiesWithGaps": 2136,
+   "companiesWithGaps": 2132,
    "candidates": [
     [
      "OtherGeneralAndAdministrativeExpense",
-     190
+     188
     ],
     [
      "OtherSellingGeneralAndAdministrativeExpense",
@@ -334,19 +334,19 @@
    ]
   },
   "current_liabilities": {
-   "companiesWithGaps": 2055,
+   "companiesWithGaps": 2054,
    "candidates": []
   },
   "current_assets": {
-   "companiesWithGaps": 2040,
+   "companiesWithGaps": 2039,
    "candidates": []
   },
   "capex": {
-   "companiesWithGaps": 1560,
+   "companiesWithGaps": 1557,
    "candidates": []
   },
   "sbc": {
-   "companiesWithGaps": 1442,
+   "companiesWithGaps": 1438,
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
@@ -375,7 +375,7 @@
    ]
   },
   "tax": {
-   "companiesWithGaps": 1196,
+   "companiesWithGaps": 1193,
    "candidates": [
     [
      "IncomeTaxExpenseBenefitContinuingOperationsAdjustmentOfDeferredTaxAssetLiability",
@@ -400,7 +400,7 @@
    ]
   },
   "depreciation": {
-   "companiesWithGaps": 904,
+   "companiesWithGaps": 901,
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
@@ -429,7 +429,7 @@
    ]
   },
   "shares_diluted": {
-   "companiesWithGaps": 889,
+   "companiesWithGaps": 887,
    "candidates": [
     [
      "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
@@ -494,14 +494,14 @@
   "PM: op_income",
   "RY: shares",
   "TM: op_income",
-  "RTX: op_income",
   "PANW: bs_balance",
+  "RTX: op_income",
   "TMO: op_income",
-  "WFC: eps",
   "MUFG: op_income",
+  "WFC: eps",
   "LIN: op_income",
-  "CRWD: shares",
   "DELL: bs_balance",
+  "CRWD: shares",
   "BHP: op_income, eps",
   "DIS: op_income, bs_balance",
   "MCD: op_income, eps, shares",
@@ -509,20 +509,20 @@
   "TTE: op_income",
   "BLK: op_income",
   "DE: op_income",
+  "TMUS: op_income",
+  "NVO: shares",
   "SAN: op_income",
   "NEE: op_income",
-  "NVO: shares",
-  "TMUS: op_income",
   "UNP: op_income",
   "CRM: bs_balance, shares",
-  "ACN: bs_balance",
   "WMB: op_income",
+  "ACN: bs_balance",
   "COP: eps, shares",
-  "ISRG: shares",
   "SMFG: shares",
+  "ISRG: shares",
   "TJX: op_income",
-  "BBVA: op_income, shares",
   "T: op_income, bs_balance",
+  "BBVA: op_income, shares",
   "UBER: op_income, bs_balance, shares"
  ],
  "testSet": {
