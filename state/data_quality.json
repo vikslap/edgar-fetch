@@ -1,5 +1,5 @@
 {
- "built": "2026-11-12T17:45:15.568Z",
+ "built": "2026-11-13T17:20:42.652Z",
  "companies": 5209,
  "checks": {
   "op_income": {
@@ -29,16 +29,16 @@
   "eps": {
    "label": "EPS matches reported EPS",
    "ok": 2469,
-   "warn": 1082,
-   "fail": 960,
+   "warn": 1085,
+   "fail": 957,
    "na": 698,
    "pctOk": 54.7
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
-   "ok": 4625,
+   "ok": 4626,
    "warn": 0,
-   "fail": 503,
+   "fail": 502,
    "na": 81,
    "pctOk": 90.2
   },
@@ -76,7 +76,7 @@
   },
   "splits": {
    "label": "Stock splits adjusted",
-   "ok": 1562,
+   "ok": 1568,
    "warn": 0,
    "fail": 0,
    "na": 0,
@@ -85,7 +85,7 @@
  },
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4707,
+   "companiesWithGaps": 4706,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
@@ -126,7 +126,7 @@
     ],
     [
      "PaymentsOfDividendsMinorityInterest",
-     187
+     188
     ]
    ]
   },
@@ -160,7 +160,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3551,
+   "companiesWithGaps": 3550,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -218,7 +218,7 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 3003,
+   "companiesWithGaps": 3001,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
@@ -334,11 +334,11 @@
    ]
   },
   "current_liabilities": {
-   "companiesWithGaps": 2054,
+   "companiesWithGaps": 2053,
    "candidates": []
   },
   "current_assets": {
-   "companiesWithGaps": 2039,
+   "companiesWithGaps": 2038,
    "candidates": []
   },
   "capex": {
@@ -350,11 +350,11 @@
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
-     229
+     231
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
-     209
+     211
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
@@ -370,7 +370,7 @@
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
-     127
+     128
     ]
    ]
   },
@@ -404,7 +404,7 @@
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
-     134
+     135
     ],
     [
      "DepreciationNonproduction",
@@ -429,7 +429,7 @@
    ]
   },
   "shares_diluted": {
-   "companiesWithGaps": 887,
+   "companiesWithGaps": 886,
    "candidates": [
     [
      "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
@@ -490,12 +490,12 @@
   "UNH: op_income",
   "GE: eps, bs_balance",
   "INTC: bs_balance",
-  "HSBC: op_income, eps",
   "PM: op_income",
+  "HSBC: op_income, eps",
   "RY: shares",
   "TM: op_income",
-  "PANW: bs_balance",
   "RTX: op_income",
+  "PANW: bs_balance",
   "TMO: op_income",
   "MUFG: op_income",
   "WFC: eps",
@@ -504,18 +504,18 @@
   "CRWD: shares",
   "BHP: op_income, eps",
   "DIS: op_income, bs_balance",
+  "TTE: op_income",
   "MCD: op_income, eps, shares",
   "VZ: op_income",
-  "TTE: op_income",
   "BLK: op_income",
   "DE: op_income",
   "TMUS: op_income",
-  "NVO: shares",
-  "SAN: op_income",
-  "NEE: op_income",
   "UNP: op_income",
+  "NVO: shares",
   "CRM: bs_balance, shares",
+  "NEE: op_income",
   "WMB: op_income",
+  "SAN: op_income",
   "ACN: bs_balance",
   "COP: eps, shares",
   "SMFG: shares",

@@ -138,6 +138,7 @@
    "RELX",
    "RL",
    "RNG",
+   "ROK",
    "SAM",
    "SAP",
    "SARO",
@@ -175,7 +176,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-12"
+  "at": "2026-11-13"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -206,7 +207,6 @@
    "BHP",
    "BJ",
    "BKE",
-   "BLLN",
    "BMA",
    "BNC",
    "BOOT",
@@ -219,7 +219,6 @@
    "CHKP",
    "CHRD",
    "CIG",
-   "CLS",
    "CNQ",
    "CNS",
    "COLL",
@@ -233,6 +232,7 @@
    "DFIN",
    "DHI",
    "DKS",
+   "DLO",
    "DOV",
    "DRD",
    "DVN",
@@ -279,6 +279,7 @@
    "INFY",
    "INMD",
    "INVA",
+   "IPAR",
    "ITRN",
    "JAKK",
    "JFIN",
@@ -409,7 +410,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-12"
+  "at": "2026-11-13"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -513,6 +514,7 @@
    "CNA",
    "CNC",
    "CNO",
+   "CNOB",
    "CNQ",
    "CNX",
    "COF",
@@ -532,13 +534,13 @@
    "CXM",
    "DAC",
    "DAL",
-   "DAR",
    "DAVE",
    "DCOM",
    "DECK",
    "DHI",
    "DINO",
    "DLO",
+   "DMC",
    "DOCS",
    "DOX",
    "DRH",
@@ -568,6 +570,7 @@
    "EWBC",
    "EXEL",
    "EXR",
+   "EZPW",
    "F",
    "FAF",
    "FANG",
@@ -625,6 +628,7 @@
    "HOMB",
    "HOPE",
    "HOS",
+   "HPK",
    "HRMY",
    "HSBC",
    "HST",
@@ -744,6 +748,7 @@
    "PFS",
    "PGR",
    "PHM",
+   "PINS",
    "PIPR",
    "PJT",
    "PLMR",
@@ -755,6 +760,7 @@
    "PRI",
    "PRIM",
    "PRK",
+   "PRM",
    "PRU",
    "PTEN",
    "PVH",
@@ -774,7 +780,6 @@
    "RNR",
    "RNST",
    "ROOT",
-   "RPD",
    "RRC",
    "RRX",
    "RSI",
@@ -827,6 +832,7 @@
    "TDW",
    "TEO",
    "TFII",
+   "TFIN",
    "TGS",
    "THG",
    "TIMB",
@@ -841,7 +847,6 @@
    "TS",
    "TTD",
    "TTE",
-   "TUYA",
    "UBER",
    "UBS",
    "UBSI",
@@ -863,7 +868,6 @@
    "VIPS",
    "VIV",
    "VLO",
-   "VLRS",
    "VNO",
    "VNOM",
    "VOD",
@@ -896,6 +900,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-12"
+  "at": "2026-11-13"
  }
 }
