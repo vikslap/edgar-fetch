@@ -45,8 +45,16 @@ if (ok) {
 }
 if (env.SITE_URL) text += `\n${env.SITE_URL}`;
 if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) { console.log(text); process.exit(0); }
-const r = await fetch(`${env.TELEGRAM_API || "https://api.telegram.org"}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text, parse_mode: "HTML", disable_web_page_preview: true }),
-});
-console.log(r.ok ? "Sent." : `Telegram error ${r.status}: ${await r.text()}`);
+// retry, and never fail the workflow over a report message
+for (let attempt = 1; attempt <= 3; attempt++) {
+  try {
+    const r = await fetch(`${env.TELEGRAM_API || "https://api.telegram.org"}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text, parse_mode: "HTML", disable_web_page_preview: true }),
+    });
+    if (r.ok) { console.log("Sent."); process.exit(0); }
+    console.log(`Telegram error ${r.status}: ${await r.text()}`);
+  } catch (e) { console.log(`Telegram attempt ${attempt} failed: ${e.cause ? e.cause.code || e.cause.message : e.message}`); }
+  if (attempt < 3) await new Promise((res) => setTimeout(res, 10000 * attempt));
+}
+console.log("::warning::Run report not delivered to Telegram (unreachable from GitHub right now).");

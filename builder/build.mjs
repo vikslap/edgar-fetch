@@ -246,15 +246,15 @@ async function alerts(table) {
   const screens = readJSON(screensFile).filter((s) => s.alert !== false);
   const state = fs.existsSync(stateFile) ? readJSON(stateFile) : {};
   const idx = Object.fromEntries(["name", "ticker", "exchange", "sector", "industry", ...FIELD_KEYS].map((k, i) => [k, i]));
-  const messages = [], next = {};
+  const messages = [], next = {};   // messages: [screen name, text]
   for (const s of screens) {
     let c;
-    try { c = SC.compile(s.query); } catch (e) { messages.push(`⚠️ <b>${esc(s.name)}</b>: query error: ${esc(e.message)}`); continue; }
+    try { c = SC.compile(s.query); } catch (e) { messages.push([null, `⚠️ <b>${esc(s.name)}</b>: query error: ${esc(e.message)}`]); continue; }
     const hits = table.filter((row) => c.test((k) => row[idx[k]])).map((row) => row[1]).sort();
     next[s.name] = { query: s.query, tickers: hits, at: new Date().toISOString().slice(0, 10) };
     const prev = state[s.name];
     if (!prev || prev.query !== s.query) {
-      messages.push(`🆕 <b>${esc(s.name)}</b>: tracking started with ${hits.length} companies.${hits.length ? "\n" + list(hits.slice(0, 25), table, idx) : ""}`);
+      messages.push([s.name, `🆕 <b>${esc(s.name)}</b>: tracking started with ${hits.length} companies.${hits.length ? "\n" + list(hits.slice(0, 25), table, idx) : ""}`]);
       continue;
     }
     const before = new Set(prev.tickers), now = new Set(hits);
@@ -264,11 +264,17 @@ async function alerts(table) {
     if (added.length) msg += `\n\n🟢 <b>New (${added.length})</b>\n${list(added.slice(0, 30), table, idx)}`;
     if (dropped.length) msg += `\n\n🔴 <b>Dropped (${dropped.length})</b>\n${dropped.slice(0, 30).join(", ")}`;
     if (env.SITE_URL) msg += `\n\n<a href="${env.SITE_URL.replace(/\/$/, "")}/?view=screens&q=${encodeURIComponent(s.query)}">Open screen</a>`;
-    messages.push(msg);
+    messages.push([s.name, msg]);
+  }
+  // a screen whose message didn't get through keeps yesterday's state, so tomorrow's run reports the change again
+  let failed = 0;
+  for (const [name, msg] of messages) {
+    if (await telegram(msg)) continue;
+    failed++;
+    if (name) { if (state[name]) next[name] = state[name]; else delete next[name]; }
   }
   fs.writeFileSync(stateFile, JSON.stringify(next, null, 1));
-  for (const msg of messages) await telegram(msg);
-  log(`Alerts: ${screens.length} screens, ${messages.length} message(s)`);
+  log(`Alerts: ${screens.length} screens, ${messages.length} message(s)${failed ? `, ${failed} not delivered (Telegram unreachable; will resend next run)` : ""}`);
 }
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 function list(tickers, table, idx) {
@@ -276,16 +282,26 @@ function list(tickers, table, idx) {
   return tickers.map((t) => { const r = by.get(t); const link = env.SITE_URL ? `<a href="${env.SITE_URL.replace(/\/$/, "")}/?t=${t}">${t}</a>` : `<b>${t}</b>`;
     return `${link} ${esc(r ? r[0] : "")}${r && r[idx.mcap] != null ? ` · $${Math.round(r[idx.mcap]).toLocaleString("en-US")}M` : ""}${r && r[idx.pe] != null ? ` · P/E ${r[idx.pe].toFixed(1)}` : ""}`; }).join("\n");
 }
+// Never throws: Telegram being unreachable must not stop the data from deploying. Returns true if delivered.
 async function telegram(text) {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) { console.log("--- telegram (not configured) ---\n" + text); return; }
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) { console.log("--- telegram (not configured) ---\n" + text); return true; }
   const base = env.TELEGRAM_API || "https://api.telegram.org";
   for (let i = 0; i < text.length; i += 3900) {
-    const r = await fetch(`${base}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: text.slice(i, i + 3900), parse_mode: "HTML", disable_web_page_preview: true }),
-    });
-    if (!r.ok) console.error("Telegram error", r.status, await r.text());
+    let ok = false;
+    for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
+      try {
+        const r = await fetch(`${base}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(20000),
+          body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: text.slice(i, i + 3900), parse_mode: "HTML", disable_web_page_preview: true }),
+        });
+        ok = r.ok;
+        if (!r.ok) console.error("Telegram error", r.status, await r.text());
+      } catch (e) { console.error(`Telegram attempt ${attempt} failed: ${e.cause ? e.cause.code || e.cause.message : e.message}`); }
+      if (!ok && attempt < 3) await new Promise((res) => setTimeout(res, 10000 * attempt));
+    }
+    if (!ok) return false;
   }
+  return true;
 }
 
 /* ---------- main ---------- */
@@ -391,7 +407,7 @@ async function main() {
     failedByReason: Object.fromEntries(Object.entries(byReason).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => [k, { count: v.length, tickers: v.join(" ") }])),
     noPriceTickers: noPrice.join(" "),
   }, null, 1));
-  await alerts(table);
+  try { await alerts(table); } catch (e) { log("Alerts failed (data still deploys):", e.message); }
   if (table.length < 100 && !env.LIMIT && !env.FACTS_ZIP) throw new Error("Suspiciously few rows; not deploying.");
 }
 main().catch((e) => { console.error(e); process.exit(1); });
