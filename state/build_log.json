@@ -1,5 +1,5 @@
 {
- "built": "2026-11-13T17:20:42.652Z",
+ "built": "2026-11-14T03:12:04.377Z",
  "listed": 6052,
  "rows": 5209,
  "failed": 688,
@@ -7,7 +7,7 @@
  "history": 6052,
  "factsSnaps": 5897,
  "companySnaps": 5897,
- "minutes": 9,
+ "minutes": 11,
  "dq": {
   "pctOk": {
    "op_income": 51.6,
