@@ -479,8 +479,17 @@
     const reportedEps = {};
     if (basis.cur === "USD") {
       const epsTags = basis.ns === "ifrs-full" ? ["DilutedEarningsLossPerShare", "BasicEarningsLossPerShare"] : ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"];
-      for (const [e, f] of byEnd(mergedSeries(facts, epsTags, "USD/shares"), "FY"))
-        reportedEps[e] = { val: f.val / splitFactor(f.filed, splits), raw: f.val, filed: f.filed, tag: f.tag };
+      for (const [e, f] of byEnd(mergedSeries(facts, epsTags, "USD/shares"), "FY")) {
+        const rep = { val: f.val / splitFactor(f.filed, splits), raw: f.val, filed: f.filed, tag: f.tag };
+        // sanity check against net income ÷ shares: EPS tagged in cents gets fixed; anything else far off is marked suspect
+        const ni = lookup(annual, "ni_common", e) || lookup(annual, "net_income", e), sh = lookup(annual, "shares_diluted", e);
+        if (ni && sh && sh.val && rep.val) {
+          const r = ni.val / sh.val / rep.val;
+          if (Math.abs(r * 100 - 1) < 0.05) { rep.val /= 100; rep.note = "filed in cents"; }
+          else if (!(r > 0.5 && r < 2) && !(Math.abs(r / 1000 - 1) < 0.06 || Math.abs(r * 1000 - 1) < 0.06)) rep.suspect = true;
+        }
+        reportedEps[e] = rep;
+      }
     }
     return { name: facts.entityName || ticker, ticker, scale, aEnds, qEnds, blocks, raw,
              warnings, notes, quiet, latestBS, sharesLatest, basis, noRevenue, adrRatio, splits, reportedEps };
@@ -601,6 +610,10 @@
         const tolN = Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)));
         const eqm = at(P, "oi_eqmethod")(e);
         if (eqm && Math.abs(gap - eqm) <= tolN) continue;          // equity-method income reported after tax
+        if (Math.abs(gap) > tolN) {                                // minority / discontinued ops presented differently
+          const m = explainGap("dur", e, gap);
+          if (m.length && /NoncontrollingInterest|DiscontinuedOperation|EquityMethod/i.test(m[0].tag)) continue;
+        }
         if (Math.abs(gap) > tolN) { bad[e] = gap; gapOf("net_profit", "dur", e, gap); flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
       }
       add("net_profit", "Net profit = pre-tax − tax ± discontinued ops − minority share", bad, true, "Every year adds up.", "", ends.length > 0,
@@ -652,7 +665,11 @@
         const e = cEnds[j], p = cEnds[j - 1];
         if (O(e) == null || I(e) == null || F(e) == null || K(e) == null || K(p) == null) continue; n++;
         const d = O(e) + I(e) + F(e) + z(at(C, "cf_fx")(e)) + z(at(C, "cf_disc")(e)) - (K(e) - K(p));
-        if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; gap("cash", "dur", e, d); flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
+        const tolC = Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1);
+        const dc = z(at(C, "cf_disc")(e));
+        if (dc && Math.abs(d - dc) <= tolC) continue;               // discontinued-ops cash already inside the three totals
+        if (Math.abs(d) > tolC) { const m = explainGap("dur", e, d); if (m.length && /RestrictedCash|DiscontinuedOperations|ExchangeRate/i.test(m[0].tag)) continue; }
+        if (Math.abs(d) > tolC) { bad[e] = d; gap("cash", "dur", e, d); flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
       }
       add("cash", "Cash flows explain the change in cash", bad, true, `All ${n} years agree.`, "Not enough cash-flow data.", n > 0,
         (y) => `Gap in ${y.map(yr).join(", ")}: usually restricted cash (included in the cash-flow total but not in the cash line) or a cash-flow line that's missing.`); }
@@ -1041,7 +1058,7 @@
     const shares = A("shares_diluted"), qShares = Q("shares_diluted");
     const ttmShares = ttmOK ? qShares.slice(nq - 4).reduce((a, v) => a + num(v), 0) / 4 : null;
     const repEps = result.reportedEps || {};
-    const eps = yr.map((y, i) => (repEps[result.aEnds[i]] ? repEps[result.aEnds[i]].val : div(y.ni, shares[i])));
+    const eps = yr.map((y, i) => { const r = repEps[result.aEnds[i]]; return r && !r.suspect ? r.val : div(y.ni, shares[i]); });
     const ttmEps = ttm ? div(ttm.ni, ttmShares) : null;
 
     const eq = B("equity"), ta = B("total_assets"), cl = B("current_liabilities"), ca = B("current_assets");

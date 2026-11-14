@@ -829,7 +829,7 @@
       const div = i !== "ttm" && !isQ && cfb ? (cfb.rows.find((x) => x.key === "dividends") || { values: [] }).values[i] : null;
       return { sales, cogs, sga, rnd, oopex, opRep: val("operating_income", i), dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
         taxPct: pbt > 0 ? (tax / pbt) * 100 : null, np, pat: val("pat", i), minority: val("minority", i), disc: val("disc_ops", i), unusual: val("unusual", i), clean,
-        eps: !isQ && i !== "ttm" && result.reportedEps && result.reportedEps[ends[i]] ? result.reportedEps[ends[i]].val : np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
+        eps: !isQ && i !== "ttm" && result.reportedEps && result.reportedEps[ends[i]] && !result.reportedEps[ends[i]].suspect ? result.reportedEps[ends[i]].val : np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
         oiParts: OI_PARTS.map((k) => val(k, i) || null) };
     });
     const get = (f) => calc.map((c) => (c ? f(c) : null));
