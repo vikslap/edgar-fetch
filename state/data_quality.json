@@ -1,5 +1,5 @@
 {
- "built": "2026-11-14T07:54:59.839Z",
+ "built": "2026-11-14T08:09:20.227Z",
  "companies": 5208,
  "checks": {
   "op_income": {
@@ -20,19 +20,19 @@
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 4430,
-   "warn": 778,
+   "ok": 4615,
+   "warn": 593,
    "fail": 0,
    "na": 0,
-   "pctOk": 85.1
+   "pctOk": 88.6
   },
   "eps": {
    "label": "EPS matches reported EPS",
-   "ok": 3625,
-   "warn": 413,
-   "fail": 467,
-   "na": 703,
-   "pctOk": 80.5
+   "ok": 3630,
+   "warn": 416,
+   "fail": 458,
+   "na": 704,
+   "pctOk": 80.6
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
@@ -52,11 +52,11 @@
   },
   "cash": {
    "label": "Cash flows explain the change in cash",
-   "ok": 3345,
-   "warn": 1498,
+   "ok": 3389,
+   "warn": 1454,
    "fail": 0,
    "na": 365,
-   "pctOk": 69.1
+   "pctOk": 70
   },
   "shares": {
    "label": "Share count has no big jumps",
@@ -86,38 +86,6 @@
  "gapCauses": [
   {
    "check": "net_profit",
-   "tag": "NetIncomeLossAttributableToNoncontrollingInterest",
-   "companies": 47,
-   "sameSign": 45,
-   "examples": [
-    "QXL 2024 gap -2053 tag -2053",
-    "BLX 2013 gap -4185 tag -4185",
-    "SHOO 2024 gap 6512 tag 6512",
-    "GAIA 2022 gap 296 tag 296",
-    "BGC 2021 gap 29481 tag 29481",
-    "PLAG 2021 gap -251 tag -251",
-    "GYRE 2023 gap 7453 tag 7453",
-    "WHG 2023 gap 1051 tag 1051"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "NetIncomeLossAttributableToRedeemableNoncontrollingInterest",
-   "companies": 35,
-   "sameSign": 35,
-   "examples": [
-    "TAP 2025 gap -115900 tag -115900",
-    "AIRT 2022 gap -531 tag -531",
-    "VRTS 2023 gap 9103 tag 9103",
-    "GPUS 2021 gap 12900 tag 12900",
-    "ADTN 2023 gap 10092 tag 10092",
-    "PXLW 2022 gap 626 tag 626",
-    "AXTI 2023 gap -920 tag -920",
-    "PFG 2025 gap 63200 tag 63200"
-   ]
-  },
-  {
-   "check": "net_profit",
    "tag": "InterestExpense",
    "companies": 35,
    "sameSign": 35,
@@ -134,22 +102,6 @@
   },
   {
    "check": "net_profit",
-   "tag": "ComprehensiveIncomeNetOfTaxAttributableToNoncontrollingInterest",
-   "companies": 33,
-   "sameSign": 15,
-   "examples": [
-    "RTX 2021 gap -248000 tag 248000",
-    "LSTA 2016 gap 653 tag -653",
-    "NEE 2025 gap 1503000 tag -1503000",
-    "WERN 2025 gap 8599 tag -8599",
-    "PRSU 2022 gap -2323 tag 2323",
-    "BLX 2010 gap -2423 tag -2423",
-    "ADTN 2024 gap 9824 tag 9824",
-    "EVC 2022 gap 2050 tag 2050"
-   ]
-  },
-  {
-   "check": "net_profit",
    "tag": "NetIncomeLoss",
    "companies": 23,
    "sameSign": 22,
@@ -162,70 +114,6 @@
     "WYY 2021 gap 341 tag 341",
     "INVE 2021 gap 1619998380 tag 1620000000",
     "FCAP 2021 gap 11430 tag 11424"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "IncomeLossFromDiscontinuedOperationsNetOfTax",
-   "companies": 20,
-   "sameSign": 0,
-   "examples": [
-    "SUNE 2021 gap -11127 tag 11152",
-    "CXT 2021 gap -41100 tag 41100",
-    "AIFF 2023 gap 336 tag -336",
-    "GVA 2021 gap -10673 tag 10673",
-    "SAFE 2022 gap -797121 tag 797688",
-    "LYB 2023 gap -255000 tag 255000",
-    "AHRT 2024 gap -28041 tag 28041",
-    "VFF 2023 gap 1743 tag -1743"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "NetIncomeLossAttributableToNonredeemableNoncontrollingInterest",
-   "companies": 19,
-   "sameSign": 0,
-   "examples": [
-    "BEN 2022 gap -88200 tag 88200",
-    "SIEB 2022 gap 1000 tag -1000",
-    "NEE 2024 gap 1248000 tag -1248000",
-    "PRSU 2023 gap -7836 tag 7836",
-    "GEL 2024 gap -30940 tag 30940",
-    "IX 2023 gap -41334 tag 41334",
-    "COHN 2023 gap -15512 tag 15512",
-    "KKR 2023 gap -1630230 tag 1630230"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
-   "companies": 19,
-   "sameSign": 17,
-   "examples": [
-    "DIN 2024 gap 48056 tag 48006",
-    "ASUR 2020 gap 191174 tag 190925",
-    "SNEX 2023 gap -243200 tag -243400",
-    "ATI 2023 gap -103700 tag -103700",
-    "SELF 2023 gap 514 tag 514",
-    "LOAN 2023 gap 1588 tag 1588",
-    "CME 2024 gap 8704000 tag 8684400",
-    "BANC 2022 gap -1817785 tag -1817012"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "NetCashProvidedByUsedInDiscontinuedOperations",
-   "companies": 17,
-   "sameSign": 17,
-   "examples": [
-    "PKOH 2021 gap -40800 tag -40800",
-    "CLFD 2023 gap -5531 tag -5531",
-    "AIFC 2022 gap 23000 tag 23000",
-    "HOFT 2024 gap -12508 tag -12508",
-    "CVGI 2022 gap 13855 tag 13855",
-    "JBTM 2021 gap 48400 tag 48400",
-    "AGPU 2023 gap -1660 tag -1660",
-    "BGSF 2023 gap -3822 tag -3822"
    ]
   },
   {
@@ -290,22 +178,6 @@
     "UCTT 2024 gap -17700 tag 17700",
     "SNOA 2024 gap 330 tag -330",
     "NESR 2022 gap -5242 tag 5242"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "ProfitLossFromDiscontinuedOperations",
-   "companies": 15,
-   "sameSign": 0,
-   "examples": [
-    "PHI 2022 gap 9420 tag -9420",
-    "FMX 2021 gap -446256 tag 446256",
-    "BTE 2024 gap -234102 tag 234102",
-    "VET 2024 gap -34641 tag 34641",
-    "OGG 2024 gap 20386 tag -20386",
-    "LAR 2018 gap 14445 tag -14445",
-    "BLDP 2022 gap 13123 tag -13123",
-    "DXF 2024 gap -74580 tag 74580"
    ]
   },
   {
@@ -405,22 +277,6 @@
    ]
   },
   {
-   "check": "net_profit",
-   "tag": "ProfitLossAttributableToNoncontrollingInterests",
-   "companies": 11,
-   "sameSign": 11,
-   "examples": [
-    "BCE 2023 gap 44851 tag 44851",
-    "CCU 2022 gap 17316 tag 17316",
-    "ELLO 2020 gap -1699 tag -1699",
-    "ELPC 2023 gap 12065 tag 12065",
-    "HSBC 2023 gap 1026000 tag 1026000",
-    "TRX 2022 gap 3894 tag 3894",
-    "VEON 2024 gap 72000 tag 72000",
-    "BLRX 2025 gap 6000 tag 6000"
-   ]
-  },
-  {
    "check": "op_income",
    "tag": "ProfitLossFromOperatingActivities",
    "companies": 11,
@@ -450,22 +306,6 @@
     "VOYG 2024 gap 32431 tag 32431",
     "DFH 2024 gap 21451 tag 21451",
     "FLYX 2023 gap -35525 tag -35525"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTax",
-   "companies": 10,
-   "sameSign": 9,
-   "examples": [
-    "LAUR 2021 gap 486865 tag 486865",
-    "BDC 2022 gap -9241 tag -9241",
-    "RIME 2024 gap -5483 tag -5483",
-    "PII 2022 gap -142600 tag -142600",
-    "CCI 2025 gap -1575000 tag -1575000",
-    "CODI 2023 gap 282721 tag 283025",
-    "TNL 2024 gap 33000 tag 33000",
-    "CZR 2021 gap -30000 tag -30000"
    ]
   },
   {
@@ -517,38 +357,6 @@
    ]
   },
   {
-   "check": "net_profit",
-   "tag": "IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity",
-   "companies": 8,
-   "sameSign": 3,
-   "examples": [
-    "LEVI 2025 gap -76100 tag 76100",
-    "CCI 2023 gap 265000 tag 265000",
-    "SDEV 2023 gap 3899 tag -3899",
-    "CCEC 2018 gap -7507 tag 7507",
-    "FTV 2023 gap 457400 tag 457400",
-    "ECVT 2023 gap 22931 tag 22931",
-    "AVX 2024 gap 403 tag -403",
-    "XBP 2024 gap 5833 tag -5833"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseExcludingExchangeRateEffect",
-   "companies": 8,
-   "sameSign": 8,
-   "examples": [
-    "YORW 2021 gap -5000 tag -5001",
-    "TOMZ 2025 gap -577 tag -577",
-    "OPNW 2021 gap 1483 tag 1483",
-    "BTBD 2023 gap 3150 tag 3150",
-    "ZSQR 2025 gap 5140 tag 5141",
-    "CDIO 2023 gap -2834 tag -2834",
-    "BOF 2023 gap 109 tag 109",
-    "BKHA 2025 gap -225 tag -225"
-   ]
-  },
-  {
    "check": "unplaced",
    "tag": "NetPeriodicDefinedBenefitsExpenseReversalOfExpenseExcludingServiceCostComponent",
    "companies": 7,
@@ -591,21 +399,6 @@
     "NHC 2023 gap -21410930858 tag 21412000000",
     "ABTS 2024 gap 2088 tag 2086",
     "EDHL 2025 gap 2037 tag 2037"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
-   "companies": 7,
-   "sameSign": 4,
-   "examples": [
-    "TULP 2020 gap -4806 tag -4806",
-    "GWAV 2021 gap -1632 tag -1632",
-    "CHGA 2020 gap -12679 tag -12679",
-    "WORX 2021 gap -3814 tag -3814",
-    "ELPW 2023 gap 7446 tag -7446",
-    "INR 2024 gap -49286 tag 49286",
-    "ANTA 2023 gap 7904 tag -7904"
    ]
   },
   {
@@ -654,20 +447,6 @@
    ]
   },
   {
-   "check": "net_profit",
-   "tag": "DiscontinuedOperationIncomeLossFromDiscontinuedOperationBeforeIncomeTax",
-   "companies": 6,
-   "sameSign": 5,
-   "examples": [
-    "HP 2021 gap -11309 tag 11309",
-    "CATX 2022 gap -972 tag -972",
-    "WWR 2019 gap -4561 tag -4561",
-    "BGSF 2023 gap -10253 tag -10253",
-    "YYAI 2022 gap -5248 tag -5248",
-    "HTCR 2024 gap -64 tag -64"
-   ]
-  },
-  {
    "check": "op_income",
    "tag": "GainLossOnDispositionOfAssets1",
    "companies": 6,
@@ -697,6 +476,20 @@
   },
   {
    "check": "net_profit",
+   "tag": "ComprehensiveIncomeNetOfTax",
+   "companies": 6,
+   "sameSign": 3,
+   "examples": [
+    "ICCC 2021 gap -78 tag -78",
+    "ORMP 2020 gap -11511 tag 11511",
+    "ARR 2024 gap -14394 tag -14394",
+    "FIEE 2024 gap 4224 tag -4224",
+    "JAGX 2023 gap 41258 tag -41272",
+    "HCTI 2025 gap -9465 tag -9465"
+   ]
+  },
+  {
+   "check": "net_profit",
    "tag": "PreferredStockDividendsIncomeStatementImpact",
    "companies": 6,
    "sameSign": 0,
@@ -708,12 +501,183 @@
     "SMA 2024 gap -12758 tag 12758",
     "PRTH 2023 gap -47744 tag 47744"
    ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "FinanceIncomeCost",
+   "companies": 6,
+   "sameSign": 0,
+   "examples": [
+    "GIL 2023 gap 79670 tag -79670",
+    "EQNR 2021 gap 2080000 tag -2080000",
+    "NMG 2022 gap -5520 tag 5520",
+    "AMBP 2023 gap 147000 tag -147000",
+    "CDRO 2022 gap -13741 tag 13741",
+    "BTDR 2022 gap 4181 tag -4181"
+   ]
+  },
+  {
+   "check": "op_income",
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "companies": 6,
+   "sameSign": 0,
+   "examples": [
+    "VTSI 2025 gap -22372 tag 22402",
+    "ATHM 2024 gap -962034 tag 964419",
+    "ATXG 2026 gap -5371 tag 5371",
+    "KYMR 2023 gap -78592 tag 78592",
+    "SOAR 2022 gap -96706 tag 96706",
+    "JLHL 2025 gap -35363 tag 35399"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "PaymentsOfDividendsPreferredStockAndPreferenceStock",
+   "companies": 5,
+   "sameSign": 0,
+   "examples": [
+    "CRK 2021 gap -17500 tag 17500",
+    "INN 2024 gap -18809 tag 18801",
+    "SMA 2023 gap -12500 tag 12500",
+    "FGC 2024 gap -1410 tag 1410",
+    "AVGO 2021 gap -299000 tag 299000"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "CurrentIncomeTaxExpenseBenefit",
+   "companies": 5,
+   "sameSign": 5,
+   "examples": [
+    "CRWS 2025 gap 1175 tag 1174",
+    "MEI 2024 gap 16700 tag 16700",
+    "ALSN 2022 gap 118000 tag 118000",
+    "ST 2022 gap 86597 tag 86798",
+    "ESAB 2024 gap 77045 tag 77113"
+   ]
+  },
+  {
+   "check": "cash",
+   "tag": "OperatingLeasePayments",
+   "companies": 5,
+   "sameSign": 2,
+   "examples": [
+    "DBD 2020 gap -94500 tag 94400",
+    "DSGR 2023 gap 15509 tag 15516",
+    "AIFU 2024 gap 8882 tag 8892",
+    "SLGL 2023 gap -800 tag 799",
+    "SLVM 2022 gap -21000 tag 21000"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "GainLossOnSaleOfBusiness",
+   "companies": 5,
+   "sameSign": 1,
+   "examples": [
+    "GEF 2024 gap 46000 tag 46000",
+    "IEX 2023 gap -84700 tag 84700",
+    "NUS 2025 gap -176162 tag 176162",
+    "ETN 2021 gap -617000 tag 617000",
+    "RAL 2024 gap 25600 tag -25600"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "DefinedBenefitPlanRecognizedNetGainLossDueToSettlements1",
+   "companies": 5,
+   "sameSign": 0,
+   "examples": [
+    "MZTI 2025 gap 13968 tag -13968",
+    "BXC 2023 gap 30440 tag -30440",
+    "KOP 2025 gap 27100 tag -27100",
+    "DFIN 2025 gap 82800 tag -82800",
+    "HBB 2024 gap 7611 tag -7611"
+   ]
+  },
+  {
+   "check": "cash",
+   "tag": "IncomeTaxExpenseBenefit",
+   "companies": 5,
+   "sameSign": 2,
+   "examples": [
+    "MRSH 2021 gap 1037000 tag 1034000",
+    "QXL 2020 gap -2 tag 2",
+    "CMCM 2023 gap 6176 tag -6166",
+    "OKLO 2023 gap -6077 tag 6092",
+    "RNTZ 2024 gap 161 tag 161"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "Revenues",
+   "companies": 5,
+   "sameSign": 2,
+   "examples": [
+    "KEY 2024 gap -4617000 tag 4619000",
+    "ALL 2023 gap 57063000 tag 57094000",
+    "SNDA 2025 gap 381665 tag 381141",
+    "YRD 2025 gap -817838 tag 817838",
+    "LICN 2023 gap -39797 tag 39759"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "GainLossOnDispositionOfAssets1",
+   "companies": 5,
+   "sameSign": 0,
+   "examples": [
+    "TRN 2025 gap -290800 tag 290800",
+    "RGS 2022 gap 2334 tag -2334",
+    "NVAX 2024 gap -51949 tag 51949",
+    "CRIS 2025 gap -27144 tag 27189",
+    "SEPN 2025 gap -12500 tag 12500"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "NetCashProvidedByUsedInInvestingActivities",
+   "companies": 5,
+   "sameSign": 3,
+   "examples": [
+    "RHI 2023 gap -111993 tag -112250",
+    "TG 2016 gap 42016 tag -41993",
+    "WT 2024 gap 23854 tag -23875",
+    "LAUR 2024 gap -57381 tag -57549",
+    "IRLA 2025 gap 23183 tag 23227"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
+   "companies": 5,
+   "sameSign": 1,
+   "examples": [
+    "RCL 2025 gap -438000 tag 437000",
+    "BNKK 2021 gap 7485 tag 7492",
+    "FLNG 2024 gap -26668 tag 26659",
+    "NN 2024 gap 42578 tag -42548",
+    "GEV 2025 gap -645000 tag 644000"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "AdjustmentsForIncomeTaxExpense",
+   "companies": 5,
+   "sameSign": 1,
+   "examples": [
+    "SIM 2024 gap -111247 tag 111247",
+    "PAM 2024 gap 121000 tag -121000",
+    "BSBR 2023 gap -427631 tag -427631",
+    "ABEV 2024 gap -819031 tag 819031",
+    "SNDL 2021 gap 5546 tag -5546"
+   ]
   }
  ],
  "ratioPatterns": {
   "eps": {
    "1/10–0.55": {
-    "companies": 152,
+    "companies": 151,
     "examples": [
      "AIR ×0.453",
      "UAVS ×0.346",
@@ -739,7 +703,7 @@
     ]
    },
    "1.8–10": {
-    "companies": 174,
+    "companies": 175,
     "examples": [
      "AEM ×4.88",
      "DOMH ×4.87",
@@ -752,7 +716,7 @@
     ]
    },
    "1.05–1.8": {
-    "companies": 257,
+    "companies": 258,
     "examples": [
      "ARTW ×1.07",
      "HRB ×1.05",
@@ -765,7 +729,7 @@
     ]
    },
    "0.55–0.95": {
-    "companies": 360,
+    "companies": 362,
     "examples": [
      "BRT ×0.924",
      "GCO ×0.748",
@@ -790,19 +754,6 @@
      "BOSC ×0.0000808"
     ]
    },
-   "1/500–1/10": {
-    "companies": 60,
-    "examples": [
-     "NRC ×0.0101",
-     "ANIX ×0.00984",
-     "UMH ×0.0925",
-     "SNN ×0.0210",
-     "IHG ×0.0100",
-     "RIO ×0.00999",
-     "ULBI ×0.00991",
-     "CASH ×0.00224"
-    ]
-   },
    "10–500": {
     "companies": 97,
     "examples": [
@@ -814,6 +765,19 @@
      "BTU ×57.6",
      "CHT ×10.2",
      "TOPS ×10.1"
+    ]
+   },
+   "1/500–1/10": {
+    "companies": 48,
+    "examples": [
+     "UMH ×0.0925",
+     "SNN ×0.0210",
+     "CASH ×0.00224",
+     "BCDA ×0.00678",
+     "KWY ×0.0681",
+     "BBDC ×0.0406",
+     "CCEC ×0.0385",
+     "FOR ×0.0837"
     ]
    }
   },
