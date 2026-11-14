@@ -88,7 +88,7 @@
         if (s.has(key)) continue;
         const hits = parts.filter(([, p]) => p.has(key)).map(([sg, p]) => [sg, p.get(key)]);
         s.set(key, { ...hits[0][1], val: hits.reduce((a, [sg, f]) => a + sg * f.val, 0),
-                     tag: hits.map(([sg, f]) => (sg < 0 ? "−" : "+") + f.tag).join(" "), derived: "sum of unusual items" });
+                     tag: hits.map(([sg, f]) => (sg < 0 ? "−" : "+") + f.tag).join(" "), derived: spec.groups_label || "sum of unusual items" });
       }
     }
     const diff = ifrs ? spec.ifrs_diff : spec.diff;              // A − B, only where both are reported
@@ -97,7 +97,8 @@
       for (const [key, a] of A) {
         if (s.has(key) || !B.has(key)) continue;
         const b = B.get(key);
-        s.set(key, { ...a, val: a.val - b.val, tag: `${a.tag} − ${b.tag}`, filed: [a.filed, b.filed].sort().pop(), derived: "total − equity" });
+        const less = spec.diff_less && !ifrs ? mergedSeries(facts, spec.diff_less, unit).get(key) : null;   // e.g. temporary equity
+        s.set(key, { ...a, val: a.val - b.val - (less ? less.val : 0), tag: `${a.tag} − ${b.tag}${less ? ` − ${less.tag}` : ""}`, filed: [a.filed, b.filed].sort().pop(), derived: "total − equity" });
       }
     }
     if (spec.negate) for (const f of s.values()) f.val = -f.val;
@@ -280,11 +281,13 @@
     // Checkpoint 1: reported operating income splits the leftover into costs above it (fines, restructuring,
     // impairments…) and items below it. Ignored when missing or implausible (leftover > half of sales).
     const opexResidual = (book, e) => {
-      const oi = lookup(book, "operating_income", e);
-      if (!oi) return null;
       const g = (k) => (lookup(book, k, e) || {}).val || 0;
+      const oi = lookup(book, "operating_income", e);
+      if (!oi) { const pr = lookup(book, "provisions", e); return pr ? pr.val : null; }   // banks: loan-loss provisions
       const r = g("sales") - g("cogs") - g("sga") - g("rnd") - oi.val;
-      return Math.abs(r) > 0.5 * Math.max(Math.abs(g("sales")), Math.abs(oi.val)) ? null : r;
+      // a big positive residual just means the company reports one total for its costs; a clearly negative one
+      // means our cost lines overlap (double counting), so reported operating income can't be used
+      return r < -0.1 * Math.max(Math.abs(g("sales")), Math.abs(oi.val)) ? null : r;
     };
     // Checkpoint 2: reported pre-tax income
     const plug = (book, e) => {
@@ -317,6 +320,7 @@
               const v = opexResidual(book, e);
               row.values.push(v === null ? 0 : r2(v / scale));
               const src = v === null ? { tag: "(operating income not reported: left in the lines below)", derived: "calculated" }
+                : !lookup(book, "operating_income", e) ? { tag: "(loan loss provisions)", derived: "calculated" }
                 : { tag: "(sales − COGS − SG&A − R&D − reported operating income)", derived: "calculated" };
               row.src.push(src);
               if (v !== null) raw.push([title, spec.label, e, r2(v / scale), src.tag, "", "", "", "calculated"]);
@@ -548,7 +552,12 @@
       for (const e of ends) {
         const ebit = S(e) - z(at(P, "cogs")(e)) - z(at(P, "sga")(e)) - z(at(P, "rnd")(e)) - z(at(P, "other_opex")(e));
         const v = u(e); if (v == null || !ebit) continue;
-        if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) { bad[e] = v; gap("unplaced", "dur", e, v); flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
+        const I = z(at(P, "interest")(e));
+        if (I && Math.abs(v + I) <= Math.max(1, 0.01 * Math.abs(ebit))) continue;      // interest counted inside other income
+        if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) {
+          const m = explainGap("dur", e, v);
+          if (m.length && /Interest|InvestmentIncome/i.test(m[0].tag)) continue;     // a net-interest line the site doesn't break out
+          bad[e] = v; gap("unplaced", "dur", e, v); flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
       }
       add("unplaced", "Little left unplaced between operating profit and pre-tax profit", bad, true, "Under 5% of operating profit in every year.", "", ends.length > 0,
         (y) => `Over 5% of operating profit in ${y.map(yr).join(", ")} ended up in "Unclassified items". Other Income for these years may include items that belong elsewhere.`); }
@@ -557,7 +566,10 @@
       for (const e of ends) {
         const np = at(P, "net_profit")(e), pat = at(P, "pat")(e); if (np == null || pat == null) continue;
         const gap = np - (pat + z(at(P, "disc_ops")(e)) - z(at(P, "minority")(e)));
-        if (Math.abs(gap) > Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)))) { bad[e] = gap; gapOf("net_profit", "dur", e, gap); flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
+        const tolN = Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)));
+        const eqm = at(P, "oi_eqmethod")(e);
+        if (eqm && Math.abs(gap - eqm) <= tolN) continue;          // equity-method income reported after tax
+        if (Math.abs(gap) > tolN) { bad[e] = gap; gapOf("net_profit", "dur", e, gap); flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
       }
       add("net_profit", "Net profit = pre-tax − tax ± discontinued ops − minority share", bad, true, "Every year adds up.", "", ends.length > 0,
         (y) => `Unexplained gap in ${y.map(yr).join(", ")}: usually equity-method income reported after tax, or a line the site doesn't map yet.`); }
@@ -605,11 +617,11 @@
       for (let j = 1; j < cEnds.length; j++) {
         const e = cEnds[j], p = cEnds[j - 1];
         if (O(e) == null || I(e) == null || F(e) == null || K(e) == null || K(p) == null) continue; n++;
-        const d = O(e) + I(e) + F(e) - (K(e) - K(p));
+        const d = O(e) + I(e) + F(e) + z(at(C, "cf_fx")(e)) - (K(e) - K(p));
         if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; gap("cash", "dur", e, d); flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
       }
       add("cash", "Cash flows explain the change in cash", bad, true, `All ${n} years agree.`, "Not enough cash-flow data.", n > 0,
-        (y) => `Gap in ${y.map(yr).join(", ")}: usually exchange-rate effects or restricted cash, which the cash line may exclude. Large gaps mean a cash-flow line is missing.`); }
+        (y) => `Gap in ${y.map(yr).join(", ")}: usually restricted cash (included in the cash-flow total but not in the cash line) or a cash-flow line that's missing.`); }
     // 8. share count doesn't jump
     { const sh = at(P, "shares_diluted"), bad = {};
       for (let j = 1; j < ends.length; j++) {

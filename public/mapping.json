@@ -74,7 +74,24 @@
         [
           "AdministrativeExpense"
         ]
-      ]
+      ],
+      "groups": [
+        {
+          "tags": [
+            "SellingAndMarketingExpense",
+            "MarketingExpense",
+            "MarketingAndAdvertisingExpense",
+            "AdvertisingExpense",
+            "SellingExpense"
+          ]
+        },
+        {
+          "tags": [
+            "GeneralAndAdministrativeExpense"
+          ]
+        }
+      ],
+      "groups_label": "sum of the parts reported"
     },
     "rnd": {
       "label": "Research & Development (R&D)",
@@ -131,6 +148,20 @@
       "unit": "USD",
       "plug": "operating",
       "_note": "Not fetched. Sales − COGS − SG&A − R&D − reported operating income: fines, restructuring, impairments, other operating lines. 0 when the company doesn't report operating income."
+    },
+    "provisions": {
+      "label": "Loan Loss Provisions",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "ProvisionForLoanLeaseAndOtherLosses",
+        "ProvisionForLoanAndLeaseLosses",
+        "ProvisionForLoanLossesExpensed"
+      ],
+      "ifrs": [],
+      "_note": "Banks: used as Other Operating Costs when the bank doesn't report operating income."
     },
     "operating_income": {
       "label": "Operating Income (reported)",
@@ -562,7 +593,13 @@
           "Equity"
         ]
       ],
-      "_note": "When 'Total liabilities' isn't a line on the balance sheet: total liabilities & equity − total equity."
+      "_note": "When 'Total liabilities' isn't a line on the balance sheet: total liabilities & equity − total equity.",
+      "diff_less": [
+        "TemporaryEquityCarryingAmountAttributableToParent",
+        "TemporaryEquityCarryingAmountIncludingPortionAttributableToNoncontrollingInterests",
+        "RedeemableNoncontrollingInterestEquityCarryingAmount",
+        "TemporaryEquityCarryingAmount"
+      ]
     },
     "temp_equity": {
       "label": "Temporary Equity",
@@ -699,6 +736,21 @@
         "CashFlowsFromUsedInFinancingActivities"
       ]
     },
+    "cf_fx": {
+      "label": "Effect of Exchange Rates on Cash",
+      "unit": "USD",
+      "section": "CF",
+      "optional": true,
+      "quiet": true,
+      "tags": [
+        "EffectOfExchangeRateOnCashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+        "EffectOfExchangeRateOnCashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsIncludingDisposalGroupAndDiscontinuedOperations",
+        "EffectOfExchangeRateOnCashAndCashEquivalents"
+      ],
+      "ifrs": [
+        "EffectOfExchangeRateChangesOnCashAndCashEquivalents"
+      ]
+    },
     "dna": {
       "section": "CF",
       "label": "Depreciation & Amortization",
@@ -790,6 +842,10 @@
           ]
         }
       }
+    },
+    "XOM": {
+      "_note": "In 2026 the XOM ticker moved to a new SEC registrant (ExxonMobil Holdings Corporation). Its history is under Exxon Mobil Corp (CIK 34088); the builder joins both.",
+      "predecessor_cik": "0000034088"
     }
   },
   "checks_ifrs": {

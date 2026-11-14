@@ -337,8 +337,27 @@ async function main() {
   fs.mkdirSync(path.join(SNAP, "c"), { recursive: true });
   let snaps = 0;
   const quality = makeQuality(core, mapping);
-  await eachCompany(zip, new Set(companies.keys()), async (cik, facts) => {
-    if (seen++ >= limit) return;
+  // tickers that moved to a new registrant (e.g. a holding-company reorganisation): join the old registrant's history
+  const predOf = new Map();
+  for (const [t, o] of Object.entries(mapping.overrides || {})) {
+    if (!o || !o.predecessor_cik) continue;
+    const succ = [...companies.entries()].find(([, m]) => m.ticker === t);
+    if (succ) predOf.set(succ[0], parseInt(o.predecessor_cik, 10));
+  }
+  const predCiks = new Set(predOf.values()), predFacts = new Map(), deferred = [];
+  const mergeFacts = (old, neu) => {
+    const out = { ...neu, facts: {} };
+    for (const ns of new Set([...Object.keys(old.facts || {}), ...Object.keys(neu.facts || {})])) {
+      const a = (old.facts || {})[ns] || {}, b = (neu.facts || {})[ns] || {}, o = (out.facts[ns] = {});
+      for (const tag of new Set([...Object.keys(a), ...Object.keys(b)])) {
+        const units = {};
+        for (const src of [a[tag], b[tag]]) if (src) for (const [u, arr] of Object.entries(src.units || {})) units[u] = (units[u] || []).concat(arr);
+        o[tag] = { ...(a[tag] || {}), ...(b[tag] || {}), units };
+      }
+    }
+    return out;
+  };
+  const processCompany = async (cik, facts) => {
     const meta = companies.get(cik), px = prices.get(meta.ticker);
     try { writeFactsSnap(meta.ticker, facts); snaps++; } catch (e) { log(`snapshot ${meta.ticker}: ${e.message}`); }
     try {
@@ -349,20 +368,45 @@ async function main() {
       try { quality.add(meta.ticker, meta.name, px && px.mcapNasdaq, r.result, facts); } catch (e) { log(`quality ${meta.ticker}: ${e.message}`); }
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); try { quality.diag(meta.ticker, facts, e); } catch {} }
+  };
+  await eachCompany(zip, new Set([...companies.keys(), ...predCiks]), async (cik, facts) => {
+    if (predCiks.has(cik)) { predFacts.set(cik, facts); if (!companies.has(cik)) return; }
+    if (seen++ >= limit) return;
+    if (predOf.has(cik)) {
+      const p = predFacts.get(predOf.get(cik));
+      if (!p) { deferred.push([cik, facts]); return; }            // predecessor comes later in the zip
+      facts = mergeFacts(p, facts);
+    }
+    await processCompany(cik, facts);
     if (seen % 1000 === 0) log(`  processed ${seen}`);
   });
+  for (const [cik, facts] of deferred) {
+    const p = predFacts.get(predOf.get(cik));
+    await processCompany(cik, p ? mergeFacts(p, facts) : facts);
+  }
+  if (predOf.size) log(`Joined predecessor history for: ${[...predOf.keys()].map((c) => companies.get(c).ticker).join(", ")}`);
   log(`Facts snapshots: ${snaps}`);
   // company profile + filings list for the same companies (SEC bulk submissions file)
   let coSnaps = 0;
   try {
     const built = new Date().toISOString().slice(0, 10);
     let n = 0;
-    await eachCompany(await subsZip(), new Set(companies.keys()), async (cik, s) => {
+    const predSubs = new Map(), laterSubs = [];
+    const writeCo = (cik, s) => {
       const meta = companies.get(cik);
       if (!fs.existsSync(path.join(SNAP, "f", `${meta.ticker}.json.gz`))) return;
-      fs.writeFileSync(path.join(SNAP, "c", `${meta.ticker}.json`), JSON.stringify(companySnap(s, cik, built)));
+      const snap = companySnap(s, cik, built);
+      const p = predOf.has(cik) && predSubs.get(predOf.get(cik));
+      if (p) snap.filings = snap.filings.concat(companySnap(p, predOf.get(cik), built).filings).slice(0, 160);
+      fs.writeFileSync(path.join(SNAP, "c", `${meta.ticker}.json`), JSON.stringify(snap));
       n++;
+    };
+    await eachCompany(await subsZip(), new Set([...companies.keys(), ...predCiks]), async (cik, s) => {
+      if (predCiks.has(cik)) { predSubs.set(cik, s); if (!companies.has(cik)) return; }
+      if (predOf.has(cik) && !predSubs.has(predOf.get(cik))) { laterSubs.push([cik, s]); return; }
+      writeCo(cik, s);
     });
+    for (const [cik, s] of laterSubs) writeCo(cik, s);
     log(`Company snapshots: ${n}`); coSnaps = n;
   } catch (e) { log("Company snapshots skipped:", e.message); }
   // RS rating needs every stock's performance, so it (and the final Stage 2 flag) is filled in now
