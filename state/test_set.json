@@ -1,11 +1,11 @@
 {
- "built": "2026-11-14T03:12:04.377Z",
+ "built": "2026-11-14T03:25:27.386Z",
  "companies": {
   "JPM": {
    "name": "JPMORGAN CHASE & CO",
    "summary": {
-    "ok": 6,
-    "warn": 2,
+    "ok": 7,
+    "warn": 1,
     "fail": 0,
     "na": 1
    },
@@ -13,7 +13,7 @@
     "op_income": "na",
     "unplaced": "warn",
     "net_profit": "ok",
-    "eps": "warn",
+    "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
@@ -98,15 +98,15 @@
   "KO": {
    "name": "COCA COLA CO",
    "summary": {
-    "ok": 7,
-    "warn": 3,
+    "ok": 8,
+    "warn": 2,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
     "unplaced": "warn",
-    "net_profit": "warn",
+    "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
@@ -205,9 +205,9 @@
   "INTC": {
    "name": "INTEL CORP",
    "summary": {
-    "ok": 7,
+    "ok": 8,
     "warn": 1,
-    "fail": 1,
+    "fail": 0,
     "na": 0
    },
    "checks": {
@@ -215,7 +215,7 @@
     "unplaced": "warn",
     "net_profit": "ok",
     "eps": "ok",
-    "bs_balance": "fail",
+    "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
     "shares": "ok",
@@ -311,8 +311,8 @@
   "PFE": {
    "name": "PFIZER INC",
    "summary": {
-    "ok": 7,
-    "warn": 2,
+    "ok": 8,
+    "warn": 1,
     "fail": 0,
     "na": 1
    },
@@ -323,7 +323,7 @@
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
-    "cash": "warn",
+    "cash": "ok",
     "shares": "ok",
     "coverage": "ok",
     "splits": "ok"
@@ -406,16 +406,16 @@
   "PG": {
    "name": "PROCTER & GAMBLE Co",
    "summary": {
-    "ok": 5,
-    "warn": 4,
+    "ok": 8,
+    "warn": 1,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
-    "net_profit": "warn",
-    "eps": "warn",
+    "unplaced": "ok",
+    "net_profit": "ok",
+    "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
@@ -500,14 +500,14 @@
   "WMT": {
    "name": "Walmart Inc.",
    "summary": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 9,
+    "warn": 1,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
@@ -694,14 +694,14 @@
   "AAPL": {
    "name": "Apple Inc.",
    "summary": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
@@ -801,20 +801,20 @@
   "O": {
    "name": "REALTY INCOME CORP",
    "summary": {
-    "ok": 4,
-    "warn": 3,
-    "fail": 1,
+    "ok": 7,
+    "warn": 1,
+    "fail": 0,
     "na": 1
    },
    "checks": {
     "op_income": "na",
     "unplaced": "warn",
-    "net_profit": "warn",
-    "eps": "warn",
+    "net_profit": "ok",
+    "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "ok",
-    "shares": "fail",
+    "shares": "ok",
     "coverage": "ok"
    },
    "vals": {
@@ -895,14 +895,14 @@
   "MSFT": {
    "name": "MICROSOFT CORP",
    "summary": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
@@ -1589,17 +1589,17 @@
   "TSLA": {
    "name": "Tesla, Inc.",
    "summary": {
-    "ok": 6,
-    "warn": 3,
-    "fail": 1,
+    "ok": 8,
+    "warn": 2,
+    "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
     "unplaced": "warn",
     "net_profit": "ok",
-    "eps": "warn",
-    "bs_balance": "fail",
+    "eps": "ok",
+    "bs_balance": "ok",
     "bs_parts": "ok",
     "cash": "warn",
     "shares": "ok",
