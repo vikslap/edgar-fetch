@@ -985,7 +985,7 @@
   }
 
   function drawTables() {
-    try { dq = EdgarCore.dataChecks(result); } catch (e) { dq = null; console.error(e); }
+    try { dq = EdgarCore.dataChecks(result, facts); } catch (e) { dq = null; console.error(e); }
     drawBadge();
     const blocks = [...result.blocks].sort((a, b) => ORDER.indexOf(a.title) - ORDER.indexOf(b.title));
     let h = dqCard();

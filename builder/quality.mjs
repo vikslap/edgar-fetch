@@ -46,12 +46,12 @@ const KEY_LINES = [["PROFIT & LOSS", "sales", "Sales"], ["PROFIT & LOSS", "net_p
 export function makeQuality(core, mapping) {
   const mapped = {};                                  // row key -> tags already in the mapping
   for (const [k, v] of Object.entries(mapping.items || {})) if (v && typeof v === "object") mapped[k] = new Set([...(v.tags || []), ...((v.groups || []).flatMap((g) => g.tags || [])), ...((v.components || []).flat())]);
-  const totals = {}, failing = [], gaps = {}, testSet = {};
+  const totals = {}, failing = [], gaps = {}, testSet = {}, causes = {}, diags = {};
   let companies = 0;
 
   function add(ticker, name, mcap, result, facts) {
     let dq;
-    try { dq = core.dataChecks(result); } catch { return; }
+    try { dq = core.dataChecks(result, facts); } catch { return; }
     companies++;
     for (const c of dq.checks) {
       const t = (totals[c.id] = totals[c.id] || { label: c.label, ok: 0, warn: 0, fail: 0, na: 0 });
@@ -59,6 +59,15 @@ export function makeQuality(core, mapping) {
     }
     const fails = dq.checks.filter((c) => c.status === "fail").map((c) => c.id);
     if (fails.length) failing.push([ticker, mcap || 0, fails]);
+    // group failures by the reported figure that explains the gap (company-specific tags grouped by their name without prefix)
+    for (const c of dq.checks) {
+      if (c.status !== "fail" && c.status !== "warn") continue;
+      for (const k of new Set((c.causes || []).map((x) => x.tag.replace(/^[a-z0-9-]+:/, "*:")))) {
+        const g = (causes[`${c.id}|${k}`] = causes[`${c.id}|${k}`] || { check: c.id, tag: k, companies: 0, examples: [] });
+        g.companies++;
+        if (g.examples.length < 6) g.examples.push(ticker);
+      }
+    }
 
     // gaps: blank line in a year the company has sales → which similar tags did it report for that year?
     const gaap = (facts.facts || {})["us-gaap"] || {};
@@ -87,6 +96,22 @@ export function makeQuality(core, mapping) {
       }
       testSet[ticker] = { name, summary: dq.summary, checks: Object.fromEntries(dq.checks.map((c) => [c.id, c.status])), vals };
     }
+  }
+
+  // a test-set company that failed to build: record what revenue/profit tags it has, to see why
+  function diag(ticker, facts, error) {
+    if (!TEST_SET.includes(ticker)) return;
+    const out = { error: String(error && error.message || error).slice(0, 200), tags: {} };
+    for (const [ns, tags] of Object.entries(facts.facts || {})) for (const [tag, node] of Object.entries(tags)) {
+      if (!/Revenue|Sales|NetIncomeLoss|ProfitLoss|IncomeLoss.*BeforeIncomeTax/i.test(tag)) continue;
+      for (const [u, arr] of Object.entries(node.units || {})) {
+        const fy = arr.filter((f) => f.fp === "FY" || /10-K|20-F|40-F/.test(f.form));
+        out.tags[`${ns}:${tag} [${u}]`] = { facts: arr.length, annual: fy.length, forms: [...new Set(arr.map((f) => f.form))].slice(0, 6),
+          latest: fy.sort((a, b) => (a.end < b.end ? 1 : -1)).slice(0, 2).map((f) => `${f.start || ""}→${f.end} ${f.val} ${f.form} fp=${f.fp}`) };
+      }
+    }
+    out.entity = facts.entityName; out.namespaces = Object.keys(facts.facts || {});
+    diags[ticker] = out;
   }
 
   function write(root, built) {
@@ -118,12 +143,13 @@ export function makeQuality(core, mapping) {
       }
     }
     const missingFromRun = TEST_SET.filter((t) => !testSet[t]);
-    const report = { built, companies, checks, missingTags, worstFailing: worst,
+    const gapCauses = Object.values(causes).sort((a, b) => b.companies - a.companies).slice(0, 40);
+    const report = { built, companies, checks, gapCauses, missingTags, worstFailing: worst, buildDiagnostics: diags,
       testSet: { companies: Object.keys(testSet).length, notBuilt: missingFromRun, changesSinceLastRun: changes.slice(0, 60), checkStatusChanges: statusChanges,
         mismatchesVs10K: mismatches, perCompany: Object.fromEntries(Object.entries(testSet).map(([t, v]) => [t, v.summary])) } };
     fs.writeFileSync(path.join(root, "state/data_quality.json"), JSON.stringify(report, null, 1));
     fs.writeFileSync(prevPath, JSON.stringify({ built, companies: testSet }, null, 1));
     return report;
   }
-  return { add, write };
+  return { add, write, diag };
 }

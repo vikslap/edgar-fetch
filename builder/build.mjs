@@ -348,7 +348,7 @@ async function main() {
       techRows.push({ cells: r.cells, _rs: r.row._rs, _s2: r.row._s2 });
       try { quality.add(meta.ticker, meta.name, px && px.mcapNasdaq, r.result, facts); } catch (e) { log(`quality ${meta.ticker}: ${e.message}`); }
       if (!px) noPrice.push(meta.ticker);
-    } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); }
+    } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); try { quality.diag(meta.ticker, facts, e); } catch {} }
     if (seen % 1000 === 0) log(`  processed ${seen}`);
   });
   log(`Facts snapshots: ${snaps}`);
@@ -395,7 +395,8 @@ async function main() {
     const q = quality.write(ROOT, out.built);
     const pick = ["op_income", "bs_balance", "eps", "net_profit", "shares"];
     dq = { pctOk: Object.fromEntries(pick.filter((k) => q.checks[k]).map((k) => [k, q.checks[k].pctOk])),
-      topGap: Object.entries(q.missingTags).map(([k, g]) => [k, g.candidates[0]]).filter(([, c]) => c && c[1] >= 20).slice(0, 3),
+      topCauses: q.gapCauses.slice(0, 3).map((g) => [g.check, g.tag, g.companies]),
+      notBuiltDiag: Object.keys(q.buildDiagnostics || {}),
       test: { changes: q.testSet.changesSinceLastRun.length, statusChanges: q.testSet.checkStatusChanges.length, mismatches: q.testSet.mismatchesVs10K, notBuilt: q.testSet.notBuilt.length } };
     log("Data quality:", JSON.stringify(dq));
   } catch (e) { log("Data-quality report failed:", e.message); }

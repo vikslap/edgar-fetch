@@ -454,7 +454,8 @@
 
   /* ---------- data checks: reconcile what we show against the company's own reported totals ----------
      Returns { checks: [{id,label,status: ok|warn|fail|na, detail, years}], flags: {blockTitle: {end: [msg]}}, summary } */
-  function dataChecks(result) {
+  function dataChecks(result, facts, opts = {}) {
+    const RECENT = opts.recent || 5;                    // badge and pass rates judge the latest 5 years
     const blk = (t) => result.blocks.find((b) => b.title === t);
     const P = blk("PROFIT & LOSS"), B = blk("BALANCE SHEET"), C = blk("CASH FLOW");
     const at = (b, k) => { if (!b) return () => null; const r = b.rows.find((x) => x.key === k); const idx = new Map(b.ends.map((e, i) => [e, i]));
@@ -465,17 +466,79 @@
     const ends = (P ? P.ends : []).filter((e) => e && at(P, "sales")(e) != null);
     const flags = {}, checks = [];
     const flag = (title, e, msg) => { ((flags[title] = flags[title] || {})[e] = flags[title][e] || []).push(msg); };
+
+    // ---- gap explainer: which reported figure (any tag, including company-specific ones) equals the gap?
+    const scale = result.scale || 1, cur = (result.basis && result.basis.cur) || "USD";
+    const fxr = cur === "USD" ? 1 : facts && facts._fx ? facts._fx : null;
+    let index = null;
+    const buildIndex = () => {
+      index = { dur: new Map(), inst: new Map() };
+      if (!facts || !fxr) return;
+      for (const [ns, tags] of Object.entries(facts.facts || {})) {
+        if (ns === "dei") continue;
+        for (const [tag, node] of Object.entries(tags)) {
+          const arr = (node.units || {})[cur]; if (!arr) continue;
+          const name = ns === "us-gaap" || ns === "ifrs-full" ? tag : `${ns}:${tag}`;
+          const best = new Map();
+          for (const f of arr) {
+            if (!FORMS.has(f.form) || !f.val) continue;
+            const k = f.start ? (kind(f.start, f.end) === "FY" ? "dur" : null) : "inst";
+            if (!k) continue;
+            const key = `${k}|${f.end}`, b = best.get(key);
+            if (!b || f.filed > b.filed) best.set(key, f);
+          }
+          for (const [key, f] of best) {
+            const [k, end] = key.split("|");
+            const m = index[k]; if (!m.has(end)) m.set(end, []);
+            m.get(end).push({ tag: name, val: (f.val * fxr) / scale, label: node.label || tag });
+          }
+        }
+      }
+    };
+    const near = (a, b) => { for (const d of [0, 1, -1, 2, -2, 3, -3]) { const x = new Date(a); x.setUTCDate(x.getUTCDate() + d); if (x.toISOString().slice(0, 10) === b) return true; } return false; };
+    const explainGap = (k, e, gap) => {
+      if (!gap || !facts) return [];
+      if (!index) buildIndex();
+      const g = Math.abs(gap), tol = Math.max(1, 0.003 * g), out = [];
+      for (const [end, list] of index[k]) {
+        if (end !== e && !near(end, e)) continue;
+        for (const c of list) if (Math.abs(Math.abs(c.val) - g) <= tol) out.push(c);
+      }
+      // prefer company-specific tags and exact matches; skip duplicates
+      const seen = new Set();
+      return out.sort((a, b) => (a.tag.includes(":") ? 0 : 1) - (b.tag.includes(":") ? 0 : 1) || Math.abs(Math.abs(a.val) - g) - Math.abs(Math.abs(b.val) - g))
+        .filter((c) => !seen.has(c.tag) && seen.add(c.tag)).slice(0, 3);
+    };
+    const gaps = {};                                     // check id -> {end: [kind, gap]}
+    const gap = (id, k, e, v) => { (gaps[id] = gaps[id] || {})[e] = [k, v]; };
+    const gapOf = gap;
+
+    // recent = the latest RECENT annual periods of the P&L and of the balance sheet
+    const lastN = (b) => new Set((b ? b.ends : []).filter(Boolean).slice(-RECENT));
+    const recent = new Set([...lastN(P), ...lastN(B), ...lastN(C)]);
     const add = (id, label, bad, warnOnly, okDetail, naDetail, applicable, explain) => {
-      const yrs = Object.keys(bad).sort();
-      const status = !applicable ? "na" : !yrs.length ? "ok" : warnOnly ? "warn" : "fail";
-      checks.push({ id, label, status, years: yrs, detail: status === "na" ? naDetail : status === "ok" ? okDetail : explain(yrs) });
+      const yrs = Object.keys(bad).sort(), now = yrs.filter((e) => recent.has(e)), old = yrs.filter((e) => !recent.has(e));
+      const status = !applicable ? "na" : !now.length ? "ok" : warnOnly ? "warn" : "fail";
+      let detail = status === "na" ? naDetail : status === "ok" ? okDetail : explain(now);
+      if (status === "ok" && old.length) detail = `Latest ${RECENT} years fine. Older years off: ${old.map(yr).join(", ")} (for information).`;
+      // name the reported figure that equals each gap
+      const causes = [];
+      for (const e of (status === "ok" ? old : now).slice(-3)) {
+        const gv = gaps[id] && gaps[id][e]; if (!gv) continue;
+        const m = explainGap(gv[0], e, gv[1]);
+        if (m.length) causes.push({ end: e, gap: gv[1], tag: m[0].tag, label: m[0].label, val: m[0].val, also: m.slice(1).map((x) => x.tag) });
+      }
+      const T = { op_income: "PROFIT & LOSS", unplaced: "PROFIT & LOSS", net_profit: "PROFIT & LOSS", bs_balance: "BALANCE SHEET", bs_parts: "BALANCE SHEET", cash: "CASH FLOW" }[id];
+      for (const c of causes) if (T) flag(T, c.end, `  ↳ gap matches "${c.label}" (${c.tag})`);
+      if (causes.length) detail += " Likely cause: " + causes.map((c) => `${yr(c.end)} gap ${money(Math.abs(c.gap))} = "${c.label}" (${c.tag})${c.also.length ? `, or ${c.also.join(" / ")}` : ""}`).join("; ") + ".";
+      checks.push({ id, label, status, years: now, olderYears: old, detail, causes });
     };
     // 1. operating income: our lines must add up to the company's reported operating income
     { const S = at(P, "sales"), op = at(P, "operating_income"), bad = {}; let n = 0;
       for (const e of ends) {
         const r = op(e); if (r == null) continue; n++;
         const ebit = S(e) - z(at(P, "cogs")(e)) - z(at(P, "sga")(e)) - z(at(P, "rnd")(e)) - z(at(P, "other_opex")(e));
-        if (Math.abs(ebit - r) > Math.max(1, 0.005 * Math.abs(S(e)))) { bad[e] = ebit - r; flag("PROFIT & LOSS", e, `Operating profit differs from reported by ${money(ebit - r)}`); }
+        if (Math.abs(ebit - r) > Math.max(1, 0.005 * Math.abs(S(e)))) { bad[e] = ebit - r; gap("op_income", "dur", e, ebit - r); flag("PROFIT & LOSS", e, `Operating profit differs from reported by ${money(ebit - r)}`); }
       }
       add("op_income", "Operating profit matches reported operating income", bad, false, `All ${n} years match.`,
         "The company doesn't report operating income, so the split between operating and other items can't be checked.", n > 0,
@@ -485,7 +548,7 @@
       for (const e of ends) {
         const ebit = S(e) - z(at(P, "cogs")(e)) - z(at(P, "sga")(e)) - z(at(P, "rnd")(e)) - z(at(P, "other_opex")(e));
         const v = u(e); if (v == null || !ebit) continue;
-        if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) { bad[e] = v; flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
+        if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) { bad[e] = v; gap("unplaced", "dur", e, v); flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
       }
       add("unplaced", "Little left unplaced between operating profit and pre-tax profit", bad, true, "Under 5% of operating profit in every year.", "", ends.length > 0,
         (y) => `Over 5% of operating profit in ${y.map(yr).join(", ")} ended up in "Unclassified items". Other Income for these years may include items that belong elsewhere.`); }
@@ -494,7 +557,7 @@
       for (const e of ends) {
         const np = at(P, "net_profit")(e), pat = at(P, "pat")(e); if (np == null || pat == null) continue;
         const gap = np - (pat + z(at(P, "disc_ops")(e)) - z(at(P, "minority")(e)));
-        if (Math.abs(gap) > Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)))) { bad[e] = gap; flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
+        if (Math.abs(gap) > Math.max(1, 0.02 * Math.abs(np), 0.002 * Math.abs(at(P, "sales")(e)))) { bad[e] = gap; gapOf("net_profit", "dur", e, gap); flag("PROFIT & LOSS", e, `Net profit has ${money(gap)} not explained by tax, discontinued operations or minority share`); }
       }
       add("net_profit", "Net profit = pre-tax − tax ± discontinued ops − minority share", bad, true, "Every year adds up.", "", ends.length > 0,
         (y) => `Unexplained gap in ${y.map(yr).join(", ")}: usually equity-method income reported after tax, or a line the site doesn't map yet.`); }
@@ -520,7 +583,7 @@
       for (const e of bEnds) {
         if (A(e) == null || L(e) == null || E(e) == null) continue; n++;
         const d = A(e) - L(e) - z(T(e)) - E(e);
-        if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; flag("BALANCE SHEET", e, `Assets − (Liabilities + Temporary equity + Equity) = ${money(d)}`); }
+        if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; gap("bs_balance", "inst", e, d); flag("BALANCE SHEET", e, `Assets − (Liabilities + Temporary equity + Equity) = ${money(d)}`); }
       }
       add("bs_balance", "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)", bad, false, `All ${n} years balance.`, "Totals not reported.", n > 0,
         (y) => `Doesn't balance in ${y.map(yr).join(", ")}: a total is missing or tagged differently (often equity with/without minority interest).`); }
@@ -532,7 +595,7 @@
         if (g("current_assets")(e) != null) parts.push(["current assets", g("current_assets")(e) - z(g("cash")(e)) - z(g("st_investments")(e)) - z(g("receivables")(e)) - z(g("inventory")(e))]);
         if (g("current_assets")(e) != null) parts.push(["non-current assets", A(e) - g("current_assets")(e) - z(g("ppe")(e)) - z(g("goodwill")(e)) - z(g("intangibles")(e))]);
         if (g("current_liabilities")(e) != null) parts.push(["current liabilities", g("current_liabilities")(e) - z(g("payables")(e)) - z(g("st_debt")(e))]);
-        for (const [nm, v] of parts) if (v < -0.01 * ta) { bad[e] = v; flag("BALANCE SHEET", e, `Listed ${nm} exceed the reported total by ${money(-v)}`); }
+        for (const [nm, v] of parts) if (v < -0.01 * ta) { bad[e] = v; gap("bs_parts", "inst", e, v); flag("BALANCE SHEET", e, `Listed ${nm} exceed the reported total by ${money(-v)}`); }
       }
       add("bs_parts", "Listed balance-sheet lines fit inside their totals", bad, true, "Every 'Other' line is zero or positive.", "", bEnds.length > 0,
         (y) => `In ${y.map(yr).join(", ")} the listed lines add up to more than the reported total: one line probably includes another (e.g. cash tagged together with investments).`); }
@@ -543,7 +606,7 @@
         const e = cEnds[j], p = cEnds[j - 1];
         if (O(e) == null || I(e) == null || F(e) == null || K(e) == null || K(p) == null) continue; n++;
         const d = O(e) + I(e) + F(e) - (K(e) - K(p));
-        if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
+        if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; gap("cash", "dur", e, d); flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
       }
       add("cash", "Cash flows explain the change in cash", bad, true, `All ${n} years agree.`, "Not enough cash-flow data.", n > 0,
         (y) => `Gap in ${y.map(yr).join(", ")}: usually exchange-rate effects or restricted cash, which the cash line may exclude. Large gaps mean a cash-flow line is missing.`); }
