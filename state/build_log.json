@@ -1,5 +1,5 @@
 {
- "built": "2026-11-14T07:39:46.682Z",
+ "built": "2026-11-14T07:54:59.839Z",
  "listed": 6049,
  "rows": 5208,
  "failed": 690,
@@ -7,30 +7,30 @@
  "history": 6049,
  "factsSnaps": 5898,
  "companySnaps": 5898,
- "minutes": 12,
+ "minutes": 11,
  "dq": {
   "pctOk": {
    "op_income": 93.2,
-   "bs_balance": 96.3,
-   "eps": 67.2,
-   "net_profit": 81.6,
-   "shares": 75.5
+   "bs_balance": 97.6,
+   "eps": 80.5,
+   "net_profit": 85.1,
+   "shares": 76.4
   },
   "topCauses": [
    [
     "net_profit",
-    "NetIncomeLoss",
-    63
+    "NetIncomeLossAttributableToNoncontrollingInterest",
+    47
+   ],
+   [
+    "net_profit",
+    "NetIncomeLossAttributableToRedeemableNoncontrollingInterest",
+    35
    ],
    [
     "net_profit",
     "InterestExpense",
-    55
-   ],
-   [
-    "bs_balance",
-    "TemporaryEquityCarryingAmountAttributableToParent",
-    53
+    35
    ]
   ],
   "notBuiltDiag": [],
