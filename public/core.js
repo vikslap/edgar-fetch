@@ -237,9 +237,26 @@
     if (splits.length) basisNotes.push("Share counts adjusted for stock splits: " + splits.map(([d, r]) =>
       `${r >= 1 ? `${+r.toFixed(2)}-for-1` : `1-for-${+(1 / r).toFixed(2)} (reverse)`} (filings from ${d})`).join(", ") + ".");
 
+    // share counts sometimes filed 1,000× off ("in thousands" tagged as units): check against net income ÷ EPS
+    const NIref = mergedSeries(facts, ["NetIncomeLossAvailableToCommonStockholdersDiluted", "NetIncomeLoss"], "USD");
+    const EPSref = mergedSeries(facts, ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"], "USD/shares");
+    const wsRef = new Map();                                        // fixed weighted shares by period end
+    const fixShareUnits = (key, s) => {
+      for (const [k, f] of s) {
+        let ref = null;
+        if (f.start) { const ni = NIref.get(k), ep = EPSref.get(k); if (ni && ep && Math.abs(ep.val) >= 0.01) ref = Math.abs(ni.val / ep.val); }
+        else ref = wsRef.get(f.end);
+        if (!ref || !f.val) continue;
+        const r = Math.abs(f.val) / ref;
+        if (Math.abs(r / 1000 - 1) < 0.06) { f.val /= 1000; f.derived = (f.derived ? f.derived + "; " : "") + "÷1000 (filed in thousands)"; }
+        else if (Math.abs(r * 1000 - 1) < 0.06) { f.val *= 1000; f.derived = (f.derived ? f.derived + "; " : "") + "×1000 (filed in thousands)"; }
+      }
+      if (key === "shares_diluted") for (const f of s.values()) if (f.start && kind(f.start, f.end) === "FY") wsRef.set(f.end, Math.abs(f.val));
+    };
     for (const [key, spec] of Object.entries(items)) {
       if (spec.plug || spec.skip || spec.from_check) continue;
       const s = itemSeries(facts, spec);
+      if (spec.unit === "shares") fixShareUnits(key, s);
       if (spec.split_adjust && splits.length)
         for (const f of s.values()) {
           const m = splitFactor(f.filed, splits);
@@ -261,8 +278,9 @@
         const NI = mergedSeries(facts, ["NetIncomeLoss"], "USD"), TX = mergedSeries(facts, ["IncomeTaxExpenseBenefit"], "USD"),
           MI = mergedSeries(facts, ["NetIncomeLossAttributableToNoncontrollingInterest", "MinorityInterestInNetIncomeLossOfConsolidatedEntities"], "USD"),
           DO = mergedSeries(facts, ["IncomeLossFromDiscontinuedOperationsNetOfTax", "IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity"], "USD");
-        for (const [k, n] of NI) if (!s.has(k) && TX.has(k))
-          s.set(k, { ...n, val: n.val + TX.get(k).val + ((MI.get(k) || {}).val || 0) - ((DO.get(k) || {}).val || 0), tag: "net income + tax ± minority/discontinued", derived: "from net income" });
+        const noTax = TX.size === 0;
+        for (const [k, n] of NI) if (!s.has(k) && (TX.has(k) || noTax))
+          s.set(k, { ...n, val: n.val + ((TX.get(k) || {}).val || 0) + ((MI.get(k) || {}).val || 0) - ((DO.get(k) || {}).val || 0), tag: "net income + tax ± minority/discontinued", derived: "from net income" });
       }
       chk[ck] = [byEnd(s, "FY"), buildQuarters(s)];
     }
@@ -422,6 +440,7 @@
     for (const [key, spec] of Object.entries(items)) {
       if (spec.section !== "BS" || spec.skip || !annual[key]) continue;
       const s = itemSeries(facts, spec);
+      if (spec.unit === "shares") fixShareUnits(key, s);
       if (spec.split_adjust && splits.length)
         for (const f of s.values()) f.val *= splitFactor(f.filed, splits);
       let best = null;
@@ -525,7 +544,7 @@
         .filter((c) => !seen.has(c.tag) && seen.add(c.tag)).slice(0, 3);
     };
     const gaps = {};                                     // check id -> {end: [kind, gap]}
-    let epsWorst = null, sharesWorst = null;
+    let epsWorst = null, sharesWorst = null, splitLike = false;
     const gap = (id, k, e, v) => { (gaps[id] = gaps[id] || {})[e] = [k, v]; };
     const gapOf = gap;
 
@@ -589,7 +608,7 @@
     // 4. EPS: net profit ÷ diluted shares vs the EPS the company reported (catches split and share-count errors)
     { const eps = result.reportedEps || {}, sh = at(P, "shares_diluted"), bad = {}; let n = 0, worst = 1;
       for (const e of ends) {
-        const r = eps[e], np = at(P, "net_profit")(e), s = sh(e);
+        const r = eps[e], np = at(P, "ni_common")(e) != null ? at(P, "ni_common")(e) : at(P, "net_profit")(e), s = sh(e);
         if (!r || np == null || !s || Math.abs(r.val) < 0.05) continue; n++;
         const ratio = (np / s) / r.val;
         if (!(ratio > 0.95 && ratio < 1.05)) {
@@ -608,7 +627,8 @@
     { const A = at(B, "total_assets"), L = at(B, "total_liabilities"), T = at(B, "temp_equity"), E = at(B, "equity_total"), bad = {}; let n = 0;
       for (const e of bEnds) {
         if (A(e) == null || L(e) == null || E(e) == null) continue; n++;
-        const d = A(e) - L(e) - z(T(e)) - E(e);
+        let d = A(e) - L(e) - z(T(e)) - E(e);
+        if (T(e) && Math.abs(A(e) - L(e) - E(e)) <= 0.005 * Math.abs(A(e))) d = A(e) - L(e) - E(e);   // already inside L or E
         if (Math.abs(d) > 0.005 * Math.abs(A(e))) { bad[e] = d; gap("bs_balance", "inst", e, d); flag("BALANCE SHEET", e, `Assets − (Liabilities + Temporary equity + Equity) = ${money(d)}`); }
       }
       add("bs_balance", "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)", bad, false, `All ${n} years balance.`, "Totals not reported.", n > 0,
@@ -631,7 +651,7 @@
       for (let j = 1; j < cEnds.length; j++) {
         const e = cEnds[j], p = cEnds[j - 1];
         if (O(e) == null || I(e) == null || F(e) == null || K(e) == null || K(p) == null) continue; n++;
-        const d = O(e) + I(e) + F(e) + z(at(C, "cf_fx")(e)) - (K(e) - K(p));
+        const d = O(e) + I(e) + F(e) + z(at(C, "cf_fx")(e)) + z(at(C, "cf_disc")(e)) - (K(e) - K(p));
         if (Math.abs(d) > Math.max(0.03 * Math.abs(O(e)), 0.005 * Math.abs(z(A(e))), 1)) { bad[e] = d; gap("cash", "dur", e, d); flag("CASH FLOW", e, `Cash flows differ from the change in cash by ${money(d)}`); }
       }
       add("cash", "Cash flows explain the change in cash", bad, true, `All ${n} years agree.`, "Not enough cash-flow data.", n > 0,
@@ -640,10 +660,18 @@
     { const sh = at(P, "shares_diluted"), bad = {};
       for (let j = 1; j < ends.length; j++) {
         const a = sh(ends[j - 1]), b = sh(ends[j]); if (!a || !b) continue;
-        const r = b / a; if (r > 1.8 || r < 0.55) { bad[ends[j]] = r; if (recent.has(ends[j]) && (sharesWorst == null || Math.abs(Math.log(r)) > Math.abs(Math.log(sharesWorst)))) sharesWorst = r; flag("PROFIT & LOSS", ends[j], `Diluted shares changed ${r.toFixed(1)}× from the year before`); }
+        const r = b / a; if (r > 1.8 || r < 0.55) { bad[ends[j]] = r; if (recent.has(ends[j]) && (sharesWorst == null || Math.abs(Math.log(r)) > Math.abs(Math.log(sharesWorst)))) sharesWorst = r;
+          // split-like: an exact split ratio, with reported EPS moving the opposite way
+          // whole split ratios only, matched tightly: a share issue rarely lands within 1.5% of exactly 2×, 3×, 5×, 10×…
+          const nice = [2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30, 40, 50, 100].some((x) => Math.abs((r >= 1 ? r : 1 / r) / x - 1) < 0.015);
+          const re = result.reportedEps || {}, e0 = re[ends[j - 1]], e1 = re[ends[j]];
+          const n0 = at(P, "net_profit")(ends[j - 1]), n1 = at(P, "net_profit")(ends[j]);
+          const inverse = e0 && e1 && n0 && n1 && e0.val && Math.abs(((e1.val / e0.val) * r) / (n1 / n0) - 1) < 0.25;
+          if (nice && inverse && recent.has(ends[j])) splitLike = true; flag("PROFIT & LOSS", ends[j], `Diluted shares changed ${r.toFixed(1)}× from the year before`); }
       }
-      add("shares", "Share count has no unexplained jumps", bad, false, "No jumps between years.", "", ends.length > 1,
-        (y) => `Shares jump in ${y.map(yr).join(", ")}: an unadjusted split, a big acquisition paid in shares, or a change in share classes. Check per-share figures around these years.`); }
+      add("shares", "Share count has no big jumps", bad, true, "No jumps between years.", "", ends.length > 1,
+        (y) => splitLike ? `Shares jump in ${y.map(yr).join(", ")} by an exact split ratio while EPS moves the other way: looks like a stock split that isn't adjusted. Per-share figures before it are off.`
+          : `Big change in share count in ${y.map(yr).join(", ")}: usually a large share issue, buyback programme or a merger paid in shares, occasionally a stock split the filings never restated. Per-share growth across these years isn't like-for-like.`); }
     // 9. key lines present
     { const bad = {}, need = [["Net profit", at(P, "net_profit")], ["Total assets", at(B, "total_assets")], ["Shareholders' equity", at(B, "equity")], ["Operating cash flow", at(C, "cfo")]];
       const miss = {};
@@ -784,7 +812,8 @@
         b.ends.forEach((e, i) => {
           if (!e) return;
           const col = String.fromCharCode(66 + i);
-          ws.getCell(le, 2 + i).value = { formula: `IF(OR(${col}${TL}="",${col}${TE}=""),"",${col}${TL}+${col}${TE}${TQ > r + 1 ? `+N(${col}${TQ})` : ""})` };
+          const base = `${col}${TL}+${col}${TE}`;
+          ws.getCell(le, 2 + i).value = { formula: TQ > r + 1 ? `IF(OR(${col}${TL}="",${col}${TE}=""),"",IF(ABS(${col}${A}-(${base}))<=ABS(${col}${A})*0.005,${base},${base}+N(${col}${TQ})))` : `IF(OR(${col}${TL}="",${col}${TE}=""),"",${base})` };
           ws.getCell(le, 2 + i).numFmt = "#,##0"; ws.getCell(le, 2 + i).font = { bold: true };
           ws.getCell(ck, 2 + i).value = { formula: `IF(OR(${col}${A}="",${col}${le}=""),"",ROUND(${col}${A}-${col}${le},0))` };
           ws.getCell(ck, 2 + i).numFmt = '#,##0;-#,##0;"OK"'; ws.getCell(ck, 2 + i).font = { italic: true };
@@ -927,7 +956,7 @@
     ["h", "CHECKS (OK = identity holds against the reported figure)"],
     ["chk_opinc", "opinc − reported operating income", "f", "IF({opinc_rep}=\"\",\"\",ROUND({opinc}-{opinc_rep},0))", "chk"],
     ["chk_ebt", "ebt − reported pre-tax income", "f", "IF({ebt_rep}=\"\",\"\",ROUND({ebt}-{ebt_rep},0))", "chk"],
-    ["chk_bs", "assets − (liabilities + temporary equity + total equity)", "f", "IF(OR(N({assets})=0,N({liabilities})=0),\"\",ROUND({assets}-{liabilities}-{tempequity}-{equity_total},0))", "chk"],
+    ["chk_bs", "assets − (liabilities + temporary equity + total equity)", "f", "IF(OR(N({assets})=0,N({liabilities})=0),\"\",IF(ABS({assets}-{liabilities}-{equity_total})<=ABS({assets})*0.005,ROUND({assets}-{liabilities}-{equity_total},0),ROUND({assets}-{liabilities}-{tempequity}-{equity_total},0)))", "chk"],
     ["h", "REPORTED FIGURES USED FOR THE CHECKS"],
     ["opinc_rep", "Operating income (reported)", "P", "operating_income"],
     ["ebt_rep", "Pre-tax income (reported)", "P", "pretax_reported"],
@@ -1011,7 +1040,8 @@
     }
     const shares = A("shares_diluted"), qShares = Q("shares_diluted");
     const ttmShares = ttmOK ? qShares.slice(nq - 4).reduce((a, v) => a + num(v), 0) / 4 : null;
-    const eps = yr.map((y, i) => div(y.ni, shares[i]));
+    const repEps = result.reportedEps || {};
+    const eps = yr.map((y, i) => (repEps[result.aEnds[i]] ? repEps[result.aEnds[i]].val : div(y.ni, shares[i])));
     const ttmEps = ttm ? div(ttm.ni, ttmShares) : null;
 
     const eq = B("equity"), ta = B("total_assets"), cl = B("current_liabilities"), ca = B("current_assets");

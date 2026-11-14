@@ -829,7 +829,7 @@
       const div = i !== "ttm" && !isQ && cfb ? (cfb.rows.find((x) => x.key === "dividends") || { values: [] }).values[i] : null;
       return { sales, cogs, sga, rnd, oopex, opRep: val("operating_income", i), dep: hasDep ? dep : null, ebit, ebitda, exp: sales - ebitda, oi, plug, otherNet: oi - plug, intr, pbt, tax,
         taxPct: pbt > 0 ? (tax / pbt) * 100 : null, np, pat: val("pat", i), minority: val("minority", i), disc: val("disc_ops", i), unusual: val("unusual", i), clean,
-        eps: np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
+        eps: !isQ && i !== "ttm" && result.reportedEps && result.reportedEps[ends[i]] ? result.reportedEps[ends[i]].val : np != null && sh ? np / sh : null, sh, payout: div > 0 && np > 0 ? (div / np) * 100 : null,
         oiParts: OI_PARTS.map((k) => val(k, i) || null) };
     });
     const get = (f) => calc.map((c) => (c ? f(c) : null));
@@ -936,7 +936,8 @@
       return [{ label: "Free Cash Flow", values: c.map((v, i) => (v == null ? null : v - z(k, i))), strong: true },
         { label: "Net Cash Flow", values: c.map((v, i) => (v == null ? null : v + z(g("cfi"), i) + z(g("cff"), i))) }]; })()
       : b.title === "BALANCE SHEET" ? (() => { const L = g("total_liabilities"), E = g("equity_total"), A = g("total_assets"), T = g("temp_equity");
-        const le = L.map((v, i) => (v == null || E[i] == null ? null : v + E[i] + ((T && T[i]) || 0)));
+        const le = L.map((v, i) => { if (v == null || E[i] == null) return null; const t = (T && T[i]) || 0;
+          return t && A[i] != null && Math.abs(A[i] - v - E[i]) <= 0.005 * Math.abs(A[i]) ? v + E[i] : v + E[i] + t; });   // temp. equity may already sit inside L or E
         const hasT = T && T.some((v) => v);
         return [{ label: hasT ? "Total Liabilities + Temp. Equity + Equity" : "Total Liabilities + Equity", values: le, strong: true },
           { label: hasT ? "Check: Assets − (Liabilities + Temp. Equity + Equity)" : "Check: Assets − (Liabilities + Equity)", values: le.map((v, i) => (v == null || A[i] == null ? null : Math.round(A[i] - v))), check: true }]; })()

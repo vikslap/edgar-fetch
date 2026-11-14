@@ -237,6 +237,19 @@
       ],
       "_note": "Net income attributable to shareholders, as reported. Used for EPS, P/E and returns."
     },
+    "ni_common": {
+      "label": "Net profit to common shareholders",
+      "unit": "USD",
+      "optional": true,
+      "quiet": true,
+      "sheet": false,
+      "tags": [
+        "NetIncomeLossAvailableToCommonStockholdersDiluted",
+        "NetIncomeLossAvailableToCommonStockholdersBasic"
+      ],
+      "ifrs": [],
+      "_note": "After preferred dividends: the numerator of reported EPS."
+    },
     "minority": {
       "label": "Minority share",
       "unit": "USD",
@@ -761,6 +774,17 @@
       "ifrs": [
         "EffectOfExchangeRateChangesOnCashAndCashEquivalents"
       ]
+    },
+    "cf_disc": {
+      "label": "Cash Flow from Discontinued Operations",
+      "unit": "USD",
+      "section": "CF",
+      "optional": true,
+      "quiet": true,
+      "tags": [
+        "NetCashProvidedByUsedInDiscontinuedOperations"
+      ],
+      "ifrs": []
     },
     "dna": {
       "section": "CF",
