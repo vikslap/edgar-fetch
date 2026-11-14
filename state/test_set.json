@@ -1,5 +1,5 @@
 {
- "built": "2026-11-14T03:25:27.386Z",
+ "built": "2026-11-14T03:39:28.418Z",
  "companies": {
   "JPM": {
    "name": "JPMORGAN CHASE & CO",
@@ -98,8 +98,8 @@
   "KO": {
    "name": "COCA COLA CO",
    "summary": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 9,
+    "warn": 1,
     "fail": 0,
     "na": 0
    },
@@ -110,7 +110,7 @@
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
-    "cash": "warn",
+    "cash": "ok",
     "shares": "ok",
     "coverage": "ok",
     "splits": "ok"
@@ -1108,19 +1108,19 @@
   "AMZN": {
    "name": "AMAZON COM INC",
    "summary": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
-    "cash": "warn",
+    "cash": "ok",
     "shares": "ok",
     "coverage": "ok",
     "splits": "ok"
@@ -1215,14 +1215,14 @@
   "NVDA": {
    "name": "NVIDIA CORP",
    "summary": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
@@ -1400,8 +1400,8 @@
   "NFLX": {
    "name": "NETFLIX INC",
    "summary": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
@@ -1412,7 +1412,7 @@
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
-    "cash": "warn",
+    "cash": "ok",
     "shares": "ok",
     "coverage": "ok",
     "splits": "ok"
@@ -1589,19 +1589,19 @@
   "TSLA": {
    "name": "Tesla, Inc.",
    "summary": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "checks": {
     "op_income": "ok",
-    "unplaced": "warn",
+    "unplaced": "ok",
     "net_profit": "ok",
     "eps": "ok",
     "bs_balance": "ok",
     "bs_parts": "ok",
-    "cash": "warn",
+    "cash": "ok",
     "shares": "ok",
     "coverage": "ok",
     "splits": "ok"
@@ -1896,6 +1896,88 @@
     "Operating cash flow 2023-12-31": 101746000,
     "Operating cash flow 2024-12-31": 125299000,
     "Operating cash flow 2025-12-31": 164713000
+   }
+  },
+  "XOM": {
+   "name": "ExxonMobil Holdings Corp",
+   "summary": {
+    "ok": 6,
+    "warn": 1,
+    "fail": 0,
+    "na": 2
+   },
+   "checks": {
+    "op_income": "na",
+    "unplaced": "warn",
+    "net_profit": "ok",
+    "eps": "na",
+    "bs_balance": "ok",
+    "bs_parts": "ok",
+    "cash": "ok",
+    "shares": "ok",
+    "coverage": "ok"
+   },
+   "vals": {
+    "Sales 2014-12-31": 394105000,
+    "Sales 2015-12-31": 239854000,
+    "Sales 2016-12-31": 200628000,
+    "Sales 2017-12-31": 244363000,
+    "Sales 2018-12-31": 290212000,
+    "Sales 2019-12-31": 264938000,
+    "Sales 2020-12-31": 181502000,
+    "Sales 2021-12-31": 285640000,
+    "Sales 2022-12-31": 413680000,
+    "Sales 2023-12-31": 344582000,
+    "Sales 2024-12-31": 349585000,
+    "Sales 2025-12-31": 332238000,
+    "Net profit 2014-12-31": 32520000,
+    "Net profit 2015-12-31": 16150000,
+    "Net profit 2016-12-31": 7840000,
+    "Net profit 2017-12-31": 19710000,
+    "Net profit 2018-12-31": 20840000,
+    "Net profit 2019-12-31": 14340000,
+    "Net profit 2020-12-31": -22440000,
+    "Net profit 2021-12-31": 23040000,
+    "Net profit 2022-12-31": 55740000,
+    "Net profit 2023-12-31": 36010000,
+    "Net profit 2024-12-31": 33680000,
+    "Net profit 2025-12-31": 28844000,
+    "Total assets 2014-12-31": 349493000,
+    "Total assets 2015-12-31": 336758000,
+    "Total assets 2016-12-31": 330314000,
+    "Total assets 2017-12-31": 348691000,
+    "Total assets 2018-12-31": 346196000,
+    "Total assets 2019-12-31": 362597000,
+    "Total assets 2020-12-31": 332750000,
+    "Total assets 2021-12-31": 338923000,
+    "Total assets 2022-12-31": 369067000,
+    "Total assets 2023-12-31": 376317000,
+    "Total assets 2024-12-31": 453475000,
+    "Total assets 2025-12-31": 448980000,
+    "Equity 2014-12-31": 174399000,
+    "Equity 2015-12-31": 170811000,
+    "Equity 2016-12-31": 167325000,
+    "Equity 2017-12-31": 187688000,
+    "Equity 2018-12-31": 191794000,
+    "Equity 2019-12-31": 191650000,
+    "Equity 2020-12-31": 157150000,
+    "Equity 2021-12-31": 168577000,
+    "Equity 2022-12-31": 195049000,
+    "Equity 2023-12-31": 204802000,
+    "Equity 2024-12-31": 263705000,
+    "Equity 2025-12-31": 259386000,
+    "Operating cash flow 2014-12-31": 45116000,
+    "Operating cash flow 2015-12-31": 30344000,
+    "Operating cash flow 2016-12-31": 22082000,
+    "Operating cash flow 2017-12-31": 30066000,
+    "Operating cash flow 2018-12-31": 36014000,
+    "Operating cash flow 2019-12-31": 29716000,
+    "Operating cash flow 2020-12-31": 14668000,
+    "Operating cash flow 2021-12-31": 48129000,
+    "Operating cash flow 2022-12-31": 76797000,
+    "Operating cash flow 2023-12-31": 55369000,
+    "Operating cash flow 2024-12-31": 55022000,
+    "Operating cash flow 2025-12-31": 51970000
    }
   }
  }

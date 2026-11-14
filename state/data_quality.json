@@ -1,50 +1,50 @@
 {
- "built": "2026-11-14T03:25:27.386Z",
- "companies": 5204,
+ "built": "2026-11-14T03:39:28.418Z",
+ "companies": 5206,
  "checks": {
   "op_income": {
    "label": "Operating profit matches reported operating income",
-   "ok": 2528,
+   "ok": 4023,
    "warn": 0,
-   "fail": 1787,
-   "na": 889,
-   "pctOk": 58.6
+   "fail": 292,
+   "na": 891,
+   "pctOk": 93.2
   },
   "unplaced": {
    "label": "Little left unplaced between operating profit and pre-tax profit",
-   "ok": 1614,
-   "warn": 3590,
+   "ok": 3010,
+   "warn": 2196,
    "fail": 0,
    "na": 0,
-   "pctOk": 31
+   "pctOk": 57.8
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 3817,
-   "warn": 1387,
+   "ok": 4083,
+   "warn": 1123,
    "fail": 0,
    "na": 0,
-   "pctOk": 73.3
+   "pctOk": 78.4
   },
   "eps": {
    "label": "EPS matches reported EPS",
    "ok": 3025,
-   "warn": 716,
-   "fail": 764,
-   "na": 699,
+   "warn": 717,
+   "fail": 763,
+   "na": 701,
    "pctOk": 67.1
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
-   "ok": 4888,
+   "ok": 4933,
    "warn": 0,
-   "fail": 234,
+   "fail": 191,
    "na": 82,
-   "pctOk": 95.4
+   "pctOk": 96.3
   },
   "bs_parts": {
    "label": "Listed balance-sheet lines fit inside their totals",
-   "ok": 5020,
+   "ok": 5022,
    "warn": 184,
    "fail": 0,
    "na": 0,
@@ -52,15 +52,15 @@
   },
   "cash": {
    "label": "Cash flows explain the change in cash",
-   "ok": 2857,
-   "warn": 1985,
+   "ok": 3344,
+   "warn": 1499,
    "fail": 0,
-   "na": 362,
-   "pctOk": 59
+   "na": 363,
+   "pctOk": 69
   },
   "shares": {
    "label": "Share count has no unexplained jumps",
-   "ok": 3797,
+   "ok": 3799,
    "warn": 0,
    "fail": 1233,
    "na": 174,
@@ -68,11 +68,11 @@
   },
   "coverage": {
    "label": "Key lines reported every year",
-   "ok": 4447,
-   "warn": 757,
+   "ok": 4446,
+   "warn": 760,
    "fail": 0,
    "na": 0,
-   "pctOk": 85.5
+   "pctOk": 85.4
   },
   "splits": {
    "label": "Stock splits adjusted",
@@ -85,152 +85,22 @@
  },
  "gapCauses": [
   {
-   "check": "unplaced",
-   "tag": "InterestExpense",
-   "companies": 341,
-   "examples": [
-    "BKTI",
-    "LNG",
-    "ADI",
-    "ARTW",
-    "UAVS",
-    "BRID"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "InterestExpenseNonoperating",
-   "companies": 310,
-   "examples": [
-    "ADI",
-    "ARTW",
-    "SUNE",
-    "TAP",
-    "CTS",
-    "DBD"
-   ]
-  },
-  {
-   "check": "op_income",
-   "tag": "GeneralAndAdministrativeExpense",
-   "companies": 217,
-   "examples": [
-    "LSTA",
-    "CATX",
-    "IMNN",
-    "SNGX",
-    "LCTX",
-    "ARWR"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "EffectOfExchangeRateOnCashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
-   "companies": 197,
-   "examples": [
-    "EPAC",
-    "ARW",
-    "UAVS",
-    "DCI",
-    "FLS",
-    "FELE"
-   ]
-  },
-  {
-   "check": "op_income",
-   "tag": "OperatingExpenses",
-   "companies": 185,
-   "examples": [
-    "DOMH",
-    "CPK",
-    "CRK",
-    "TXMD",
-    "GTN",
-    "MAYS"
-   ]
-  },
-  {
-   "check": "op_income",
-   "tag": "CostsAndExpenses",
-   "companies": 151,
-   "examples": [
-    "MATX",
-    "AEP",
-    "AAL",
-    "AXR",
-    "BRT",
-    "CNI"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "EffectOfExchangeRateChangesOnCashAndCashEquivalents",
-   "companies": 137,
-   "examples": [
-    "BCS",
-    "ATMP",
-    "ERIC",
-    "CHNR",
-    "CRH",
-    "TECK"
-   ]
-  },
-  {
    "check": "net_profit",
-   "tag": "IncomeLossFromEquityMethodInvestments",
-   "companies": 129,
+   "tag": "InterestExpense",
+   "companies": 94,
    "examples": [
-    "BALL",
-    "CBT",
-    "FUL",
-    "GATX",
-    "GIS",
-    "KMB"
-   ]
-  },
-  {
-   "check": "cash",
-   "tag": "EffectOfExchangeRateOnCashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsIncludingDisposalGroupAndDiscontinuedOperations",
-   "companies": 112,
-   "examples": [
-    "CBT",
-    "OMC",
-    "FUL",
-    "HAL",
-    "KFY",
-    "MOV"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "InvestmentIncomeInterest",
-   "companies": 101,
-   "examples": [
-    "BSET",
-    "BAX",
-    "RYN",
-    "LZB",
-    "MAT",
-    "NSSC"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "InterestIncomeExpenseNonoperatingNet",
-   "companies": 97,
-   "examples": [
-    "CRWS",
-    "DG",
-    "DCO",
-    "HNI",
-    "KOSS",
-    "MYE"
+    "GBR",
+    "GTBP",
+    "NEN",
+    "NNN",
+    "AXGN",
+    "HRTX"
    ]
   },
   {
    "check": "net_profit",
    "tag": "NetIncomeLoss",
-   "companies": 91,
+   "companies": 67,
    "examples": [
     "UVSP",
     "ICCC",
@@ -241,159 +111,42 @@
    ]
   },
   {
-   "check": "op_income",
-   "tag": "OperatingIncomeLoss",
-   "companies": 78,
-   "examples": [
-    "SCE-PG",
-    "VGZ",
-    "NTRP",
-    "BLX",
-    "MGEE",
-    "ADAM"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "GeneralAndAdministrativeExpense",
-   "companies": 78,
-   "examples": [
-    "CRVO",
-    "TCRT",
-    "CAPR",
-    "LWLG",
-    "BRTX",
-    "CALC"
-   ]
-  },
-  {
    "check": "unplaced",
-   "tag": "GeneralAndAdministrativeExpense",
-   "companies": 71,
+   "tag": "GainsLossesOnExtinguishmentOfDebt",
+   "companies": 57,
    "examples": [
-    "LSTA",
-    "SNGX",
-    "CRVL",
-    "LCTX",
-    "EXP",
-    "QUIT"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "CostsAndExpenses",
-   "companies": 69,
-   "examples": [
-    "BRN",
-    "DAL",
-    "GD",
-    "HAL",
-    "ETR",
-    "UNP"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "OperatingExpenses",
-   "companies": 69,
-   "examples": [
-    "DOMH",
-    "CPK",
-    "TXMD",
-    "MSEX",
-    "MXC",
-    "IHT"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "InterestExpense",
-   "companies": 66,
-   "examples": [
-    "GTBP",
-    "NNN",
-    "AXGN",
-    "HRTX",
-    "RCL",
-    "ENVB"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "ProvisionForLoanLeaseAndOtherLosses",
-   "companies": 65,
-   "examples": [
-    "ASB",
-    "FITB",
-    "FFIN",
-    "TFC",
-    "UMBF",
-    "WSBC"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "InterestIncomeExpenseNet",
-   "companies": 63,
-   "examples": [
-    "CAL",
-    "HWKN",
-    "MEI",
-    "PKG",
-    "PNR",
-    "SYY"
+    "HWM",
+    "GAP",
+    "LXU",
+    "VYX",
+    "SIF",
+    "LEVI"
    ]
   },
   {
    "check": "bs_balance",
    "tag": "TemporaryEquityCarryingAmountAttributableToParent",
-   "companies": 63,
+   "companies": 52,
    "examples": [
-    "J",
     "IRD",
-    "BATL",
-    "ATEC",
-    "OPLN",
-    "NCPL"
+    "NCPL",
+    "RNTX",
+    "EXFY",
+    "PW",
+    "CSAI"
    ]
   },
   {
-   "check": "unplaced",
-   "tag": "InterestExpenseDebt",
-   "companies": 57,
+   "check": "net_profit",
+   "tag": "InterestExpenseNonoperating",
+   "companies": 50,
    "examples": [
-    "HPQ",
-    "GFF",
-    "CTGG",
-    "SCL",
-    "SYK",
-    "HAE"
-   ]
-  },
-  {
-   "check": "bs_balance",
-   "tag": "RedeemableNoncontrollingInterestEquityCarryingAmount",
-   "companies": 49,
-   "examples": [
-    "ADM",
-    "DBD",
-    "GEF",
-    "SFD",
-    "SXI",
-    "SHEN"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "ProvisionForLoanAndLeaseLosses",
-   "companies": 44,
-   "examples": [
-    "SRCE",
-    "FRAF",
-    "UBCP",
-    "CCNE",
-    "HWC",
-    "HBT"
+    "NEN",
+    "CDR-PB",
+    "AXGN",
+    "HRTX",
+    "GALT",
+    "TOPS"
    ]
   },
   {
@@ -410,55 +163,16 @@
    ]
   },
   {
-   "check": "op_income",
-   "tag": "OperatingCostsAndExpenses",
-   "companies": 36,
-   "examples": [
-    "MATX",
-    "MLP",
-    "LUV",
-    "CSX",
-    "DLHC",
-    "REFR"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "ProvisionForLoanLossesExpensed",
-   "companies": 35,
-   "examples": [
-    "FNB",
-    "CTBI",
-    "TRST",
-    "ONB",
-    "CBAN",
-    "GABC"
-   ]
-  },
-  {
    "check": "net_profit",
    "tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesForeign",
-   "companies": 32,
+   "companies": 31,
    "examples": [
     "MCD",
-    "WHR",
     "RJF",
     "ICUI",
     "PZZA",
-    "DECK"
-   ]
-  },
-  {
-   "check": "unplaced",
-   "tag": "GainsLossesOnExtinguishmentOfDebt",
-   "companies": 31,
-   "examples": [
-    "GAP",
-    "LXU",
-    "SIF",
-    "LEVI",
-    "TISI",
-    "ALTO"
+    "DECK",
+    "LH"
    ]
   },
   {
@@ -475,55 +189,16 @@
    ]
   },
   {
-   "check": "net_profit",
-   "tag": "InterestExpenseNonoperating",
-   "companies": 30,
+   "check": "unplaced",
+   "tag": "IncomeLossFromEquityMethodInvestments",
+   "companies": 27,
    "examples": [
-    "AXGN",
-    "HRTX",
-    "GALT",
-    "OCUL",
-    "DUOT",
-    "HSCS"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "OperatingExpenses",
-   "companies": 28,
-   "examples": [
-    "DOMH",
-    "GBR",
-    "IAU",
-    "IVT",
-    "USO",
-    "SLV"
-   ]
-  },
-  {
-   "check": "net_profit",
-   "tag": "OperatingIncomeLoss",
-   "companies": 24,
-   "examples": [
-    "AIMD",
-    "SPG",
-    "PPTA",
-    "TONT",
-    "TDAC",
-    "GTEN"
-   ]
-  },
-  {
-   "check": "op_income",
-   "tag": "ProfitLossFromOperatingActivities",
-   "companies": 23,
-   "examples": [
-    "BBVA",
-    "BBAR",
-    "TLK",
-    "GGAL",
-    "BMA",
-    "GRO"
+    "APD",
+    "AZZ",
+    "F",
+    "FEIM",
+    "UDR",
+    "SEB"
    ]
   },
   {
@@ -540,29 +215,42 @@
    ]
   },
   {
-   "check": "unplaced",
-   "tag": "IncomeLossFromEquityMethodInvestments",
-   "companies": 21,
+   "check": "cash",
+   "tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
+   "companies": 20,
    "examples": [
-    "APD",
-    "AZZ",
-    "F",
-    "FEIM",
-    "SEB",
-    "SENEA"
+    "DIN",
+    "ASUR",
+    "SNEX",
+    "ATI",
+    "SELF",
+    "LOAN"
    ]
   },
   {
-   "check": "cash",
-   "tag": "EffectOfExchangeRateOnCashAndCashEquivalents",
-   "companies": 21,
+   "check": "unplaced",
+   "tag": "FairValueAdjustmentOfWarrants",
+   "companies": 20,
    "examples": [
-    "CTA-PB",
-    "HMC",
-    "RGEN",
-    "TG",
-    "GURE",
-    "MTX"
+    "QMCO",
+    "TRAW",
+    "LNSR",
+    "ALKT",
+    "RMNI",
+    "ATXG"
+   ]
+  },
+  {
+   "check": "bs_balance",
+   "tag": "RedeemableNoncontrollingInterestEquityCarryingAmount",
+   "companies": 20,
+   "examples": [
+    "GPUS",
+    "INOD",
+    "COTY",
+    "FORTY",
+    "INGR",
+    "WEX"
    ]
   },
   {
@@ -581,33 +269,345 @@
   {
    "check": "net_profit",
    "tag": "IncomeTaxExpenseBenefit",
-   "companies": 19,
+   "companies": 18,
    "examples": [
     "TATT",
     "CLSK",
-    "PTN",
     "OPNW",
     "TARA",
-    "CIIT"
+    "CIIT",
+    "ODYS"
+   ]
+  },
+  {
+   "check": "cash",
+   "tag": "NetCashProvidedByUsedInDiscontinuedOperations",
+   "companies": 16,
+   "examples": [
+    "TXMD",
+    "GFF",
+    "PKOH",
+    "TFX",
+    "DSS",
+    "BWA"
+   ]
+  },
+  {
+   "check": "op_income",
+   "tag": "ResearchAndDevelopmentExpense",
+   "companies": 15,
+   "examples": [
+    "BKTI",
+    "AGYS",
+    "STAA",
+    "ROP",
+    "FDS",
+    "SBFM"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "IncomeLossFromContinuingOperationsAttributableToNoncontrollingEntity",
+   "companies": 15,
+   "examples": [
+    "AIG",
+    "SPGI",
+    "REX",
+    "BWA",
+    "JVA",
+    "MPC"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "ProfitLossFromDiscontinuedOperations",
+   "companies": 15,
+   "examples": [
+    "PHI",
+    "FMX",
+    "BTE",
+    "VET",
+    "OGG",
+    "LAR"
    ]
   },
   {
    "check": "unplaced",
-   "tag": "InterestAndDebtExpense",
-   "companies": 16,
+   "tag": "OtherOperatingIncomeExpenseNet",
+   "companies": 14,
    "examples": [
-    "SUNE",
-    "TSN",
-    "IMNN",
-    "ULBI",
-    "STGW",
-    "BOSC"
+    "FUL",
+    "COHR",
+    "ACCS",
+    "CLWT",
+    "BMRN",
+    "UCTT"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "InterestIncomeExpenseNet",
+   "companies": 13,
+   "examples": [
+    "HOFT",
+    "FLUX",
+    "STXS",
+    "IMNM",
+    "IPWR",
+    "LFT"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "ResearchAndDevelopmentExpense",
+   "companies": 12,
+   "examples": [
+    "ADP",
+    "PNR",
+    "AGYS",
+    "STAA",
+    "NOC",
+    "AMBO"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "OtherNonoperatingIncome",
+   "companies": 12,
+   "examples": [
+    "KEX",
+    "MOV",
+    "ELA",
+    "WVVI",
+    "NGNE",
+    "VNCE"
+   ]
+  },
+  {
+   "check": "op_income",
+   "tag": "OperatingIncomeLoss",
+   "companies": 12,
+   "examples": [
+    "SCE-PG",
+    "BLX",
+    "MGEE",
+    "DBC",
+    "DBP",
+    "DBO"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "OtherIncome",
+   "companies": 11,
+   "examples": [
+    "KGC",
+    "CPIX",
+    "ORMP",
+    "VNDA",
+    "EQ",
+    "NXTT"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "ProfitLossAttributableToNoncontrollingInterests",
+   "companies": 11,
+   "examples": [
+    "BCE",
+    "CCU",
+    "ELLO",
+    "ELPC",
+    "HSBC",
+    "TRX"
+   ]
+  },
+  {
+   "check": "op_income",
+   "tag": "ProfitLossFromOperatingActivities",
+   "companies": 11,
+   "examples": [
+    "BBVA",
+    "BBAR",
+    "TLK",
+    "GGAL",
+    "BMA",
+    "VLRS"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "BenefitsLossesAndExpenses",
+   "companies": 10,
+   "examples": [
+    "CIA",
+    "RLI",
+    "UFCS",
+    "UVE",
+    "AMSF",
+    "SAFT"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "DiscontinuedOperationGainLossOnDisposalOfDiscontinuedOperationNetOfTax",
+   "companies": 10,
+   "examples": [
+    "LAUR",
+    "BDC",
+    "RIME",
+    "PII",
+    "CCI",
+    "CODI"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "OperatingExpenses",
+   "companies": 10,
+   "examples": [
+    "ARMP",
+    "EVR",
+    "EIG",
+    "EFC",
+    "HLNE",
+    "NODK"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "InterestExpenseDebt",
+   "companies": 10,
+   "examples": [
+    "ASTI",
+    "PMN",
+    "CRBP",
+    "MCRB",
+    "TPTS",
+    "MBIO"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "NetIncomeLossAttributableToNonredeemableNoncontrollingInterest",
+   "companies": 9,
+   "examples": [
+    "SIEB",
+    "NEE",
+    "PRSU",
+    "GEL",
+    "COHN",
+    "MPC"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "InvestmentIncomeInterest",
+   "companies": 9,
+   "examples": [
+    "SFNC",
+    "FLWS",
+    "CSTL",
+    "NPCE",
+    "HYLN",
+    "IMRX"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "DividendsPreferredStock",
+   "companies": 9,
+   "examples": [
+    "TFC",
+    "IVZ",
+    "PCG",
+    "ESOA",
+    "NHP",
+    "FTAI"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "InterestAndOtherIncome",
+   "companies": 9,
+   "examples": [
+    "ORKA",
+    "RZLT",
+    "IIPR",
+    "SPRB",
+    "DNTH",
+    "DNLI"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesForeign",
+   "companies": 8,
+   "examples": [
+    "ITW",
+    "MCD",
+    "PZZA",
+    "TNXP",
+    "ABUS",
+    "ACOG"
+   ]
+  },
+  {
+   "check": "cash",
+   "tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseExcludingExchangeRateEffect",
+   "companies": 8,
+   "examples": [
+    "YORW",
+    "TOMZ",
+    "OPNW",
+    "BTBD",
+    "ZSQR",
+    "CDIO"
+   ]
+  },
+  {
+   "check": "net_profit",
+   "tag": "GainLossOnInvestments",
+   "companies": 8,
+   "examples": [
+    "REFR",
+    "GSG",
+    "TPVG",
+    "MTNB",
+    "IAUM",
+    "BRRR"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "ForeignCurrencyTransactionGainLossBeforeTax",
+   "companies": 8,
+   "examples": [
+    "LFUS",
+    "TWI",
+    "FOCL",
+    "SVA",
+    "QURE",
+    "BRSL"
+   ]
+  },
+  {
+   "check": "unplaced",
+   "tag": "NetPeriodicDefinedBenefitsExpenseReversalOfExpenseExcludingServiceCostComponent",
+   "companies": 7,
+   "examples": [
+    "CNI",
+    "CL",
+    "PKOH",
+    "LMT",
+    "LXFR",
+    "VVV"
    ]
   }
  ],
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4701,
+   "companiesWithGaps": 4703,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
@@ -636,11 +636,11 @@
    ]
   },
   "buybacks": {
-   "companiesWithGaps": 4136,
+   "companiesWithGaps": 4137,
    "candidates": []
   },
   "dividends": {
-   "companiesWithGaps": 3793,
+   "companiesWithGaps": 3794,
    "candidates": [
     [
      "PaymentsOfDividendsPreferredStockAndPreferenceStock",
@@ -653,7 +653,7 @@
    ]
   },
   "lt_debt": {
-   "companiesWithGaps": 3681,
+   "companiesWithGaps": 3683,
    "candidates": [
     [
      "LongTermDebtCurrent",
@@ -682,7 +682,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3544,
+   "companiesWithGaps": 3546,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -711,7 +711,7 @@
    ]
   },
   "rnd": {
-   "companiesWithGaps": 3081,
+   "companiesWithGaps": 3082,
    "candidates": [
     [
      "DeferredTaxAssetsInProcessResearchAndDevelopment",
@@ -740,7 +740,7 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 2998,
+   "companiesWithGaps": 2999,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
@@ -769,7 +769,7 @@
    ]
   },
   "cogs": {
-   "companiesWithGaps": 2702,
+   "companiesWithGaps": 2704,
    "candidates": [
     [
      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
@@ -798,7 +798,7 @@
    ]
   },
   "interest": {
-   "companiesWithGaps": 2293,
+   "companiesWithGaps": 2294,
    "candidates": [
     [
      "InterestExpenseOther",
@@ -826,49 +826,20 @@
     ]
    ]
   },
-  "sga": {
-   "companiesWithGaps": 2130,
-   "candidates": [
-    [
-     "OtherGeneralAndAdministrativeExpense",
-     188
-    ],
-    [
-     "OtherSellingGeneralAndAdministrativeExpense",
-     57
-    ],
-    [
-     "DisposalGroupIncludingDiscontinuedOperationGeneralAndAdministrativeExpense",
-     54
-    ],
-    [
-     "RelatedPartyTransactionSellingGeneralAndAdministrativeExpensesFromTransactionsWithRelatedParty",
-     49
-    ],
-    [
-     "OtherSellingAndMarketingExpense",
-     7
-    ],
-    [
-     "GeneralAndAdministrativeExpenseRatio",
-     2
-    ]
-   ]
-  },
   "current_liabilities": {
    "companiesWithGaps": 2049,
    "candidates": []
   },
   "current_assets": {
-   "companiesWithGaps": 2034,
+   "companiesWithGaps": 2035,
    "candidates": []
   },
   "capex": {
-   "companiesWithGaps": 1555,
+   "companiesWithGaps": 1556,
    "candidates": []
   },
   "sbc": {
-   "companiesWithGaps": 1438,
+   "companiesWithGaps": 1440,
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
@@ -897,7 +868,7 @@
    ]
   },
   "tax": {
-   "companiesWithGaps": 1194,
+   "companiesWithGaps": 1196,
    "candidates": [
     [
      "IncomeTaxExpenseBenefitContinuingOperationsAdjustmentOfDeferredTaxAssetLiability",
@@ -922,7 +893,7 @@
    ]
   },
   "depreciation": {
-   "companiesWithGaps": 900,
+   "companiesWithGaps": 901,
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
@@ -951,7 +922,7 @@
    ]
   },
   "shares_diluted": {
-   "companiesWithGaps": 886,
+   "companiesWithGaps": 889,
    "candidates": [
     [
      "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
@@ -971,8 +942,37 @@
     ]
    ]
   },
+  "sga": {
+   "companiesWithGaps": 845,
+   "candidates": [
+    [
+     "OtherGeneralAndAdministrativeExpense",
+     66
+    ],
+    [
+     "OtherSellingGeneralAndAdministrativeExpense",
+     20
+    ],
+    [
+     "DisposalGroupIncludingDiscontinuedOperationGeneralAndAdministrativeExpense",
+     9
+    ],
+    [
+     "RelatedPartyTransactionSellingGeneralAndAdministrativeExpensesFromTransactionsWithRelatedParty",
+     5
+    ],
+    [
+     "InventoryForLongTermContractsOrProgramsGeneralAndAdministrativeExpenseIncurred",
+     1
+    ],
+    [
+     "OtherSellingAndMarketingExpense",
+     1
+    ]
+   ]
+  },
   "cash": {
-   "companiesWithGaps": 293,
+   "companiesWithGaps": 294,
    "candidates": [
     [
      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsIncludingDisposalGroupAndDiscontinuedOperations",
@@ -1001,135 +1001,65 @@
    ]
   },
   "cfo": {
-   "companiesWithGaps": 149,
+   "companiesWithGaps": 151,
    "candidates": []
   }
  },
  "worstFailing": [
   "TSM: eps",
   "PLTR: shares",
-  "UNH: op_income",
   "GE: eps, bs_balance",
   "HSBC: op_income, eps",
-  "TM: op_income",
-  "RTX: op_income",
-  "TMO: op_income",
   "MUFG: op_income",
   "WFC: eps",
-  "LIN: op_income",
-  "BHP: op_income, eps",
-  "DIS: op_income, bs_balance",
-  "TTE: op_income",
-  "MCD: op_income, eps, shares",
-  "VZ: op_income",
-  "BLK: op_income",
-  "DE: op_income",
-  "TMUS: op_income",
-  "UNP: op_income",
+  "BHP: eps",
+  "MCD: eps, shares",
   "NVO: shares",
-  "NEE: op_income",
-  "WMB: op_income",
-  "SAN: op_income",
-  "ACN: bs_balance",
   "SMFG: shares",
-  "T: op_income, bs_balance",
   "BBVA: op_income",
-  "UBER: op_income",
-  "BTI: op_income",
-  "SBUX: op_income",
-  "PLD: op_income",
-  "BP: op_income",
+  "BA: op_income",
   "PDD: eps, shares",
-  "MAR: op_income",
-  "SO: op_income",
-  "ENB: op_income",
   "ABNB: shares",
   "SNOW: shares",
-  "CM: shares"
+  "CM: shares",
+  "BN: eps",
+  "CNQ: shares",
+  "MRSH: bs_balance",
+  "AEM: eps",
+  "E: bs_balance",
+  "ITW: eps",
+  "NTES: eps",
+  "CVNA: eps, shares",
+  "AMX: shares",
+  "BCS: op_income",
+  "DASH: shares",
+  "HOOD: shares",
+  "APO: shares",
+  "APD: op_income",
+  "DLR: eps, shares",
+  "ARGX: op_income",
+  "WPM: op_income",
+  "D: bs_balance",
+  "BDX: eps",
+  "NU: shares",
+  "GRMN: eps, shares",
+  "DVN: bs_balance",
+  "XYZ: shares",
+  "MSTR: bs_balance"
  ],
- "buildDiagnostics": {
-  "XOM": {
-   "error": "No annual revenue or profit data found. Use the tag explorer to find this company's tags.",
-   "tags": {
-    "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest [USD]": {
-     "facts": 8,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    },
-    "us-gaap:NetIncomeLoss [USD]": {
-     "facts": 8,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    },
-    "us-gaap:NetIncomeLossAttributableToNoncontrollingInterest [USD]": {
-     "facts": 8,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    },
-    "us-gaap:ProceedsFromSalesOfBusinessAffiliateAndProductiveAssets [USD]": {
-     "facts": 4,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    },
-    "us-gaap:ProfitLoss [USD]": {
-     "facts": 8,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    },
-    "us-gaap:Revenues [USD]": {
-     "facts": 8,
-     "annual": 0,
-     "forms": [
-      "10-Q"
-     ],
-     "latest": []
-    }
-   },
-   "entity": "ExxonMobil Holdings Corporation",
-   "namespaces": [
-    "ffd",
-    "dei",
-    "us-gaap"
-   ]
-  }
- },
+ "buildDiagnostics": {},
  "testSet": {
-  "companies": 19,
-  "notBuilt": [
-   "XOM"
-  ],
+  "companies": 20,
+  "notBuilt": [],
   "changesSinceLastRun": [],
   "checkStatusChanges": [
-   "JPM eps: warn → ok",
-   "KO net_profit: warn → ok",
-   "INTC bs_balance: fail → ok",
-   "PFE cash: warn → ok",
-   "PG unplaced: warn → ok",
-   "PG net_profit: warn → ok",
-   "PG eps: warn → ok",
-   "WMT unplaced: warn → ok",
-   "AAPL unplaced: warn → ok",
-   "O net_profit: warn → ok",
-   "O eps: warn → ok",
-   "O shares: fail → ok",
-   "MSFT unplaced: warn → ok",
-   "TSLA eps: warn → ok",
-   "TSLA bs_balance: fail → ok"
+   "KO cash: warn → ok",
+   "AMZN unplaced: warn → ok",
+   "AMZN cash: warn → ok",
+   "NVDA unplaced: warn → ok",
+   "NFLX cash: warn → ok",
+   "TSLA unplaced: warn → ok",
+   "TSLA cash: warn → ok"
   ],
   "mismatchesVs10K": [],
   "perCompany": {
@@ -1140,8 +1070,8 @@
     "na": 1
    },
    "KO": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 9,
+    "warn": 1,
     "fail": 0,
     "na": 0
    },
@@ -1200,14 +1130,14 @@
     "na": 0
    },
    "AMZN": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
    "NVDA": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
@@ -1218,8 +1148,8 @@
     "na": 0
    },
    "NFLX": {
-    "ok": 9,
-    "warn": 1,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
@@ -1230,8 +1160,8 @@
     "na": 2
    },
    "TSLA": {
-    "ok": 8,
-    "warn": 2,
+    "ok": 10,
+    "warn": 0,
     "fail": 0,
     "na": 0
    },
@@ -1246,6 +1176,12 @@
     "warn": 0,
     "fail": 0,
     "na": 0
+   },
+   "XOM": {
+    "ok": 6,
+    "warn": 1,
+    "fail": 0,
+    "na": 2
    }
   }
  }
