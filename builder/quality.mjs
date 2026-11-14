@@ -46,7 +46,7 @@ const KEY_LINES = [["PROFIT & LOSS", "sales", "Sales"], ["PROFIT & LOSS", "net_p
 export function makeQuality(core, mapping) {
   const mapped = {};                                  // row key -> tags already in the mapping
   for (const [k, v] of Object.entries(mapping.items || {})) if (v && typeof v === "object") mapped[k] = new Set([...(v.tags || []), ...((v.groups || []).flatMap((g) => g.tags || [])), ...((v.components || []).flat())]);
-  const totals = {}, failing = [], gaps = {}, testSet = {}, causes = {}, diags = {};
+  const totals = {}, failing = [], gaps = {}, testSet = {}, causes = {}, diags = {}, ratioHist = {};
   let companies = 0;
 
   function add(ticker, name, mcap, result, facts) {
@@ -57,15 +57,24 @@ export function makeQuality(core, mapping) {
       const t = (totals[c.id] = totals[c.id] || { label: c.label, ok: 0, warn: 0, fail: 0, na: 0 });
       t[c.status]++;
     }
+    // ratio patterns for EPS and share-count failures (where a single matching figure can't explain them)
+    const bucket = (r) => r == null ? null : r < 0.002 ? "<1/500" : r < 0.1 ? "1/500–1/10" : r < 0.55 ? "1/10–0.55" : r < 0.95 ? "0.55–0.95" : r <= 1.05 ? "ok" : r < 1.8 ? "1.05–1.8" : r < 10 ? "1.8–10" : r < 500 ? "10–500" : ">500";
+    for (const [id, r] of [["eps", dq.ratios && dq.ratios.eps], ["shares", dq.ratios && dq.ratios.shares]]) {
+      const b = bucket(r); if (!b || b === "ok") continue;
+      const h = (ratioHist[id] = ratioHist[id] || {}); const x = (h[b] = h[b] || { companies: 0, examples: [] });
+      x.companies++; if (x.examples.length < 8) x.examples.push(`${ticker} ×${r.toPrecision(3)}`);
+    }
     const fails = dq.checks.filter((c) => c.status === "fail").map((c) => c.id);
     if (fails.length) failing.push([ticker, mcap || 0, fails]);
     // group failures by the reported figure that explains the gap (company-specific tags grouped by their name without prefix)
     for (const c of dq.checks) {
       if (c.status !== "fail" && c.status !== "warn") continue;
       for (const k of new Set((c.causes || []).map((x) => x.tag.replace(/^[a-z0-9-]+:/, "*:")))) {
-        const g = (causes[`${c.id}|${k}`] = causes[`${c.id}|${k}`] || { check: c.id, tag: k, companies: 0, examples: [] });
+        const g = (causes[`${c.id}|${k}`] = causes[`${c.id}|${k}`] || { check: c.id, tag: k, companies: 0, sameSign: 0, examples: [] });
         g.companies++;
-        if (g.examples.length < 6) g.examples.push(ticker);
+        const cz = (c.causes || []).find((x) => x.tag.replace(/^[a-z0-9-]+:/, "*:") === k);
+        if (cz && Math.sign(cz.gap) === Math.sign(cz.val)) g.sameSign++;
+        if (g.examples.length < 8) g.examples.push(cz ? `${ticker} ${cz.end.slice(0, 4)} gap ${Math.round(cz.gap)} tag ${Math.round(cz.val)}` : ticker);
       }
     }
 
@@ -144,7 +153,7 @@ export function makeQuality(core, mapping) {
     }
     const missingFromRun = TEST_SET.filter((t) => !testSet[t]);
     const gapCauses = Object.values(causes).sort((a, b) => b.companies - a.companies).slice(0, 40);
-    const report = { built, companies, checks, gapCauses, missingTags, worstFailing: worst, buildDiagnostics: diags,
+    const report = { built, companies, checks, gapCauses, ratioPatterns: ratioHist, missingTags, worstFailing: worst, buildDiagnostics: diags,
       testSet: { companies: Object.keys(testSet).length, notBuilt: missingFromRun, changesSinceLastRun: changes.slice(0, 60), checkStatusChanges: statusChanges,
         mismatchesVs10K: mismatches, perCompany: Object.fromEntries(Object.entries(testSet).map(([t, v]) => [t, v.summary])) } };
     fs.writeFileSync(path.join(root, "state/data_quality.json"), JSON.stringify(report, null, 1));

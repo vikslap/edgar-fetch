@@ -242,13 +242,24 @@
       "unit": "USD",
       "optional": true,
       "sheet": false,
-      "tags": [
-        "NetIncomeLossAttributableToNoncontrollingInterest",
-        "MinorityInterestInNetIncomeLossOfConsolidatedEntities"
-      ],
+      "tags": [],
       "ifrs": [
         "ProfitLossAttributableToNoncontrollingInterests"
-      ]
+      ],
+      "groups": [
+        {
+          "tags": [
+            "NetIncomeLossAttributableToNoncontrollingInterest",
+            "MinorityInterestInNetIncomeLossOfConsolidatedEntities"
+          ]
+        },
+        {
+          "tags": [
+            "NetIncomeLossAttributableToRedeemableNoncontrollingInterest"
+          ]
+        }
+      ],
+      "groups_label": "non-controlling + redeemable non-controlling"
     },
     "disc_ops": {
       "label": "Discontinued operations",
@@ -810,14 +821,14 @@
   "checks": {
     "pretax": [
       "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
-      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments",
-      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic"
+      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"
     ],
     "net_income": [
       "NetIncomeLoss",
       "ProfitLoss",
       "NetIncomeLossAvailableToCommonStockholdersBasic"
-    ]
+    ],
+    "_pretax_note": "Total pre-tax income. If not tagged: domestic + foreign, else net income + tax + minority share − discontinued operations."
   },
   "overrides": {
     "NFLX": {

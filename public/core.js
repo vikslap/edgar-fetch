@@ -253,6 +253,17 @@
     for (const [ck, tags] of Object.entries((basis.ns === "ifrs-full" ? cfg.checks_ifrs : cfg.checks) || {})) {
       if (ck.startsWith("_")) continue;
       const s = mergedSeries(facts, tags, "USD");
+      if (ck === "pretax" && basis.ns !== "ifrs-full") {
+        // not tagged as a total: domestic + foreign, else net income + tax + minority share − discontinued ops
+        const D = mergedSeries(facts, ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic"], "USD"),
+          F = mergedSeries(facts, ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesForeign"], "USD");
+        for (const [k, d] of D) if (!s.has(k) && F.has(k)) s.set(k, { ...d, val: d.val + F.get(k).val, tag: "domestic + foreign pre-tax", derived: "sum" });
+        const NI = mergedSeries(facts, ["NetIncomeLoss"], "USD"), TX = mergedSeries(facts, ["IncomeTaxExpenseBenefit"], "USD"),
+          MI = mergedSeries(facts, ["NetIncomeLossAttributableToNoncontrollingInterest", "MinorityInterestInNetIncomeLossOfConsolidatedEntities"], "USD"),
+          DO = mergedSeries(facts, ["IncomeLossFromDiscontinuedOperationsNetOfTax", "IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity"], "USD");
+        for (const [k, n] of NI) if (!s.has(k) && TX.has(k))
+          s.set(k, { ...n, val: n.val + TX.get(k).val + ((MI.get(k) || {}).val || 0) - ((DO.get(k) || {}).val || 0), tag: "net income + tax ± minority/discontinued", derived: "from net income" });
+      }
       chk[ck] = [byEnd(s, "FY"), buildQuarters(s)];
     }
     const pretax = chk.pretax || [new Map(), new Map()];
@@ -514,6 +525,7 @@
         .filter((c) => !seen.has(c.tag) && seen.add(c.tag)).slice(0, 3);
     };
     const gaps = {};                                     // check id -> {end: [kind, gap]}
+    let epsWorst = null, sharesWorst = null;
     const gap = (id, k, e, v) => { (gaps[id] = gaps[id] || {})[e] = [k, v]; };
     const gapOf = gap;
 
@@ -556,7 +568,8 @@
         if (I && Math.abs(v + I) <= Math.max(1, 0.01 * Math.abs(ebit))) continue;      // interest counted inside other income
         if (Math.abs(v) > 0.05 * Math.abs(ebit) && Math.abs(v) > 0.005 * Math.abs(S(e))) {
           const m = explainGap("dur", e, v);
-          if (m.length && /Interest|InvestmentIncome/i.test(m[0].tag)) continue;     // a net-interest line the site doesn't break out
+          // a non-operating line the site doesn't break out (interest, debt extinguishment, warrants, investments, FX, associates)
+          if (m.length && /Interest|InvestmentIncome|Extinguishment|Warrant|EquityMethod|GainLossOnInvestment|ForeignCurrency|Derivative|FairValueAdjustment|OtherNonoperating/i.test(m[0].tag)) continue;
           bad[e] = v; gap("unplaced", "dur", e, v); flag("PROFIT & LOSS", e, `Unplaced items ${money(-v)} (${pct(Math.abs(v / ebit))} of operating profit)`); }
       }
       add("unplaced", "Little left unplaced between operating profit and pre-tax profit", bad, true, "Under 5% of operating profit in every year.", "", ends.length > 0,
@@ -585,6 +598,7 @@
         }
       }
       const split = worst > 1.8 || worst < 0.55;
+      epsWorst = worst;
       add("eps", "EPS matches reported EPS", bad, !split, `All ${n} years within 5% of reported EPS (split-adjusted).`,
         "No reported EPS to compare (or not in USD).", n > 0,
         (y) => split ? `Off by about ${worst >= 1 ? worst.toFixed(1) + "×" : "1/" + (1 / worst).toFixed(1)} in ${y.map(yr).join(", ")}: looks like a stock split or share-class change that isn't adjusted. Per-share figures for these years are wrong.`
@@ -626,7 +640,7 @@
     { const sh = at(P, "shares_diluted"), bad = {};
       for (let j = 1; j < ends.length; j++) {
         const a = sh(ends[j - 1]), b = sh(ends[j]); if (!a || !b) continue;
-        const r = b / a; if (r > 1.8 || r < 0.55) { bad[ends[j]] = r; flag("PROFIT & LOSS", ends[j], `Diluted shares changed ${r.toFixed(1)}× from the year before`); }
+        const r = b / a; if (r > 1.8 || r < 0.55) { bad[ends[j]] = r; if (recent.has(ends[j]) && (sharesWorst == null || Math.abs(Math.log(r)) > Math.abs(Math.log(sharesWorst)))) sharesWorst = r; flag("PROFIT & LOSS", ends[j], `Diluted shares changed ${r.toFixed(1)}× from the year before`); }
       }
       add("shares", "Share count has no unexplained jumps", bad, false, "No jumps between years.", "", ends.length > 1,
         (y) => `Shares jump in ${y.map(yr).join(", ")}: an unadjusted split, a big acquisition paid in shares, or a change in share classes. Check per-share figures around these years.`); }
@@ -640,7 +654,7 @@
       detail: result.splits.map(([d, r]) => `${r >= 1 ? `${+r.toFixed(2)}-for-1` : `1-for-${+(1 / r).toFixed(2)}`} (filings from ${d})`).join(", ") });
     const summary = { ok: 0, warn: 0, fail: 0, na: 0 };
     for (const c of checks) summary[c.status]++;
-    return { checks, flags, summary };
+    return { checks, flags, summary, ratios: { eps: epsWorst, shares: sharesWorst } };
   }
 
   function fmt(v) {
