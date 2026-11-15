@@ -34,7 +34,7 @@
       "Deferred revenue (customers paying ahead: subscriptions, contracts) as a share of a year's revenue: 25%+, 10%+, 3%+, below 3%. Moved up one step if revenue rose in 8 of the last 9 years (repeat demand)."],
     ["cap_alloc", "Fundamental", "Capital allocation", "How is the capital allocation? (No diworsification)",
       [["Good", 10], ["Weak (low or falling returns on capital)", 0]],
-      "Good = average return on invested capital of 12%+ over the last 5 years, and not down more than 5 points over that time."],
+      "Good = return on invested capital of 12%+ on average over the last 5 years and 12%+ in the latest year."],
 
     ["adx", "Technical", "ADX (weekly)", "ADX 14 on the weekly chart?",
       [["Above 40", 20], ["20 to 40", 10], ["0 to 20", -5]], "Wilder's ADX 14 on weekly bars."],
@@ -358,7 +358,7 @@
       }
       const ro = ci.roic.filter((r) => r != null).slice(-5);
       if (ro.length >= 3) {
-        const avg = sum(ro) / ro.length, good = avg >= 0.12 && ro[ro.length - 1] >= ro[0] - 0.05;
+        const avg = sum(ro) / ro.length, good = avg >= 0.12 && ro[ro.length - 1] >= 0.12;
         set("cap_alloc", good ? 0 : 1, `ROIC averaged ${pct(avg, 1)} over ${ro.length} years (${pct(ro[0], 0)} → ${pct(ro[ro.length - 1], 0)})`);
       }
     }
