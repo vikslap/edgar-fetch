@@ -1261,7 +1261,21 @@
   }
   $("exportBtn").onclick = async () => {
     if (!result) return;
-    download(await EdgarCore.dataWorkbook(ExcelJS, result, rat, facts).xlsx.writeBuffer(), `${ticker}_EDGAR_data.xlsx`);
+    download(await EdgarCore.dataWorkbook(ExcelJS, result, rat, facts, market()).xlsx.writeBuffer(), `${ticker}_EDGAR_data.xlsx`);
+  };
+  const market = () => { try { return EdgarCore.marketData(result, px, rf, val, rat); } catch { return null; } };
+  $("modelBtn").onclick = async () => {
+    if (!result) return;
+    status("Building the analysis model…");
+    try {
+      if (typeof JSZip === "undefined") throw new Error("the zip library didn't load; refresh the page");
+      const res = await fetch("/US_Analysis_Model.xlsx", { cache: "no-cache" });
+      if (!res.ok) throw new Error(`template not found (HTTP ${res.status})`);
+      const zip = await JSZip.loadAsync(await res.arrayBuffer());
+      await EdgarCore.fillTemplateZip(zip, result, market());
+      download(await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" }), `${ticker}_US_Analysis.xlsx`);
+      status(`Done: ${ticker}_US_Analysis.xlsx downloaded. Excel recalculates it when you open it (in Excel, click Enable Editing if asked).`);
+    } catch (err) { status("Couldn't build the analysis model: " + err.message, true); }
   };
   $("modelFile").onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = "";
@@ -1271,7 +1285,7 @@
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(await file.arrayBuffer());
       const log = [];
-      EdgarCore.fillWorkbook(wb, result, (m) => log.push(m), facts);
+      EdgarCore.fillWorkbook(wb, result, (m) => log.push(m), facts, market());
       const base = file.name.replace(/\.xlsx$/i, "").replace(/_[A-Z.\-]{1,10}$/, "");
       download(await wb.xlsx.writeBuffer(), `${base}_${ticker}.xlsx`);
       status(`Done: ${base}_${ticker}.xlsx downloaded. Excel recalculates the model when you open it.` + (log.length ? "  " + log.join(" · ") : ""));

@@ -762,7 +762,7 @@
   }
   const asDate = (s) => new Date(t(s));
 
-  function fillWorkbook(wb, result, log, facts) {
+  function fillWorkbook(wb, result, log, facts, market) {
     const ws = wb.getWorksheet("Data Sheet");
     if (!ws) throw new Error("This workbook has no sheet called 'Data Sheet'.");
     ws.getCell("B1").value = result.name.toUpperCase();
@@ -799,13 +799,13 @@
     const old = wb.getWorksheet("EDGAR_Raw");
     if (old) wb.removeWorksheet(old.id);
     writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
-    standardSheet(wb, result);
+    standardSheet(wb, result, market);
     wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
     return wb;
   }
 
   /* A standalone workbook with just the data (no model) */
-  function dataWorkbook(ExcelJS, result, rat, facts) {
+  function dataWorkbook(ExcelJS, result, rat, facts, market) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Data Sheet");
     ws.getCell("A1").value = "COMPANY NAME"; ws.getCell("B1").value = result.name.toUpperCase();
@@ -857,10 +857,10 @@
         for (const [k, v] of b.rows) { const row = rs.addRow([k, v == null ? null : v / 100]); row.getCell(2).numFmt = "0.0%"; }
       }
     }
-    return fillRawOnly(wb, result, facts);
+    return fillRawOnly(wb, result, facts, market);
   }
-  function fillRawOnly(wb, result, facts) {
-    standardSheet(wb, result);
+  function fillRawOnly(wb, result, facts, market) {
+    standardSheet(wb, result, market);
     writeRaw(wb.addWorksheet("EDGAR_Raw"), result, facts);
     return wb;
   }
@@ -979,49 +979,138 @@
     ["ebt_rep", "Pre-tax income (reported)", "P", "pretax_reported"],
     ["netinc_rep", "Net income to shareholders (reported)", "P", "net_profit"],
   ];
-  function standardSheet(wb, result) {
-    const old = wb.getWorksheet("Standard"); if (old) wb.removeWorksheet(old.id);
-    const ws = wb.addWorksheet("Standard");
+  // market block (price-based, from the page): per-year rows (kind "M") and single values in the first year column ("S")
+  const STD_MARKET = [
+    ["h", "MARKET DATA (single values sit in the first year column)"],
+    ["price_fy", "Share price at fiscal year end ($)", "M", "priceAt", "0.00"],
+    ["mcap_fy", "Market cap at fiscal year end = price_fy × shareswadil", "f", "IF(N({price_fy})=0,\"\",{price_fy}*{shareswadil})"],
+    ["price", "Current share price ($)", "S", "price", "0.00"],
+    ["price_date", "Price date", "S", "priceDate", "text"],
+    ["shares_now", "Shares outstanding, latest (thousands)", "S", "sharesNow"],
+    ["mcap_now", "Market cap now = price × shares_now", "S", "mcapNow"],
+    ["rf", "10-year US Treasury yield", "S", "rf", "0.00%"],
+    ["ttm_basis", "Basis of the TTM figures below", "S", "ttmBasis", "text"],
+    ["ttm_revenue", "Revenue, trailing 12 months", "S", "ttmRevenue"],
+    ["ttm_ebit", "Operating income, trailing 12 months", "S", "ttmEbit"],
+    ["ttm_netinc", "Net income to shareholders, trailing 12 months", "S", "ttmNetinc"],
+    ["ttm_eps", "Diluted EPS, trailing 12 months ($)", "S", "ttmEps", "0.00"],
+  ];
+
+  /* market inputs from the page: px = /api/prices result, rf = /api/rate result, val = valuation(), rat = ratios() */
+  function marketData(result, px, rf, val, rat) {
+    const series = (px && px.prices) || [];
+    const priceAt = (end) => { let lo = 0, hi = series.length - 1, best = null; while (lo <= hi) { const m = (lo + hi) >> 1; if (series[m][0] <= end) { best = series[m]; lo = m + 1; } else hi = m - 1; }
+      return best && days(best[0], end) <= 10 ? best[1] : null; };
+    const price = px && px.last ? px.last.price : null, sharesNow = val && val.shares ? val.shares : null, k = rat && rat.kpis;
+    return { priceAt, price, priceDate: px && px.last ? px.last.date : "", sharesNow, mcapNow: price && sharesNow ? price * sharesNow : null,
+      rf: rf && rf.rate ? rf.rate / 100 : null, ttmBasis: k ? k.basis : "", ttmRevenue: k ? k.sales : null, ttmEbit: k ? k.ebit : null, ttmNetinc: k ? k.ni : null, ttmEps: k ? k.eps : null };
+  }
+
+  /* The Standard layout as plain data, so it can be written by ExcelJS or straight into an .xlsx's XML.
+     Returns { title, note, ends, filed, rows: [{ row, code, label, header, bold, cells: [{ v } | { f }], fmt }] } */
+  function standardData(result, market) {
     const blk = { P: result.blocks.find((b) => b.title === "PROFIT & LOSS"), B: result.blocks.find((b) => b.title === "BALANCE SHEET"), C: result.blocks.find((b) => b.title === "CASH FLOW") };
-    if (!blk.P) return;
+    if (!blk.P) return null;
     const ends = blk.P.ends.filter(Boolean);
     const valOf = (b, key, e) => { const B = blk[b]; if (!B) return null; const r = B.rows.find((x) => x.key === key); const i = B.ends.indexOf(e); return r && i >= 0 ? r.values[i] : null; };
-    const filedOf = (e) => { const r = blk.P.rows.find((x) => x.key === "sales"); const i = blk.P.ends.indexOf(e); const f = r && r.src[i]; return f && f.filed ? f.filed : ""; };
+    const filed = ends.map((e) => { const r = blk.P.rows.find((x) => x.key === "sales"); const i = blk.P.ends.indexOf(e); const f = r && r.src[i]; return f && f.filed ? f.filed : ""; });
     const C0 = 3, col = (j) => { let n = C0 + j, s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-    ws.getCell(1, 1).value = `${result.name} (${result.ticker}) - standard layout, ${result.scale === 1000 ? "$ thousands" : "$ millions"} (shares in thousands, EPS in $)`;
-    ws.getCell(1, 1).font = { bold: true, size: 12 };
-    ws.getCell(2, 1).value = "Same rows for every company. Blue = from the filings, black = formula. '(balancing)' lines make each subtotal match the company's reported total. Filed = latest filing behind that year (restated figures win).";
-    ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
-    const H = 4;
-    ws.getCell(H, 1).value = "Field"; ws.getCell(H, 2).value = "Definition";
-    ws.getCell(H + 1, 2).value = "Filed";
-    ends.forEach((e, j) => { const c = ws.getCell(H, C0 + j); c.value = asDate(e); c.numFmt = "mmm-yy"; ws.getCell(H + 1, C0 + j).value = filedOf(e); });
-    ws.getRow(H).font = { bold: true }; ws.getRow(H + 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
-    const rowOf = {}; let r = H + 2;
-    for (const d of STD) { if (d[0] !== "h") rowOf[d[0]] = r; r++; }
-    r = H + 2;
-    for (const [code, label, kind, src, fmt] of STD) {
-      if (code === "h") { r++; const c = ws.getCell(r - 1, 1); c.value = label; c.font = { bold: true, color: { argb: "FF1F3864" } }; continue; }
-      ws.getCell(r, 1).value = code; ws.getCell(r, 1).font = { name: "Consolas", size: 10 };
-      ws.getCell(r, 2).value = label;
-      ends.forEach((e, j) => {
-        const c = ws.getCell(r, C0 + j), L = col(j);
-        if (kind === "f") {
-          const f = src.replace(/\{(prev_)?(\w+)\}/g, (m, prev, k) => prev ? (j === 0 ? '""' : `${col(j - 1)}${rowOf[k]}`) : `${L}${rowOf[k]}`);
-          c.value = { formula: f };
-        } else {
-          let v = valOf(kind[0], src, e);
-          if (v != null && kind.length > 1) v = -v;                      // flip to the standard sign
-          c.value = v; c.font = { color: { argb: "FF0000FF" } };
-        }
-        c.numFmt = fmt === "0.00" ? "0.00" : fmt === "chk" ? '#,##0;-#,##0;"OK"' : "#,##0;-#,##0;\"-\"";
+    const defs = market ? STD.concat(STD_MARKET) : STD;
+    const H = 4, rowOf = {}; let r = H + 2;
+    for (const d of defs) { if (d[0] !== "h") rowOf[d[0]] = r; r++; }
+    const rows = []; r = H + 2;
+    for (const [code, label, kind, src, fmt] of defs) {
+      if (code === "h") { rows.push({ row: r, header: true, label }); r++; continue; }
+      const cells = ends.map((e, j) => {
+        const L = col(j);
+        if (kind === "f") return { f: src.replace(/\{(prev_)?(\w+)\}/g, (m, prev, k) => prev ? (j === 0 ? '""' : `${col(j - 1)}${rowOf[k]}`) : `${L}${rowOf[k]}`) };
+        if (kind === "M") return { v: market && market[src] ? market[src](e) : null, input: true };
+        if (kind === "S") return { v: j === 0 && market ? market[src] : null, input: true };
+        let v = valOf(kind[0], src, e);
+        if (v != null && kind.length > 1) v = -v;                      // flip to the standard sign
+        return { v, input: true };
       });
-      if (["gp", "opinc", "ebt", "netinc", "assets", "liabilities", "equity_total", "fcf"].includes(code)) ws.getRow(r).font = { bold: true };
+      rows.push({ row: r, code, label, cells, fmt, bold: ["gp", "opinc", "ebt", "netinc", "assets", "liabilities", "equity_total", "fcf"].includes(code) });
       r++;
     }
+    return { title: `${result.name} (${result.ticker}) - standard layout, ${result.scale === 1000 ? "$ thousands" : "$ millions"} (shares in thousands, EPS in $)`,
+      note: "Same rows for every company. Blue = from the filings, black = formula. '(balancing)' lines make each subtotal match the company's reported total. Filed = latest filing behind that year (restated figures win).",
+      ends, filed, rows, H, C0 };
+  }
+
+  function standardSheet(wb, result, market) {
+    const old = wb.getWorksheet("Standard"); if (old) wb.removeWorksheet(old.id);
+    const d = standardData(result, market);
+    if (!d) return;
+    const ws = wb.addWorksheet("Standard"), { H, C0 } = d;
+    ws.getCell(1, 1).value = d.title; ws.getCell(1, 1).font = { bold: true, size: 12 };
+    ws.getCell(2, 1).value = d.note; ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
+    ws.getCell(H, 1).value = "Field"; ws.getCell(H, 2).value = "Definition"; ws.getCell(H + 1, 2).value = "Filed";
+    d.ends.forEach((e, j) => { const c = ws.getCell(H, C0 + j); c.value = asDate(e); c.numFmt = "mmm-yy"; ws.getCell(H + 1, C0 + j).value = d.filed[j]; });
+    ws.getRow(H).font = { bold: true }; ws.getRow(H + 1).font = { italic: true, size: 9, color: { argb: "FF666666" } };
+    for (const row of d.rows) {
+      if (row.header) { const c = ws.getCell(row.row, 1); c.value = row.label; c.font = { bold: true, color: { argb: "FF1F3864" } }; continue; }
+      ws.getCell(row.row, 1).value = row.code; ws.getCell(row.row, 1).font = { name: "Consolas", size: 10 };
+      ws.getCell(row.row, 2).value = row.label;
+      row.cells.forEach((cell, j) => {
+        const c = ws.getCell(row.row, C0 + j);
+        if (cell.f) c.value = { formula: cell.f }; else { c.value = cell.v; c.font = { color: { argb: "FF0000FF" } }; }
+        c.numFmt = row.fmt === "0.00" ? "0.00" : row.fmt === "0.00%" ? "0.00%" : row.fmt === "text" ? "@" : row.fmt === "chk" ? '#,##0;-#,##0;"OK"' : "#,##0;-#,##0;\"-\"";
+      });
+      if (row.bold) ws.getRow(row.row).font = { bold: true };
+    }
     ws.getColumn(1).width = 20; ws.getColumn(2).width = 58;
-    ends.forEach((e, j) => (ws.getColumn(C0 + j).width = 13));
+    d.ends.forEach((e, j) => (ws.getColumn(C0 + j).width = 13));
     ws.views = [{ state: "frozen", xSplit: 2, ySplit: H + 1 }];
+  }
+
+  /* Fill a template .xlsx (JSZip instance) in place: only the "Standard" sheet's cells are rewritten, so charts,
+     styles and every other sheet stay exactly as they are. Excel recalculates on open. */
+  async function fillTemplateZip(zip, result, market) {
+    const d = standardData(result, market);
+    if (!d) throw new Error("No financial data to write");
+    const wbXml = await zip.file("xl/workbook.xml").async("string");
+    const m = wbXml.match(/<sheet [^>]*name="Standard"[^>]*r:id="([^"]+)"/) || wbXml.match(/<sheet [^>]*r:id="([^"]+)"[^>]*name="Standard"/);
+    if (!m) throw new Error('The template has no "Standard" sheet');
+    const rels = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+    const t = rels.match(new RegExp(`<Relationship [^>]*Id="${m[1]}"[^>]*Target="([^"]+)"`)) || rels.match(new RegExp(`<Relationship [^>]*Target="([^"]+)"[^>]*Id="${m[1]}"`));
+    const path = "xl/" + t[1].replace(/^\/?xl\//, "").replace(/^\//, "");
+    let xml = await zip.file(path).async("string");
+    const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const colName = (n) => { let s = ""; while (n > 0) { const k = (n - 1) % 26; s = String.fromCharCode(65 + k) + s; n = Math.floor((n - 1) / 26); } return s; };
+    const serial = (iso) => Math.round((Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 86400000);
+    const cell = (r, c, v) => {
+      const ref = colName(c) + r;
+      if (v == null || v === "") return "";
+      if (typeof v === "object" && v.f) return `<c r="${ref}"><f>${esc(v.f)}</f></c>`;
+      if (typeof v === "number" && isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`;
+      return `<c r="${ref}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`;
+    };
+    const rowsXml = [];
+    const put = (r, cells) => { const body = cells.join(""); if (body) rowsXml.push(`<row r="${r}">${body}</row>`); };
+    put(1, [cell(1, 1, d.title)]);
+    put(2, [cell(2, 1, d.note)]);
+    put(d.H, [cell(d.H, 1, "Field"), cell(d.H, 2, "Definition"), ...d.ends.map((e, j) => cell(d.H, d.C0 + j, serial(e)))]);
+    put(d.H + 1, [cell(d.H + 1, 2, "Filed"), ...d.filed.map((f, j) => cell(d.H + 1, d.C0 + j, f))]);
+    for (const row of d.rows) {
+      if (row.header) { put(row.row, [cell(row.row, 1, row.label)]); continue; }
+      put(row.row, [cell(row.row, 1, row.code), cell(row.row, 2, row.label), ...row.cells.map((c, j) => cell(row.row, d.C0 + j, c.f ? { f: c.f } : c.v))]);
+    }
+    xml = xml.replace(/<sheetData\/>|<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData>${rowsXml.join("")}</sheetData>`);
+    xml = xml.replace(/<dimension ref="[^"]*"\/>/, "");
+    zip.file(path, xml);
+    // no stale cached values: drop the calculation chain and recalculate everything when the file opens
+    if (zip.file("xl/calcChain.xml")) {
+      zip.remove("xl/calcChain.xml");
+      zip.file("xl/_rels/workbook.xml.rels", rels.replace(/<Relationship [^>]*calcChain[^>]*\/>/, ""));
+      const ct = await zip.file("[Content_Types].xml").async("string");
+      zip.file("[Content_Types].xml", ct.replace(/<Override [^>]*calcChain[^>]*\/>/, ""));
+    }
+    let wbx = wbXml;
+    if (/<calcPr[^>]*\/>/.test(wbx)) wbx = wbx.replace(/<calcPr([^>]*)\/>/, (m0, a) => `<calcPr${a.replace(/\s*fullCalcOnLoad="[^"]*"/, "")} fullCalcOnLoad="1"/>`);
+    else wbx = wbx.replace("</workbook>", '<calcPr fullCalcOnLoad="1"/></workbook>');
+    zip.file("xl/workbook.xml", wbx);
+    return zip;
   }
 
   /* ---------- ratios (screener-style) ---------- */
@@ -1529,7 +1618,7 @@
     return { list: out, inputs: { r, gT, eps, bvps, tax, opm5, roe, Y } };
   }
 
-  const api = { detectBasis, detectSplits, dataChecks, standardSheet, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
+  const api = { detectBasis, detectSplits, dataChecks, standardSheet, standardData, marketData, fillTemplateZip, compute, ratios, valuation, quality, prosCons, models, fiscalPeriods, dcf, reverseDcf, listTags, fillWorkbook, dataWorkbook, fmt, SECTIONS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EdgarCore = api;
 })(typeof window !== "undefined" ? window : this);
