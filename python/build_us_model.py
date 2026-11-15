@@ -55,7 +55,7 @@ wb.remove(wb.active)
 def sheet(name, title, subtitle, tab=None, widths=None):
     ws = wb.create_sheet(name)
     ws.sheet_view.showGridLines = False
-    ws["A1"] = f'=IF(Data!$C$2="","{title}",Data!$C$2&"  ·  {title}")' if name not in ("Read Me", "Data", "Standard") else title
+    ws["A1"] = f'=IF(Data!$C$2="","{title}",Data!$C$2&"  ·  {title}")' if name not in ("Read Me", "Data", "QData", "Standard") else title
     ws["A1"].font = f_title
     ws["A2"] = subtitle
     ws["A2"].font = f_sub
@@ -72,13 +72,13 @@ def sheet(name, title, subtitle, tab=None, widths=None):
     return ws
 
 
-def year_header(ws, r, label="$ millions", current=None):
+def year_header(ws, r, label="$ millions", current=None, cols=None, src="Data!{c}$6"):
     ws.cell(r, 1, label).font = f_hdr
     ws.cell(r, 1).fill = fill_hdr
     ws.cell(r, 2).fill = fill_hdr
-    for i, c in enumerate(YC):
+    for i, c in enumerate(cols or YC):
         x = ws[f"{c}{r}"]
-        x.value = f"=Data!{c}$6"
+        x.value = "=" + (src(c, i) if callable(src) else src.format(c=c))
         x.font = f_hdr
         x.fill = fill_hdr
         x.alignment = Alignment(horizontal="right")
@@ -90,19 +90,20 @@ def year_header(ws, r, label="$ millions", current=None):
         x.alignment = Alignment(horizontal="right")
 
 
-def section(ws, r, text):
+def section(ws, r, text, cols=None):
     ws.cell(r, 1, text).font = f_sec
-    for c in ["A", "B"] + YC:
+    for c in ["A", "B"] + (cols or YC):
         ws[f"{c}{r}"].fill = fill_sec
 
 
-def row(ws, r, label, fn, fmt=MONEY, bold=False, note=None, cur=None, cur_fmt=None, font=None):
+def row(ws, r, label, fn, fmt=MONEY, bold=False, note=None, cur=None, cur_fmt=None, font=None, cols=None):
     """fn(col_letter, index) -> formula string (without '='), or None to leave blank."""
+    cols = cols or YC
     a = ws.cell(r, 1, label)
     a.font = f_bold if bold else f_lab
     if note:
         a.comment = Comment(note, "Model")
-    for i, c in enumerate(YC):
+    for i, c in enumerate(cols):
         f = fn(c, i)
         if f is None:
             continue
@@ -117,7 +118,7 @@ def row(ws, r, label, fn, fmt=MONEY, bold=False, note=None, cur=None, cur_fmt=No
         x.font = f_bold
         x.fill = fill_key
     if bold:
-        for c in ["A"] + YC:
+        for c in ["A"] + cols:
             ws[f"{c}{r}"].border = b_top
     return r
 
@@ -130,35 +131,46 @@ def pos_div(num, den):        # only when the denominator is positive (P/E on a 
     return f'IF(OR(N({den})<=0,{num}=""),"",{num}/{den})'
 
 
-_cd = {"ws": None, "row": 2}
+_cd = {"ws": None, "row": 2, "cats": {}}
 
 
-def chart_rows(srcs):
+def chart_rows(srcs, cols=None, cat_src="Data!{c}6"):
     """Copy charted rows to the hidden ChartData sheet as numbers or #N/A, so blank years and meaningless ratios
-    are gaps in the chart instead of drops to zero. srcs = [(sheet, row)]. Returns ChartData rows."""
+    are gaps in the chart instead of drops to zero. srcs = [(sheet, row)]. Returns (category row, [ChartData rows])."""
+    cols = cols or YC
     if _cd["ws"] is None:
         cdw = wb.create_sheet("ChartData")
         cdw.sheet_state = "hidden"
-        cdw["A1"] = "Year"
-        for c in YC:
-            cdw[f"{c}1"] = f"=Data!{c}6"
         _cd["ws"] = cdw
-    cdw, out = _cd["ws"], []
+    cdw = _cd["ws"]
+    key = (cat_src if isinstance(cat_src, str) else cat_src.__name__, len(cols))
+    if key not in _cd["cats"]:                          # one category row per column set
+        rr = _cd["row"]
+        cdw[f"A{rr}"] = "Period"
+        for i, c in enumerate(cols):
+            cdw[f"{L(3 + i)}{rr}"] = "=" + (cat_src(c, i) if callable(cat_src) else cat_src.format(c=c))
+        _cd["cats"][key] = rr
+        _cd["row"] += 1
+    out = []
     for ws, r in srcs:
         rr = _cd["row"]
         ref = f"'{ws.title}'!"
         cdw[f"A{rr}"] = f"={ref}A{r}"
-        for c in YC:
-            cdw[f"{c}{rr}"] = f"=IF(ISNUMBER({ref}{c}{r}),{ref}{c}{r},NA())"
+        for i, c in enumerate(cols):
+            cdw[f"{L(3 + i)}{rr}"] = f"=IF(ISNUMBER({ref}{c}{r}),{ref}{c}{r},NA())"
         out.append(rr)
         _cd["row"] += 1
-    return out
+    return _cd["cats"][key], out
 
 
-def chart(ws, kind, title, rows, anchor, cat_row=None, y_fmt=None, stacked=False, width=17, height=7.5, y_title=None, host=None):
-    """rows: row numbers on ws, or (sheet, row) pairs. host: sheet the chart is placed on (default ws)."""
+def chart(ws, kind, title, rows, anchor, cat_row=None, y_fmt=None, stacked=False, width=17, height=7.5, y_title=None, host=None,
+          cols=None, cat_src="Data!{c}6"):
+    """rows: row numbers on ws, or (sheet, row) pairs. host: sheet the chart is placed on (default ws).
+    cols: the columns the rows use on their sheet (default the 10 year columns); cat_src: where the period labels come from."""
+    cols = cols or YC
+    n = len(cols)
     srcs = [r if isinstance(r, tuple) else (ws, r) for r in rows]
-    cdrows = chart_rows(srcs)
+    catrow, cdrows = chart_rows(srcs, cols, cat_src)
     cdw = _cd["ws"]
     ch = LineChart() if kind == "line" else BarChart()
     if kind == "bar":
@@ -171,14 +183,14 @@ def chart(ws, kind, title, rows, anchor, cat_row=None, y_fmt=None, stacked=False
     ch.style = 10
     ch.height, ch.width = height, width
     for r in cdrows:
-        ch.add_data(Reference(cdw, min_col=1, max_col=3 + YEARS - 1, min_row=r, max_row=r), from_rows=True, titles_from_data=True)
+        ch.add_data(Reference(cdw, min_col=1, max_col=3 + n - 1, min_row=r, max_row=r), from_rows=True, titles_from_data=True)
     for s in ch.series:
         s.val.numRef.f = s.val.numRef.f.replace("$B$", "$C$")
         if kind == "line":
             s.smooth = False
             s.marker.symbol = "circle"
             s.marker.size = 5
-    ch.set_categories(Reference(cdw, min_col=3, max_col=3 + YEARS - 1, min_row=1, max_row=1))
+    ch.set_categories(Reference(cdw, min_col=3, max_col=3 + n - 1, min_row=catrow, max_row=catrow))
     ch.display_blanks = "gap"
     if y_fmt:
         ch.y_axis.numFmt = y_fmt
@@ -200,10 +212,13 @@ lines = [
                        "Only the Standard sheet is written; everything else is formulas, so your own edits to other sheets survive as long as you keep the layout."),
     ("Where the numbers come from", "SEC XBRL filings (10-K / 10-Q / 20-F), standardised the same way for every company. The Standard sheet lists each line with its definition; "
                                     "'(balancing)' lines make subtotals match the company's own reported totals. Prices and the 10-year Treasury come from the site's price feed."),
-    ("Units", "$ millions unless stated. Shares in millions. EPS and prices in $. Fiscal years; up to the latest 10."),
-    ("Sheets", "Summary · Margins · Returns & DuPont · Leverage & Working Capital · Cash Flow · Growth · Valuation · DCF. "
-               "Data = the latest 10 years pulled from Standard (don't edit). Standard = the raw input written by the site."),
-    ("Your inputs", "Only the yellow cells on the DCF sheet (blue numbers). Change them freely; every other cell is a formula."),
+    ("Units", "$ millions unless stated. Shares in millions. EPS and prices in $. Fiscal years (up to the latest 10) and quarters (the latest 12)."),
+    ("Sheets", "Summary · Margins · Returns & DuPont · Leverage & Working Capital · Cash Flow · Growth · Quarterly · Due Diligence · Unit Metrics · "
+               "Valuation · DCF · Valuation Simulation · Notes. Data and QData = the latest 10 years and 16 quarters pulled from Standard (don't edit). "
+               "Standard = the raw input written by the site."),
+    ("Your inputs", "The yellow cells (blue numbers) on the DCF and Valuation Simulation sheets, and your answers on Notes. Every other cell is a formula."),
+    ("Quarterly figures", "From 10-Qs; the fourth quarter is the full year minus the first nine months. Companies filing 20-F (most foreign companies) "
+                          "don't file quarterly in XBRL, so the Quarterly sheet stays empty for them."),
     ("Blank cells", "A blank means the company didn't report that figure for that year (or has fewer than 10 years of filings). "
                     "Ratios are left blank instead of showing a misleading number, e.g. P/E when earnings are negative."),
     ("Check before you rely on it", "Look at the Data checks badge on the company's page on EDGAR Fetch. If a year is flagged there, treat that year here with care too."),
@@ -803,8 +818,522 @@ sm.cell(r - 1, 1, "Before relying on these numbers, check the Data checks badge 
 chart(mg, "bar", "Revenue and net income ($m)", [M["rev"], M["ni"]], "K4", y_fmt="#,##0", width=16, host=sm)
 chart(mg, "line", "Operating margin and ROE", [(mg, M["opm"]), (rt, R["roe"])], "K20", y_fmt="0%", width=16, host=sm)
 
+# =====================================================================================  QData (quarterly helper)
+QN = 16                                            # quarters pulled (12 shown + 4 earlier for year-on-year growth)
+QDC = [L(3 + i) for i in range(QN)]                # C..R on QData, oldest -> latest
+QS = 12                                            # quarters shown
+QC = [L(3 + i) for i in range(QS)]                 # C..N on the Quarterly sheet
+QLAST = QC[-1]
+QFIELDS = [("q_revenue", "Revenue", 1000), ("q_cor", "Cost of revenue", 1000), ("q_gp", "Gross profit", 1000), ("q_sgna", "SG&A", 1000),
+           ("q_rnd", "R&D", 1000), ("q_opex_other", "Other operating costs", 1000), ("q_opinc", "Operating income", 1000), ("q_intexp", "Interest expense", 1000),
+           ("q_ebt", "Pre-tax income", 1000), ("q_taxexp", "Income tax", 1000), ("q_netinc", "Net income", 1000), ("q_shareswadil", "Diluted shares (m)", 1000),
+           ("q_epsdil", "Diluted EPS ($)", 1)]
+qd = sheet("QData", "QData: latest 16 quarters from the Standard sheet ($ millions)", "Formulas only. Don't edit; the Quarterly sheet reads from here.", tab="9CA3AF")
+qd.column_dimensions["A"].width = 16
+qd.column_dimensions["B"].width = 30
+for c in QDC:
+    qd.column_dimensions[c].width = 10
+qd["A2"], qd["A3"] = "Row of q_date in Standard", "Quarters available"
+qd["C2"] = '=IFERROR(MATCH("q_date",Standard!$A$1:$A$400,0),0)'
+qd["C3"] = '=IF($C$2=0,0,COUNT(INDEX(Standard!$C$1:$CZ$400,$C$2,0)))'
+qd["A4"], qd["A5"], qd["A6"] = "Column in Standard", "Quarter end", "Label"
+for i, c in enumerate(QDC):
+    qd[f"{c}4"] = f"=$C$3-{QN - 1 - i}"
+    qd[f"{c}5"] = f'=IF({c}4<1,"",INDEX(Standard!$C$1:$CZ$400,$C$2,{c}4))'
+    qd[f"{c}5"].number_format = "yyyy-mm-dd"
+    qd[f"{c}6"] = f'=IF(ISNUMBER({c}5),TEXT({c}5,"mmm yy"),"")'
+    qd[f"{c}6"].font = f_bold
+for rr in range(2, 7):
+    qd[f"A{rr}"].font = f_lab
+QD = {}
+r = 8
+for code, label, div in QFIELDS:
+    QD[code] = r
+    qd.cell(r, 1, code).font = Font(name="Consolas", size=9, color=MUTED)
+    qd.cell(r, 2, label).font = f_lab
+    for c in QDC:
+        x = qd[f"{c}{r}"]
+        x.value = f'=IF({c}$4<1,"",IFERROR(INDEX(Standard!$C$1:$CZ$400,MATCH($A{r},Standard!$A$1:$A$400,0),{c}$4)/{div},""))'
+        x.number_format = EPS if div == 1 else MONEY1
+        x.font = f_link
+    r += 1
+r += 1
+section(qd, r, "Trailing 12 months (sum of 4 quarters)", QDC)
+r += 1
+for code, label in [("q_revenue", "Revenue, TTM"), ("q_opinc", "Operating income, TTM"), ("q_netinc", "Net income, TTM"), ("q_epsdil", "Diluted EPS, TTM ($)")]:
+    QD["ttm_" + code] = r
+    qd.cell(r, 2, label).font = f_lab
+    for i, c in enumerate(QDC):
+        if i < 3:
+            continue
+        rng = f"{QDC[i - 3]}{QD[code]}:{c}{QD[code]}"
+        x = qd[f"{c}{r}"]
+        x.value = f'=IF(COUNT({rng})=4,SUM({rng}),"")'
+        x.number_format = EPS if code == "q_epsdil" else MONEY1
+    r += 1
+qd.freeze_panes = "C7"
+
+
+def q(code, c):
+    """QData cell for Quarterly-sheet column c (C..N maps to QData G..R)."""
+    return f"QData!{QDC[4 + QC.index(c)]}{QD[code]}"
+
+
+def q4(code, c):
+    """the same quarter a year earlier"""
+    return f"QData!{QDC[QC.index(c)]}{QD[code]}"
+
+
+def q1(code, c):
+    """the previous quarter"""
+    return f"QData!{QDC[3 + QC.index(c)]}{QD[code]}"
+
+
+def growth(cur, old):
+    return f'IF(OR(N({old})<=0,{cur}=""),"",{cur}/{old}-1)'
+
+
+# =====================================================================================  Quarterly
+qt = sheet("Quarterly", "Quarterly results", "The last 12 quarters: trend, margins, growth against the same quarter last year, and trailing-12-month figures", tab="0891B2")
+for c in QC:
+    qt.column_dimensions[c].width = 10
+r = 4
+year_header(qt, r, cols=QC, src=lambda c, i: f"QData!{QDC[4 + i]}$6")
+QT = {}
+r += 1
+QT["rev"] = row(qt, r, "Revenue", lambda c, i: q("q_revenue", c), bold=True, cols=QC); r += 1
+QT["gp"] = row(qt, r, "Gross profit", lambda c, i: f'IF(N({q("q_cor", c)})=0,"",{q("q_gp", c)})', cols=QC); r += 1
+QT["ebit"] = row(qt, r, "Operating income", lambda c, i: q("q_opinc", c), cols=QC); r += 1
+QT["ebt"] = row(qt, r, "Pre-tax income", lambda c, i: q("q_ebt", c), cols=QC); r += 1
+QT["ni"] = row(qt, r, "Net income", lambda c, i: q("q_netinc", c), bold=True, cols=QC); r += 1
+QT["eps"] = row(qt, r, "Diluted EPS ($)", lambda c, i: q("q_epsdil", c), EPS, cols=QC); r += 2
+section(qt, r, "Margins", QC); r += 1
+QT["gm"] = row(qt, r, "Gross margin", lambda c, i: safe_div(f"{c}{QT['gp']}", q("q_revenue", c)), PCT, cols=QC); r += 1
+QT["opm"] = row(qt, r, "Operating margin", lambda c, i: safe_div(q("q_opinc", c), q("q_revenue", c)), PCT, cols=QC); r += 1
+QT["npm"] = row(qt, r, "Net margin", lambda c, i: safe_div(q("q_netinc", c), q("q_revenue", c)), PCT, cols=QC); r += 1
+QT["tax"] = row(qt, r, "Effective tax rate", lambda c, i: pos_div(q("q_taxexp", c), q("q_ebt", c)), PCT, cols=QC); r += 2
+section(qt, r, "Growth vs the same quarter last year", QC); r += 1
+QT["g_rev"] = row(qt, r, "Revenue", lambda c, i: growth(q("q_revenue", c), q4("q_revenue", c)), PCT, cols=QC); r += 1
+QT["g_ebit"] = row(qt, r, "Operating income", lambda c, i: growth(q("q_opinc", c), q4("q_opinc", c)), PCT, cols=QC); r += 1
+QT["g_ni"] = row(qt, r, "Net income", lambda c, i: growth(q("q_netinc", c), q4("q_netinc", c)), PCT, cols=QC); r += 1
+QT["g_eps"] = row(qt, r, "Diluted EPS", lambda c, i: growth(q("q_epsdil", c), q4("q_epsdil", c)), PCT, cols=QC); r += 1
+QT["d_opm"] = row(qt, r, "Change in operating margin (percentage points)",
+                  lambda c, i: f'IF(OR(N({q4("q_revenue", c)})=0,N({q("q_revenue", c)})=0),"",{q("q_opinc", c)}/{q("q_revenue", c)}-{q4("q_opinc", c)}/{q4("q_revenue", c)})',
+                  '+0.0%;-0.0%;0.0%', cols=QC); r += 2
+section(qt, r, "Growth vs the previous quarter", QC); r += 1
+QT["q_rev"] = row(qt, r, "Revenue", lambda c, i: growth(q("q_revenue", c), q1("q_revenue", c)), PCT, cols=QC,
+                  note="Quarter-on-quarter growth mixes in seasonality. Compare with the same quarter last year above before drawing conclusions."); r += 1
+QT["q_ni"] = row(qt, r, "Net income", lambda c, i: growth(q("q_netinc", c), q1("q_netinc", c)), PCT, cols=QC); r += 2
+section(qt, r, "Trailing 12 months (TTM)", QC); r += 1
+QT["t_rev"] = row(qt, r, "Revenue, TTM", lambda c, i: q("ttm_q_revenue", c), cols=QC); r += 1
+QT["t_ebit"] = row(qt, r, "Operating income, TTM", lambda c, i: q("ttm_q_opinc", c), cols=QC); r += 1
+QT["t_ni"] = row(qt, r, "Net income, TTM", lambda c, i: q("ttm_q_netinc", c), bold=True, cols=QC); r += 1
+QT["t_eps"] = row(qt, r, "Diluted EPS, TTM ($)", lambda c, i: q("ttm_q_epsdil", c), EPS, cols=QC); r += 1
+QT["t_opm"] = row(qt, r, "Operating margin, TTM", lambda c, i: safe_div(q("ttm_q_opinc", c), q("ttm_q_revenue", c)), PCT, cols=QC); r += 1
+QT["t_g_rev"] = row(qt, r, "TTM revenue growth vs a year earlier", lambda c, i: growth(q("ttm_q_revenue", c), q4("ttm_q_revenue", c)), PCT, cols=QC); r += 1
+QT["t_g_ni"] = row(qt, r, "TTM net income growth vs a year earlier", lambda c, i: growth(q("ttm_q_netinc", c), q4("ttm_q_netinc", c)), PCT, cols=QC); r += 2
+
+# seasonality: the last 16 quarters as 4 blocks of 4, each block ending a year apart (aligned on the latest quarter)
+section(qt, r, "Seasonality: revenue by quarter, each row a run of 4 quarters (aligned on the latest quarter)", QC); r += 1
+SEAS_HDR = r
+qt.cell(r, 1, "4 quarters ending").font = f_hdr
+qt.cell(r, 1).fill = fill_hdr
+qt.cell(r, 2).fill = fill_hdr
+for j in range(4):
+    x = qt.cell(r, 3 + j, f"=QData!{QDC[12 + j]}6")
+    x.font, x.fill, x.alignment = f_hdr, fill_hdr, Alignment(horizontal="right")
+for j, h in enumerate(["Total", "Last col %"]):
+    x = qt.cell(r, 7 + j, h)
+    x.font, x.fill, x.alignment = f_hdr, fill_hdr, Alignment(horizontal="right")
+r += 1
+for b in range(4):                                 # block 0 = oldest
+    cols_ = QDC[4 * b: 4 * b + 4]
+    qt.cell(r, 1, f'=IF(QData!{cols_[3]}5="","",TEXT(QData!{cols_[3]}5,"mmm yyyy"))').font = f_lab
+    for j, c in enumerate(cols_):
+        x = qt.cell(r, 3 + j, f'=IF(QData!{c}{QD["q_revenue"]}="","",QData!{c}{QD["q_revenue"]})')
+        x.number_format = MONEY
+        x.font = f_val
+    x = qt.cell(r, 7, f'=IF(COUNT(C{r}:F{r})=4,SUM(C{r}:F{r}),"")')
+    x.number_format, x.font = MONEY, f_bold
+    x = qt.cell(r, 8, f'=IF(N(G{r})=0,"",F{r}/G{r})')
+    x.number_format = PCT
+    r += 1
+qt.cell(r, 1, "If one column is always much bigger than the others, the business is seasonal: compare quarters with the same quarter a year earlier.").font = f_note
+r += 2
+
+
+def qlabel(c, i):
+    return f"QData!{QDC[4 + i]}6"
+
+
+chart(qt, "bar", "Quarterly revenue and net income ($m)", [QT["rev"], QT["ni"]], "P4", y_fmt="#,##0", cols=QC, cat_src=qlabel, width=18)
+chart(qt, "line", "Quarterly margins", [QT["gm"], QT["opm"], QT["npm"]], "P20", y_fmt="0%", cols=QC, cat_src=qlabel, width=18)
+chart(qt, "line", "Trailing-12-month revenue and net income ($m)", [QT["t_rev"], QT["t_ni"]], "P36", y_fmt="#,##0", cols=QC, cat_src=qlabel, width=18)
+qt.freeze_panes = "C5"
+
+# =====================================================================================  Due Diligence
+dd = sheet("Due Diligence", "Due diligence: red-flag checks", "Ratios that often expose aggressive accounting, weak cash flow or hidden risk. 'Check' = latest year crosses the rule of thumb; read that part of the 10-K.", tab="BE123C")
+dd.column_dimensions["A"].width = 58
+dd.column_dimensions[CUR].width = 10
+dd.column_dimensions["N"].width = 46
+r = 4
+year_header(dd, r, current="Latest")
+dd.cell(r, 14, "Rule of thumb (when 'Check' appears)").font = f_hdr
+dd.cell(r, 14).fill = fill_hdr
+DD = {}
+r += 1
+
+
+def ddrow(key, label, fn, fmt, flag=None, rule="", note=None):
+    """flag: formula on the latest-year cell X (string with {x}); True -> 'Check'."""
+    global r
+    DD[key] = row(dd, r, label, fn, fmt, note=note)
+    x = dd[f"{CUR}{r}"]
+    if flag:
+        x.value = f'=IF({LAST}{r}="","",IF({flag.format(x=LAST + str(r))},"Check","OK"))'
+    x.alignment = Alignment(horizontal="center")
+    x.font = f_bold
+    dd.cell(r, 14, rule).font = f_note
+    r += 1
+
+
+def yoy_gap(a, b, c, i):          # growth of a minus growth of b, this year vs last
+    if i == 0:
+        return None
+    p = prevcol(c)
+    return (f'IF(OR(N({d(a, p)})<=0,N({d(b, p)})<=0,{d(a, c)}="",{d(b, c)}=""),"",'
+            f'({d(a, c)}/{d(a, p)}-1)-({d(b, c)}/{d(b, p)}-1))')
+
+
+section(dd, r, "Earnings quality"); r += 1
+ddrow("tax", "Effective tax rate", lambda c, i: pos_div(d("taxexp", c), d("ebt", c)), PCT, "OR({x}<0.1,{x}>0.35)",
+      "Below 10% or above 35%: one-off tax items or profits booked in tax havens; check whether it can last.")
+ddrow("oth", "Non-operating income ÷ pre-tax income", lambda c, i: f'IF(N({d("ebt", c)})<=0,"",(N({d("nonop", c)})+N({d("nonop_other", c)}))/{d("ebt", c)})', PCT,
+      "ABS({x})>0.2", "More than ±20%: profit leans on interest income, investment gains or one-offs rather than the business.")
+ddrow("bal", "Unexplained non-operating items ÷ pre-tax income", lambda c, i: f'IF(N({d("ebt", c)})<=0,"",{d("nonop_other", c)}/{d("ebt", c)})', PCT,
+      "ABS({x})>0.1", "More than ±10%: a gain, loss or write-down sits below operating income. Find it in the 10-K income statement notes.")
+ddrow("ooc", "Other operating costs ÷ revenue", lambda c, i: safe_div(d("opex_other", c), d("revenue", c)), PCT, "ABS({x})>0.05",
+      "More than 5%: restructuring, impairments or legal charges. If they recur every year, they're not one-offs.")
+ddrow("cfo", "Operating cash flow ÷ net income", lambda c, i: pos_div(d("ncfo", c), d("netinc", c)), PCT, "{x}<0.8",
+      "Below 80%: profits aren't turning into cash. Look at receivables, inventory and capitalised costs.")
+ddrow("acc", "Accruals ratio = (net income − operating cash flow) ÷ average assets",
+      lambda c, i: f'IF(OR({d("netinc", c)}="",{d("ncfo", c)}=""),"",IFERROR(({d("netinc", c)}-{d("ncfo", c)})/{avg2("assets", c, i)},""))', PCT,
+      "{x}>0.05", "Above 5%: earnings are running ahead of cash. Research links high accruals to weaker future returns.")
+r += 1
+section(dd, r, "Balance sheet"); r += 1
+ddrow("rec", "Receivables growth minus revenue growth", lambda c, i: yoy_gap("receivables", "revenue", c, i), '+0.0%;-0.0%;0.0%', "{x}>0.1",
+      "Receivables growing 10+ points faster than sales: customers paying slower, or sales pulled forward.")
+ddrow("inv", "Inventory growth minus revenue growth", lambda c, i: yoy_gap("inventory", "revenue", c, i), '+0.0%;-0.0%;0.0%', "{x}>0.1",
+      "Inventory growing 10+ points faster than sales: demand slowing or stock going obsolete.")
+ddrow("gwa", "Goodwill + intangibles ÷ total assets", lambda c, i: safe_div(f'(N({d("goodwill", c)})+N({d("intangibles", c)}))', d("assets", c)), PCT,
+      "{x}>0.4", "Above 40%: growth came from acquisitions; write-downs are possible if they disappoint.")
+ddrow("gwe", "Goodwill + intangibles ÷ shareholders' equity", lambda c, i: pos_div(f'(N({d("goodwill", c)})+N({d("intangibles", c)}))', d("equity", c)), PCT,
+      "{x}>1", "Above 100%: tangible equity is negative, so the balance sheet rests on acquired intangibles.")
+ddrow("rate", "Interest ÷ average debt (implied interest rate)",
+      lambda c, i: f'IF(OR({d("intexp", c)}="",N({avg2("debt", c, i)})<=0),"",{d("intexp", c)}/{avg2("debt", c, i)})', PCT, "{x}>0.1",
+      "Above 10%: expensive or risky debt, or debt the balance sheet doesn't show (leases, off-balance-sheet).")
+ddrow("cash", "Cash & short-term investments ÷ total debt",
+      lambda c, i: pos_div(f'(N({d("cashneq", c)})+N({d("investmentsc", c)}))', d("debt", c)), PCT, "{x}<0.2",
+      "Below 20%: little cash against the debt; check when the debt matures.")
+ddrow("dgr", "Debt growth minus revenue growth", lambda c, i: yoy_gap("debt", "revenue", c, i), '+0.0%;-0.0%;0.0%', "{x}>0.25",
+      "Debt growing 25+ points faster than sales: borrowing to fund growth, buybacks or dividends.")
+ddrow("re", "Retained earnings ($m)", lambda c, i: d("retearn", c), MONEY, "{x}<0",
+      "Negative: lifetime losses, or buybacks and dividends larger than lifetime profits. Normal for heavy buyback companies; a warning otherwise.")
+r += 1
+section(dd, r, "Shareholders"); r += 1
+ddrow("dil", "Change in diluted share count",
+      lambda c, i: None if i == 0 else growth(d("shareswadil", c), d("shareswadil", prevcol(c))), '+0.0%;-0.0%;0.0%', "{x}>0.02",
+      "More than 2% a year: steady dilution from stock pay or share issues erodes your stake.")
+ddrow("sbcr", "Stock-based compensation ÷ revenue", lambda c, i: safe_div(d("sbcomp", c), d("revenue", c)), PCT, "{x}>0.1",
+      "Above 10%: a large real cost that adjusted (non-GAAP) earnings usually leave out.")
+ddrow("sbcc", "Stock-based compensation ÷ operating cash flow", lambda c, i: pos_div(d("sbcomp", c), d("ncfo", c)), PCT, "{x}>0.25",
+      "Above 25%: much of the reported cash flow comes from paying staff in shares instead of cash.")
+ddrow("pay", "Dividends ÷ net income (payout ratio)",
+      lambda c, i: f'IF(OR(N({d("netinc", c)})<=0,N({d("ncfdiv", c)})=0),"",-{d("ncfdiv", c)}/{d("netinc", c)})', PCT, "{x}>1",
+      "Above 100%: paying out more than it earns. Fine for a year; a risk to the dividend if it persists.")
+ddrow("tpay", "Dividends + buybacks ÷ free cash flow",
+      lambda c, i: f'IF(OR(N({d("fcf", c)})<=0,N({d("ncfdiv", c)})+N({d("ncfbuyback", c)})=0),"",-(N({d("ncfdiv", c)})+N({d("ncfbuyback", c)}))/{d("fcf", c)})', PCT,
+      "{x}>1.2", "Above 120%: shareholder returns funded with debt or cash reserves.")
+dd.conditional_formatting.add(f"{CUR}5:{CUR}{r}", CellIsRule(operator="equal", formula=['"Check"'], fill=PatternFill("solid", fgColor="FDE2E1"),
+                                                             font=Font(name=F, bold=True, color="B91C1C")))
+dd.conditional_formatting.add(f"{CUR}5:{CUR}{r}", CellIsRule(operator="equal", formula=['"OK"'], font=Font(name=F, color="15803D")))
+DD_CHECKS = (5, r - 1)
+r += 1
+
+# where the cash went
+section(dd, r, "Where the operating cash went (cumulative)"); r += 1
+CU_HDR = r
+for j, h in enumerate(["5 yrs ($m)", "% of CFO", "10 yrs ($m)", "% of CFO"]):
+    x = dd.cell(r, 3 + j, h)
+    x.font, x.fill, x.alignment = f_hdr, fill_hdr, Alignment(horizontal="right")
+dd.cell(r, 1).fill = fill_hdr
+dd.cell(r, 2).fill = fill_hdr
+r += 1
+
+
+def csum(code, n, neg=False):
+    rng = f"Data!{YC[YEARS - n]}{D[code]}:{LAST}{D[code]}"
+    return f"{'-' if neg else ''}SUM({rng})"
+
+
+CU = [("Operating cash flow", lambda n: csum("ncfo", n)),
+      ("Capital expenditure", lambda n: csum("capex", n, True)),
+      ("Acquisitions & other investing", lambda n: f"-({csum('ncfi', n)}-{csum('capex', n)})"),
+      ("Dividends", lambda n: csum("ncfdiv", n, True)),
+      ("Share buybacks", lambda n: csum("ncfbuyback", n, True)),
+      ("Debt repaid (borrowed if negative)", lambda n: f"-(N({d('debt', LAST)})-N({d('debt', YC[YEARS - n - 1] if n < YEARS else YC[0])}))")]
+cu_first = r
+for lab, fn in CU:
+    dd.cell(r, 1, lab).font = f_bold if r == cu_first else f_lab
+    for j, n in enumerate([5, 10]):
+        x = dd.cell(r, 3 + 2 * j, "=" + fn(n))
+        x.number_format, x.font = MONEY, f_val
+        y = dd.cell(r, 4 + 2 * j, f'=IF(N({L(3 + 2 * j)}${cu_first})<=0,"",{L(3 + 2 * j)}{r}/{L(3 + 2 * j)}${cu_first})')
+        y.number_format = PCT
+    r += 1
+dd.cell(r, 1, "Left over (added to cash, other financing)").font = f_bold
+for j in range(2):
+    cc = L(3 + 2 * j)
+    x = dd.cell(r, 3 + 2 * j, f"={cc}{cu_first}-SUM({cc}{cu_first + 1}:{cc}{r - 1})")
+    x.number_format, x.font = MONEY, f_bold
+    y = dd.cell(r, 4 + 2 * j, f'=IF(N({cc}${cu_first})<=0,"",{cc}{r}/{cc}${cu_first})')
+    y.number_format = PCT
+r += 1
+dd.cell(r, 1, "Debt for 5 years compares the latest balance with the one 5 years earlier; 10 years uses the oldest year shown.").font = f_note
+dd.freeze_panes = "C5"
+
+# =====================================================================================  Unit Metrics
+um = sheet("Unit Metrics", "Unit metrics: what each dollar earns", "How much revenue and profit each dollar of capital or spending produces. Rising = getting more efficient.", tab="65A30D")
+r = 4
+year_header(um, r, label="$ per $1 (per-share rows in $)")
+U = {}
+r += 1
+U["wc"] = row(um, r, "Working capital ($m)", lambda c, i: f'IF({d("assetsc", c)}="","",{d("assetsc", c)}-N({d("liabilitiesc", c)}))'); r += 1
+U["wca"] = row(um, r, "Average working capital ($m)", lambda c, i: f"{c}{U['wc']}" if i == 0 else f"AVERAGE({prevcol(c)}{U['wc']},{c}{U['wc']})"); r += 2
+section(um, r, "Revenue per $1 of …"); r += 1
+U["r_wc"] = row(um, r, "Working capital", lambda c, i: pos_div(d("revenue", c), f"{c}{U['wca']}"), '0.00;(0.00);"-"',
+                note="Blank when working capital is zero or negative (customers fund the business: often a strength)."); r += 1
+U["r_ppe"] = row(um, r, "Net PP&E (fixed asset turnover)", lambda c, i: pos_div(d("revenue", c), avg2("ppnenet", c, i)), '0.00;(0.00);"-"'); r += 1
+U["r_ta"] = row(um, r, "Total assets (asset turnover)", lambda c, i: pos_div(d("revenue", c), avg2("assets", c, i)), '0.00;(0.00);"-"'); r += 1
+U["r_debt"] = row(um, r, "Total debt", lambda c, i: pos_div(d("revenue", c), d("debt", c)), '0.00;(0.00);"-"'); r += 1
+U["r_sga"] = row(um, r, "SG&A spending", lambda c, i: pos_div(d("revenue", c), d("sgna", c)), '0.00;(0.00);"-"'); r += 1
+U["r_rnd"] = row(um, r, "R&D spending", lambda c, i: pos_div(d("revenue", c), d("rnd", c)), '0.00;(0.00);"-"'); r += 1
+U["r_sbc"] = row(um, r, "Stock-based compensation", lambda c, i: pos_div(d("revenue", c), d("sbcomp", c)), '0.0;(0.0);"-"'); r += 2
+section(um, r, "Profit per $1 of …"); r += 1
+U["e_wc"] = row(um, r, "EBITDA per $1 of working capital", lambda c, i: pos_div(d("ebitda", c), f"{c}{U['wca']}"), '0.00;(0.00);"-"'); r += 1
+U["e_ppe"] = row(um, r, "EBITDA per $1 of net PP&E", lambda c, i: pos_div(d("ebitda", c), avg2("ppnenet", c, i)), '0.00;(0.00);"-"'); r += 1
+U["e_debt"] = row(um, r, "EBITDA per $1 of debt", lambda c, i: pos_div(d("ebitda", c), d("debt", c)), '0.00;(0.00);"-"'); r += 1
+U["g_sga"] = row(um, r, "Gross profit per $1 of SG&A", lambda c, i: f'IF(N({d("cor", c)})=0,"",{pos_div(d("gp", c), d("sgna", c))})', '0.00;(0.00);"-"',
+                 note="How much gross profit the sales and admin machine brings in. Falling = selling is getting more expensive."); r += 1
+U["o_rnd"] = row(um, r, "Operating income per $1 of R&D", lambda c, i: pos_div(d("opinc", c), d("rnd", c)), '0.00;(0.00);"-"'); r += 1
+U["inc"] = row(um, r, "Incremental operating margin (extra operating income ÷ extra revenue)",
+               lambda c, i: None if i == 0 else f'IF(OR({d("revenue", prevcol(c))}="",{d("opinc", prevcol(c))}="",N({d("revenue", c)})-N({d("revenue", prevcol(c))})<=0,{d("opinc", c)}=""),"",({d("opinc", c)}-{d("opinc", prevcol(c))})/({d("revenue", c)}-{d("revenue", prevcol(c))}))',
+               PCT, note="Above the operating margin = operating leverage (each new sale is more profitable). Only shown when revenue grew."); r += 2
+section(um, r, "Per share ($)"); r += 1
+
+
+def ps(expr, c):
+    return f'IF(OR(N({d("shareswadil", c)})=0,{expr}=""),"",{expr}/{d("shareswadil", c)})'
+
+
+U["ps_rev"] = row(um, r, "Revenue per share", lambda c, i: ps(d("revenue", c), c), EPS); r += 1
+U["ps_ebitda"] = row(um, r, "EBITDA per share", lambda c, i: ps(d("ebitda", c), c), EPS); r += 1
+U["ps_eps"] = row(um, r, "Diluted EPS", lambda c, i: d("epsdil", c), EPS); r += 1
+U["ps_fcf"] = row(um, r, "Free cash flow per share", lambda c, i: ps(d("fcf", c), c), EPS); r += 1
+U["ps_bv"] = row(um, r, "Book value per share", lambda c, i: ps(d("equity", c), c), EPS); r += 1
+U["ps_cash"] = row(um, r, "Cash & short-term investments per share",
+                   lambda c, i: ps(f'(N({d("cashneq", c)})+N({d("investmentsc", c)}))', c), EPS); r += 1
+U["ps_div"] = row(um, r, "Dividends per share",
+                  lambda c, i: f'IF(OR(N({d("shareswadil", c)})=0,N({d("ncfdiv", c)})=0),"",-{d("ncfdiv", c)}/{d("shareswadil", c)})', EPS); r += 2
+um.cell(r, 1, "Employee numbers and costs aren't in SEC XBRL data for most US companies, so per-employee metrics aren't included. Find headcount in the 10-K (Item 1, Human Capital).").font = f_note
+chart(um, "line", "Revenue per $1 of fixed assets and of total assets", [U["r_ppe"], U["r_ta"]], "O4", y_fmt="0.0")
+chart(um, "line", "Per share: revenue, free cash flow, book value ($)", [U["ps_rev"], U["ps_fcf"], U["ps_bv"]], "O20", y_fmt="0")
+um.freeze_panes = "C5"
+
+# =====================================================================================  Valuation Simulation
+vs = sheet("Valuation Simulation", "Valuation simulation: what return could you earn?",
+           "Annual return from today's market cap if revenue grows at a given rate and the market pays a given multiple at exit. Yellow cells are yours to change.", tab="9333EA")
+vs.column_dimensions["A"].width = 42
+vs.column_dimensions["B"].width = 13
+for c in "CDEFGHIJ":
+    vs.column_dimensions[c].width = 10
+VI = {}
+vs.cell(4, 1, "Starting point and assumptions").font = f_sec
+r = 5
+conv_rng = f"'Cash Flow'!$C${C['conv']}:${LAST}${C['conv']}"
+VINS = [
+    ("rev", "Revenue, trailing 12 months ($m)", f'=IF(N({dv("ttm_revenue")})>0,{dv("ttm_revenue")},{d("revenue", LAST)})', MONEY, "link"),
+    ("ni", "Net income, trailing 12 months ($m)", f'=IF({dv("ttm_netinc")}<>"",{dv("ttm_netinc")},{d("netinc", LAST)})', MONEY, "link"),
+    ("mc", "Market cap now ($m)", f'={dv("mcap_now")}', MONEY, "link"),
+    ("n", "Years until you sell", 5, "0", "in"),
+    ("m", "Net margin at exit", f'=IFERROR(MAX(0.01,B6/B5),0.1)', PCT, "in"),
+    ("cv", "Free cash flow ÷ net income at exit", f'=IFERROR(MIN(1.2,MAX(0.5,MEDIAN({conv_rng}))),1)', PCT, "in"),
+    ("t", "Return you want (per year)", 0.12, PCT, "in"),
+]
+for k, lab, val, fmt, kind in VINS:
+    VI[k] = r
+    vs.cell(r, 1, lab).font = f_lab
+    x = vs.cell(r, 2, val)
+    x.number_format = fmt
+    if kind == "in":
+        x.font, x.fill = f_in, fill_in
+    else:
+        x.font = f_link
+    r += 1
+vs.cell(VI["m"], 3, "default: today's TTM net margin").font = f_note
+vs.cell(VI["cv"], 3, "default: 10-year median, kept between 50% and 120%").font = f_note
+r += 1
+
+# benchmarks from the company's own history
+vs.cell(r, 1, "The company's own history (to pick sensible inputs)").font = f_sec
+r += 1
+for j, h in enumerate(["Latest / now", "3 years", "5 years", "10-yr median"]):
+    x = vs.cell(r, 3 + j, h)
+    x.font, x.fill, x.alignment = f_hdr, fill_hdr, Alignment(horizontal="right")
+vs.cell(r, 1).fill = fill_hdr
+vs.cell(r, 2).fill = fill_hdr
+r += 1
+
+
+def med(sh, rr):
+    rng = f"{sh}!$C${rr}:${LAST}${rr}"
+    return f'=IFERROR(IF(COUNT({rng})=0,"",MEDIAN({rng})),"")'
+
+
+def avgn(sh, rr, n):
+    rng = f"{sh}!{YC[YEARS - n]}{rr}:{LAST}{rr}"
+    return f'=IFERROR(IF(COUNT({rng})=0,"",AVERAGE({rng})),"")'
+
+
+BM = [("Revenue growth (1 yr, then CAGR)", [f"=Growth!{LAST}{G['rev']}", f"=Growth!C{CG['rev']}", f"=Growth!D{CG['rev']}", med("Growth", G["rev"])], PCT),
+      ("Net margin (TTM, then average)", [f'=IFERROR(B{VI["ni"]}/B{VI["rev"]},"")', avgn("Margins", M["npm"], 3), avgn("Margins", M["npm"], 5), med("Margins", M["npm"])], PCT),
+      ("Free cash flow ÷ net income", [f"='Cash Flow'!{LAST}{C['conv']}", avgn("'Cash Flow'", C["conv"], 3), avgn("'Cash Flow'", C["conv"], 5), med("'Cash Flow'", C["conv"])], PCT),
+      ("P/E (now, then average)", [f"=Valuation!{CUR}{Q['pe']}", avgn("Valuation", Q["pe"], 3), avgn("Valuation", Q["pe"], 5), med("Valuation", Q["pe"])], MULT),
+      ("Price / free cash flow", [f'=IFERROR(1/Valuation!{CUR}{Q["fy"]},"")', f'=IFERROR(1/AVERAGE(Valuation!{YC[7]}{Q["fy"]}:{LAST}{Q["fy"]}),"")',
+                                  f'=IFERROR(1/AVERAGE(Valuation!{YC[5]}{Q["fy"]}:{LAST}{Q["fy"]}),"")', f'=IFERROR(1/MEDIAN(Valuation!$C${Q["fy"]}:${LAST}${Q["fy"]}),"")'], MULT)]
+BMR = {}
+for lab, fs, fmt in BM:
+    vs.cell(r, 1, lab).font = f_lab
+    for j, f in enumerate(fs):
+        x = vs.cell(r, 3 + j, f)
+        x.number_format, x.font = fmt, f_val
+    BMR[lab] = r
+    r += 1
+PE_ROW, PF_ROW = BMR["P/E (now, then average)"], BMR["Price / free cash flow"]
+r += 1
+
+GROWTHS = [0, 0.03, 0.06, 0.09, 0.12, 0.15, 0.20, 0.25, 0.30]
+B_ = lambda k: f"$B${VI[k]}"
+
+
+def grid(r, title, mults, value_expr, mult_label):
+    vs.cell(r, 1, title).font = f_sec
+    r += 1
+    hdr = r
+    vs.cell(r, 1, f"Revenue growth per year ↓   ·   {mult_label} at exit →").font = f_hdr
+    vs.cell(r, 1).fill = fill_hdr
+    vs.cell(r, 2).fill = fill_hdr
+    for j, m_ in enumerate(mults):
+        x = vs.cell(r, 3 + j, m_)
+        x.number_format = '0"x"'
+        x.font, x.fill = Font(name=F, size=10, bold=True, color="0000FF"), fill_in
+    r += 1
+    first = r
+    for g in GROWTHS:
+        x = vs.cell(r, 2, g)
+        x.number_format = "0.0%"
+        x.font, x.fill = Font(name=F, size=10, bold=True, color="0000FF"), fill_in
+        for j in range(len(mults)):
+            cc = L(3 + j)
+            exitv = value_expr(f"$B{r}", f"{cc}${hdr}")
+            y = vs.cell(r, 3 + j, f'=IF(OR(N({B_("mc")})<=0,N({B_("rev")})<=0,N({B_("n")})<=0),"",IFERROR(({exitv}/{B_("mc")})^(1/{B_("n")})-1,""))')
+            y.number_format = '0%;-0%;0%'
+            y.font = f_val
+        r += 1
+    rng = f"C{first}:{L(2 + len(mults))}{r - 1}"
+    vs.conditional_formatting.add(rng, FormulaRule(formula=[f'AND(ISNUMBER(C{first}),C{first}>={B_("t")})'],
+                                                   fill=PatternFill("solid", fgColor="DCFCE7"), font=Font(name=F, bold=True, color="15803D")))
+    vs.conditional_formatting.add(rng, FormulaRule(formula=[f'AND(ISNUMBER(C{first}),C{first}<0)'], font=Font(name=F, color="B91C1C")))
+    return r + 1
+
+
+r = grid(r, "Return per year: by revenue growth and exit P/E", [10, 15, 20, 25, 30, 35, 40],
+         lambda g, m_: f"{B_('rev')}*(1+{g})^{B_('n')}*{B_('m')}*{m_}", "P/E")
+r = grid(r, "Return per year: by revenue growth and exit price / free cash flow", [10, 15, 20, 25, 30, 35, 40],
+         lambda g, m_: f"{B_('rev')}*(1+{g})^{B_('n')}*{B_('m')}*{B_('cv')}*{m_}", "P/FCF")
+vs.cell(r - 1, 1, "Green = meets your target return. Returns are on today's market cap, so dividends, buybacks and dilution are left out.").font = f_note
+r += 1
+
+vs.cell(r, 1, "Reverse: revenue growth needed to earn your target return").font = f_sec
+r += 1
+REV = [("If the market pays today's P/E at exit", f"C{PE_ROW}"), ("If it pays its 10-year median P/E", f"F{PE_ROW}"), ("If it pays 15x", "15")]
+for lab, pe in REV:
+    vs.cell(r, 1, lab).font = f_lab
+    x = vs.cell(r, 2, f'=IFERROR(IF(OR(N({pe})<=0,N({B_("rev")})<=0,N({B_("m")})<=0),"",((1+{B_("t")})^{B_("n")}*{B_("mc")}/({B_("rev")}*{B_("m")}*{pe}))^(1/{B_("n")})-1),"")')
+    x.number_format, x.font = PCT, f_bold
+    r += 1
+vs.cell(r, 1, "Compare these with the growth rates in the history table: needing far more than the company has ever done is a warning sign.").font = f_note
+r += 2
+vs.cell(r, 1, "Education only: a simulation shows what you'd have to believe, not what will happen.").font = f_note
+
+# =====================================================================================  Notes
+nt = sheet("Notes", "Analysis notes", "Questions to answer as you go through the sheets. Write your answers in column C.", tab="374151")
+nt.column_dimensions["A"].width = 22
+nt.column_dimensions["B"].width = 70
+nt.column_dimensions["C"].width = 70
+QUESTIONS = [
+    ("Summary", "Summary", ["Over 1, 3, 5 and 9 years, which grew fastest: revenue, operating income, net income or free cash flow? Why?",
+                            "Did profits grow faster than revenue (operating leverage) or slower (rising costs)?"]),
+    ("Margins", "Margins", ["Are margins steady, cyclical or trending? What explains the best and worst years?",
+                            "Which cost line moved the most as a % of revenue, and is that change permanent?",
+                            "Are 'Other operating costs' one-offs, or do they come back every year?"]),
+    ("Returns", "Returns", ["Is ROIC comfortably above the cost of capital (roughly 8–10%)?",
+                            "Is ROE driven by margins, asset turnover or leverage (DuPont)? Which of these is changing?"]),
+    ("Leverage", "Leverage", ["Could the company survive a bad year with its current debt? Check net debt/EBITDA and interest coverage.",
+                              "Is working capital tying up more cash over time (receivable, inventory days rising)?"]),
+    ("Cash flow", "Cash Flow", ["Does net income turn into free cash flow? If not, where does the cash go?",
+                                "How much of free cash flow does stock-based pay account for?",
+                                "What does the company do with its cash: reinvest, acquire, pay dividends or buy back shares?"]),
+    ("Growth", "Growth", ["Is growth speeding up or slowing down? Is it coming from more shares or better per-share results?"]),
+    ("Quarterly", "Quarterly", ["Is the latest quarter better or worse than the same quarter last year?",
+                                "Is the business seasonal? Which quarter is usually the biggest?",
+                                "Is the trailing-12-month trend still rising?"]),
+    ("Due diligence", "Due Diligence", ["Which checks show 'Check', and what does the 10-K say about each?",
+                                        "Are any red flags repeated over several years rather than one-offs?"]),
+    ("Unit metrics", "Unit Metrics", ["Where is the company getting more efficient (more revenue or profit per dollar), and where less?"]),
+    ("Valuation", "Valuation", ["How does today's valuation compare with the company's own history? Has the business changed enough to justify the difference?",
+                                "What growth does today's price assume (Valuation Simulation, reverse section)? Is that believable?",
+                                "What does the DCF give with conservative assumptions, and how sensitive is it?"]),
+    ("Decision", "Summary", ["What has to go right for this to be a good investment, and what could go wrong?",
+                             "At what price would you buy, and what would make you change your mind?"]),
+]
+r = 4
+for j, h in enumerate(["Area (sheet)", "Question", "Your notes"]):
+    x = nt.cell(r, 1 + j, h)
+    x.font, x.fill = f_hdr, fill_hdr
+r += 1
+for area, sh, qs in QUESTIONS:
+    for k, qq in enumerate(qs):
+        a = nt.cell(r, 1, area if k == 0 else "")
+        a.font = f_bold
+        a.alignment = Alignment(vertical="top")
+        if k == 0:
+            a.hyperlink = f"#'{sh}'!A1"
+            a.font = Font(name=F, size=10, bold=True, color="1D4ED8", underline="single")
+        b = nt.cell(r, 2, qq)
+        b.font = f_lab
+        b.alignment = Alignment(wrap_text=True, vertical="top")
+        c = nt.cell(r, 3)
+        c.fill = fill_in
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        c.border = Border(bottom=thin)
+        nt.row_dimensions[r].height = 32
+        r += 1
+nt.page_setup.fitToHeight = 0
+
 # sheet order and finishing
-order = ["Read Me", "Summary", "Margins", "Returns", "Leverage", "Cash Flow", "Growth", "Valuation", "DCF", "Data", "Standard", "ChartData"]
+order = ["Read Me", "Summary", "Margins", "Returns", "Leverage", "Cash Flow", "Growth", "Quarterly", "Due Diligence", "Unit Metrics", "Valuation", "DCF",
+         "Valuation Simulation", "Notes", "Data", "QData", "Standard", "ChartData"]
 wb._sheets = [wb[n] for n in order]
 wb.active = 1
 wb.calculation.fullCalcOnLoad = True

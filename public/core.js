@@ -201,6 +201,8 @@
         if (ytd && additive) { val = f.val - ytd.val; how = "FY - 9M YTD"; }
         else if (ytd) { val = 4 * f.val - 3 * ytd.val; how = "4*FY - 3*9M avg (approx. weighted avg)"; }
       }
+      // averages (share counts) can't move far from the full-year figure: a big gap means mismatched inputs, so use the full-year average
+      if (val !== null && !additive && f.val && Math.abs(val / f.val - 1) > 0.5) { val = f.val; how = "full-year average (quarter couldn't be worked out)"; }
       if (val !== null) q.set(fe, { ...f, val, derived: how });
     }
     return q;
@@ -996,6 +998,28 @@
     ["ttm_eps", "Diluted EPS, trailing 12 months ($)", "S", "ttmEps", "0.00"],
   ];
 
+  // quarterly block: its own columns (quarter ends in the q_date row). "Q" = from the QUARTERS block, "qf" = formula
+  const STD_Q = [
+    ["h", "QUARTERLY (columns are quarters: see the q_date row)"],
+    ["q_date", "Quarter end", "QD", "", "date"],
+    ["q_revenue", "Revenue", "Q", "sales"],
+    ["q_cor", "Cost of revenue", "Q", "cogs"],
+    ["q_gp", "Gross profit = q_revenue − q_cor", "qf", "{q_revenue}-{q_cor}"],
+    ["q_sgna", "Selling, general & administrative", "Q", "sga"],
+    ["q_rnd", "Research & development", "Q", "rnd"],
+    ["q_opex_other", "Other operating costs (balancing)", "Q", "other_opex"],
+    ["q_opinc", "Operating income = q_gp − q_sgna − q_rnd − q_opex_other", "qf", "{q_gp}-{q_sgna}-{q_rnd}-{q_opex_other}"],
+    ["q_intexp", "Interest expense", "Q", "interest"],
+    ["q_nonop", "Other income (reported, net)", "Q", "other_income"],
+    ["q_nonop_other", "Other non-operating items (balancing)", "Qn", "other_nonop"],
+    ["q_ebt", "Pre-tax income = q_opinc − q_intexp + q_nonop + q_nonop_other", "qf", "{q_opinc}-{q_intexp}+{q_nonop}+{q_nonop_other}"],
+    ["q_taxexp", "Income tax", "Q", "tax"],
+    ["q_netinc", "Net income to shareholders (reported)", "Q", "net_profit"],
+    ["q_shareswadil", "Diluted weighted average shares", "Q", "shares_diluted"],
+    ["q_epsdil", "Diluted EPS = q_netinc ÷ q_shareswadil ($)", "qf", "IF(N({q_shareswadil})=0,\"\",{q_netinc}/{q_shareswadil})", "0.00"],
+  ];
+  const excelSerial = (iso) => Math.round((Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 86400000);
+
   /* market inputs from the page: px = /api/prices result, rf = /api/rate result, val = valuation(), rat = ratios() */
   function marketData(result, px, rf, val, rat) {
     const series = (px && px.prices) || [];
@@ -1015,22 +1039,27 @@
     const valOf = (b, key, e) => { const B = blk[b]; if (!B) return null; const r = B.rows.find((x) => x.key === key); const i = B.ends.indexOf(e); return r && i >= 0 ? r.values[i] : null; };
     const filed = ends.map((e) => { const r = blk.P.rows.find((x) => x.key === "sales"); const i = blk.P.ends.indexOf(e); const f = r && r.src[i]; return f && f.filed ? f.filed : ""; });
     const C0 = 3, col = (j) => { let n = C0 + j, s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-    const defs = market ? STD.concat(STD_MARKET) : STD;
+    const blkQ = result.blocks.find((b) => b.title === "QUARTERS"), qEnds = blkQ ? blkQ.ends.filter(Boolean) : [];
+    const valQ = (key, e) => { const rr = blkQ.rows.find((x) => x.key === key); const i = blkQ.ends.indexOf(e); return rr && i >= 0 ? rr.values[i] : null; };
+    const defs = (market ? STD.concat(STD_MARKET) : STD).concat(qEnds.length ? STD_Q : []);
     const H = 4, rowOf = {}; let r = H + 2;
     for (const d of defs) { if (d[0] !== "h") rowOf[d[0]] = r; r++; }
     const rows = []; r = H + 2;
     for (const [code, label, kind, src, fmt] of defs) {
       if (code === "h") { rows.push({ row: r, header: true, label }); r++; continue; }
-      const cells = ends.map((e, j) => {
+      const isQ = kind === "QD" || kind === "qf" || kind[0] === "Q";
+      const cells = (isQ ? qEnds : ends).map((e, j) => {
         const L = col(j);
-        if (kind === "f") return { f: src.replace(/\{(prev_)?(\w+)\}/g, (m, prev, k) => prev ? (j === 0 ? '""' : `${col(j - 1)}${rowOf[k]}`) : `${L}${rowOf[k]}`) };
+        if (kind === "QD") return { v: excelSerial(e), input: true };
+        if (kind[0] === "Q") { let v = valQ(src, e); if (v != null && kind.length > 1) v = -v; return { v, input: true }; }
+        if (kind === "f" || kind === "qf") return { f: src.replace(/\{(prev_)?(\w+)\}/g, (m, prev, k) => prev ? (j === 0 ? '""' : `${col(j - 1)}${rowOf[k]}`) : `${L}${rowOf[k]}`) };
         if (kind === "M") return { v: market && market[src] ? market[src](e) : null, input: true };
         if (kind === "S") return { v: j === 0 && market ? market[src] : null, input: true };
         let v = valOf(kind[0], src, e);
         if (v != null && kind.length > 1) v = -v;                      // flip to the standard sign
         return { v, input: true };
       });
-      rows.push({ row: r, code, label, cells, fmt, bold: ["gp", "opinc", "ebt", "netinc", "assets", "liabilities", "equity_total", "fcf"].includes(code) });
+      rows.push({ row: r, code, label, cells, fmt, bold: ["gp", "opinc", "ebt", "netinc", "assets", "liabilities", "equity_total", "fcf", "q_date", "q_opinc", "q_netinc"].includes(code) });
       r++;
     }
     return { title: `${result.name} (${result.ticker}) - standard layout, ${result.scale === 1000 ? "$ thousands" : "$ millions"} (shares in thousands, EPS in $)`,
@@ -1055,7 +1084,7 @@
       row.cells.forEach((cell, j) => {
         const c = ws.getCell(row.row, C0 + j);
         if (cell.f) c.value = { formula: cell.f }; else { c.value = cell.v; c.font = { color: { argb: "FF0000FF" } }; }
-        c.numFmt = row.fmt === "0.00" ? "0.00" : row.fmt === "0.00%" ? "0.00%" : row.fmt === "text" ? "@" : row.fmt === "chk" ? '#,##0;-#,##0;"OK"' : "#,##0;-#,##0;\"-\"";
+        c.numFmt = row.fmt === "0.00" ? "0.00" : row.fmt === "0.00%" ? "0.00%" : row.fmt === "text" ? "@" : row.fmt === "date" ? "yyyy-mm-dd" : row.fmt === "chk" ? '#,##0;-#,##0;"OK"' : "#,##0;-#,##0;\"-\"";
       });
       if (row.bold) ws.getRow(row.row).font = { bold: true };
     }
