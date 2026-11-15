@@ -122,6 +122,13 @@
     ["rs_rating", "RS rating", "/99", "Technicals", ["relative strength", "rs"], "Price performance vs every US stock, 1–99 (99 = top 1%). Last 3 months count double, plus 6, 9 and 12 months"],
     ["stage2_score", "Stage 2 checks passed", "/8", "Technicals", ["trend template score", "minervini score"], "How many of the 8 Stage 2 trend-template checks the stock meets"],
     ["stage2", "Stage 2 trend template", "", "Technicals", ["stage 2", "minervini", "trend template"], "1 if all 8 checks pass: price above the 150 and 200 DMA; 150 above 200; 200 DMA rising for a month; 50 above 150 and 200; price above the 50 DMA; 30%+ above the 52-week low; within 25% of the 52-week high; RS rating 70+"],
+    ["soic", "SOIC score", "", "SOIC", ["soic", "soic score", "soic total", "ranking score"], "SOIC ranking score (max 265): industry, fundamentals, weekly technicals, valuation and forensic checks, answered from filings and prices. Blank for banks, insurers and REITs"],
+    ["soic_rank", "SOIC rank", "", "SOIC", ["soic rank"], "Rank by SOIC score among all scored companies (1 = best)"],
+    ["soic_industry", "SOIC industry score", "/40", "SOIC", [], "Industry growth, competitiveness, structural vs cyclical, tailwind"],
+    ["soic_fundamental", "SOIC fundamental score", "/50", "SOIC", [], "Margins, margin stability, growth vs industry, revenue type, capital allocation"],
+    ["soic_technical", "SOIC technical score", "/110", "SOIC", [], "Weekly ADX, RSI, stage, price-volume, trends, resistance, V-stop"],
+    ["soic_valuation", "SOIC valuation score", "/35", "SOIC", [], "Profit growth, 60% drawdown history, P/E under 50, PEG"],
+    ["soic_forensic", "SOIC forensic score", "/30", "SOIC", [], "CFO to EBITDA, debt to equity, auditor change, contingent liabilities"],
   ];
 
   /* ---------- technicals from daily history (oldest → newest) ----------
@@ -447,6 +454,8 @@
     ["52-week high on volume", "New 52 week high on volume = 1 AND Market Capitalization > 500"],
     ["Pullback to rising 50 DMA", "DMA 50 above DMA 200 = 1 AND DMA 50 rising = 1 AND Price vs DMA 50 >= -3 AND Price vs DMA 50 <= 3 AND RSI 14 >= 40 AND RSI 14 <= 55 AND Market Capitalization > 1000"],
     ["Quality on sale", "Piotroski score >= 7 AND Debt to equity < 1 AND Price vs DMA 200 <= -10 AND Price vs DMA 200 >= -25 AND Market Capitalization > 1000"],
+    ["SOIC top 50", "SOIC rank <= 50"],
+    ["SOIC 180+ with clean forensics", "SOIC score >= 180 AND SOIC forensic score >= 20"],
     ["Volatility squeeze in uptrend", "Squeeze percentile <= 5 AND DMA 50 above DMA 200 = 1 AND Market Capitalization > 1000"],
   ];
 

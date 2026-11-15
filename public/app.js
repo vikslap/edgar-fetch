@@ -985,11 +985,64 @@
     b.hidden = false;
   }
 
+  // ---------------- SOIC score (scored nightly for every company; data/soic.json) ----------------
+  let soicP = null, soicData = null;
+  const loadSoic = () => (soicP = soicP || fetch("data/soic.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    .then((d) => { soicData = d; return d; }));
+  function soicCard() {
+    const S = window.Soic, d = soicData, r = d && d.rows && d.rows[ticker];
+    if (!S || !d) return "";
+    if (!r) return `<section class="card" id="sec-soic"><h2>SOIC score</h2><div class="sub">Not scored: this company wasn't in last night's build (scores cover US-listed companies with SEC financial data).</div></section>`;
+    const fmtP = (p) => (p > 0 ? "+" + p : String(p));
+    const bars = S.SECTIONS.map((s, i) => {
+      const v = r.s[i], mx = d.max[s];
+      const skip = r.fin && !S.FIN_SECTIONS.includes(s);
+      return `<div>${s}</div><div class="soic-bar${v < 0 ? " neg" : ""}"><i style="width:${v == null ? 0 : Math.round((Math.abs(v) / mx) * 100)}%"></i></div>
+        <div class="num">${skip ? "n/a" : v == null ? "–" : `${v} / ${mx}`}</div>`;
+    }).join("");
+    let rows = "";
+    for (const s of S.SECTIONS) {
+      rows += `<tr class="sec"><td colspan="4">${s}</td></tr>`;
+      S.QUESTIONS.forEach((q, i) => {
+        if (q[1] !== s) return;
+        const a = r.a[i], o = a == null ? null : q[4][a];
+        rows += `<tr><td><b>${esc(q[2])}</b><div class="sub">${esc(q[3])}</div></td>
+          <td${o ? "" : ' class="na"'}>${o ? esc(o[0]) : r.fin && !S.FIN_SECTIONS.includes(s) ? "not scored for financial companies" : "not enough data"}</td>
+          <td class="pts ${o ? (o[1] > 0 ? "pos" : o[1] < 0 ? "neg" : "") : ""}">${o ? fmtP(o[1]) : "–"}</td>
+          <td><div>${esc(r.v[i] || "")}</div><div class="sub">${esc(q[5])}</div></td></tr>`;
+      });
+    }
+    const g = r.g;
+    const total = r.t != null ? `<div class="soic-big">${r.t} <small>/ ${d.max.total}</small></div>` : `<div class="soic-big">– <small>/ ${d.max.total}</small></div>`;
+    return `<section class="card" id="sec-soic"><details class="dq">
+      <summary><h2 style="display:inline">SOIC score</h2>
+        <span class="sub" style="margin-left:8px">the SOIC ranking checklist, answered automatically from filings and weekly prices · updated nightly · click for every answer</span></summary>
+      <div class="soic-top">${total}
+        <div><div class="sub">Rank</div><b>${r.r ? `${r.r.toLocaleString("en-US")} of ${d.ranked.toLocaleString("en-US")}` : "not ranked"}</b></div>
+        <div><div class="sub">Industry group</div><b>${g ? esc(g.label) : "–"}</b>${g ? `<div class="sub">${g.n} US-listed companies${g.cagr3 != null ? ` · sales ${(g.cagr3 * 100).toFixed(1)}% a year over 3 years` : ""}</div>` : ""}</div>
+      </div>
+      <div class="soic-bars">${bars}</div>
+      ${r.fin ? '<div class="sub" style="margin-top:10px">Banks, insurers and REITs: only the technical and valuation sections are scored, so there is no total or rank.</div>' : r.t == null ? '<div class="sub" style="margin-top:10px">No total: a section has no data (often too little price history or too few years of filings).</div>' : ""}
+      <div class="tbl-wrap" style="margin-top:14px"><table class="soic"><thead><tr><th>Question</th><th>Answer</th><th>Points</th><th>Based on</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="sub" style="margin-top:8px">Industry = US-listed companies with the same SEC industry (SIC) code, widened to 3 or 2 digits when there are fewer than 6. Foreign and private competitors aren't included, so treat competitiveness as a rough guide. Built ${esc((d.built || "").slice(0, 10))}.</div>
+    </details></section>`;
+  }
+  function drawSoicBadge() {
+    const b = $("soicBadge"); if (!b) return;
+    const r = soicData && soicData.rows && soicData.rows[ticker];
+    if (!r || (r.t == null && !r.fin)) { b.hidden = true; return; }
+    b.textContent = r.t != null ? `SOIC ${r.t}/${soicData.max.total}${r.r ? ` · #${r.r.toLocaleString("en-US")}` : ""}` : "SOIC: partial (financial)";
+    b.title = "SOIC ranking score: click for every answer";
+    b.hidden = false;
+  }
+
   function drawTables() {
     try { dq = EdgarCore.dataChecks(result, facts); } catch (e) { dq = null; console.error(e); }
     drawBadge();
+    if (!soicData) loadSoic().then((d) => { if (d && result && view === "company") { const el = document.getElementById("sec-soic-slot"); if (el) el.outerHTML = soicCard(); drawSoicBadge(); } });
+    drawSoicBadge();
     const blocks = [...result.blocks].sort((a, b) => ORDER.indexOf(a.title) - ORDER.indexOf(b.title));
-    let h = dqCard();
+    let h = (soicData ? soicCard() : '<div id="sec-soic-slot"></div>') + dqCard();
     for (const b of blocks) {
       const pl = b.title === "PROFIT & LOSS" || b.title === "QUARTERS";
       if (!b.ends.filter(Boolean).length) continue;

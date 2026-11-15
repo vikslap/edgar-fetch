@@ -31,6 +31,7 @@ const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const core = require(path.join(ROOT, "public/core.js"));
 const SC = require(path.join(ROOT, "public/screen-core.js"));
+const SOIC = require(path.join(ROOT, "public/soic.js"));
 const mapping = JSON.parse(fs.readFileSync(path.join(ROOT, "public/mapping.json"), "utf8"));
 const env = process.env;
 const UA = env.SEC_UA || "";
@@ -92,17 +93,23 @@ async function yahooPrice(sym) {
     return p > 0 ? { price: p, sector: "", industry: "" } : null;
   } catch { return null; }
 }
-// ~2 years of daily closes per stock (for DMA / golden-cross fields). Gives up early if Yahoo blocks us.
+// daily closes per stock: the last ~2 years kept for DMA / golden-cross fields, plus up to 10 years as weekly bars
+// (high, low, close, volume) for the SOIC score. Gives up early if Yahoo blocks us.
 async function histories(tickers) {
   if (env.HISTORY_FILE) return new Map(Object.entries(readJSON(env.HISTORY_FILE)));
   const out = new Map(); let tried = 0;
   for (let i = 0; i < tickers.length; i += 8) {
     const got = await Promise.all(tickers.slice(i, i + 8).map(async (t) => {
       try {
-        const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?range=2y&interval=1d`, { "User-Agent": BROWSER_UA }, 2);
-        const q = j.chart.result[0].indicators.quote[0], c = [], v = [];
-        (q.close || []).forEach((x, i) => { if (x != null && x > 0) { c.push(x); v.push((q.volume || [])[i] || 0); } });
-        return c.length ? { c, v } : null;
+        const j = await getJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?range=10y&interval=1d`, { "User-Agent": BROWSER_UA }, 2);
+        const res = j.chart.result[0], q = res.indicators.quote[0], ts = res.timestamp || [];
+        const c = [], v = [], h = [], l = [], tt = [];
+        (q.close || []).forEach((x, i) => {
+          if (x != null && x > 0) { c.push(x); v.push((q.volume || [])[i] || 0); h.push((q.high || [])[i] || x); l.push((q.low || [])[i] || x); tt.push(ts[i]); }
+        });
+        if (!c.length) return null;
+        const w = SOIC.weeklyFromDaily(c, v, h, l, tt.length === c.length && tt.every((x) => x) ? tt : null);
+        return { c: c.slice(-520), v: v.slice(-520), w };
       } catch { return null; }
     }));
     got.forEach((h, k) => h && out.set(tickers[i + k], h));
@@ -235,8 +242,13 @@ function rowFor(facts, meta, px, rf, rate, closes) {
   const r = SC.rowFor(core, result, rat, val, q, { rf });
   r.mcap_quote = px && px.mcapNasdaq > 0 ? px.mcapNasdaq / 1e6 : null;
   Object.assign(r, SC.technicals(closes));
+  let soic = null;
+  try {
+    const W = closes ? closes.w || SOIC.weeklyFromDaily(closes.c, closes.v) : null;
+    soic = { t: meta.ticker, nasdaqFin: !!sic, ci: SOIC.companyInputs(result, r, facts), tech: W ? SOIC.techInputs(W) : null };
+  } catch (e) { soic = null; }
   return { cells: [meta.name, meta.ticker, meta.exchange, sector, px ? px.industry : "", ...FIELD_KEYS.map((k) => round(r[k]))],
-           warnings: result.warnings.length, row: r, result };
+           warnings: result.warnings.length, row: r, result, soic };
 }
 
 /* ---------- 5. alerts ---------- */
@@ -331,7 +343,7 @@ async function main() {
   log(`Price history: ${hist.size} stocks`);
 
   const limit = env.LIMIT ? parseInt(env.LIMIT, 10) : Infinity;
-  const table = [], failures = [], noPrice = [], techRows = [];
+  const table = [], failures = [], noPrice = [], techRows = [], soicItems = new Map();
   let seen = 0;
   fs.mkdirSync(path.join(SNAP, "f"), { recursive: true });
   fs.mkdirSync(path.join(SNAP, "c"), { recursive: true });
@@ -365,6 +377,7 @@ async function main() {
       const r = rowFor(facts, meta, px, rf, cur === "USD" ? null : await fx(cur), hist.get(meta.ticker));
       table.push(r.cells);
       techRows.push({ cells: r.cells, _rs: r.row._rs, _s2: r.row._s2 });
+      if (r.soic) soicItems.set(meta.ticker, { ...r.soic, cells: r.cells });
       try { quality.add(meta.ticker, meta.name, px && px.mcapNasdaq, r.result, facts); } catch (e) { log(`quality ${meta.ticker}: ${e.message}`); }
       if (!px) noPrice.push(meta.ticker);
     } catch (e) { failures.push([meta.ticker, String(e.message).slice(0, 120)]); try { quality.diag(meta.ticker, facts, e); } catch {} }
@@ -396,6 +409,14 @@ async function main() {
       const meta = companies.get(cik);
       if (!fs.existsSync(path.join(SNAP, "f", `${meta.ticker}.json.gz`))) return;
       const snap = companySnap(s, cik, built);
+      const it = soicItems.get(meta.ticker);
+      if (it) {
+        it.sic = parseInt(s.sic, 10) || null; it.sicDesc = s.sicDescription || ""; it.subs = true;
+        const rec = (s.filings && s.filings.recent) || {}, since = new Date(Date.now() - 3 * 365.25 * 864e5).toISOString().slice(0, 10);
+        for (let i = 0; i < (rec.form || []).length; i++) {
+          if (/^8-K/.test(rec.form[i]) && rec.filingDate[i] >= since && /(^|,)\s*4\.01/.test(rec.items ? rec.items[i] || "" : "")) { it.auditor = rec.filingDate[i]; break; }
+        }
+      }
       const p = predOf.has(cik) && predSubs.get(predOf.get(cik));
       if (p) snap.filings = snap.filings.concat(companySnap(p, predOf.get(cik), built).filings).slice(0, 160);
       fs.writeFileSync(path.join(SNAP, "c", `${meta.ticker}.json`), JSON.stringify(snap));
@@ -412,6 +433,26 @@ async function main() {
   // RS rating needs every stock's performance, so it (and the final Stage 2 flag) is filled in now
   SC.finishTechnicals(techRows);
   for (const t of techRows) for (const k of ["rs_rating", "stage2_score", "stage2"]) t.cells[5 + FIELD_KEYS.indexOf(k)] = t[k] ?? null;
+  // SOIC score: industry groups need every company, so it's scored last
+  try {
+    const items = [...soicItems.values()];
+    for (const x of items) x.fin = (x.sic >= 6000 && x.sic <= 6799) || (!x.sic && x.nasdaqFin);
+    const { scores, ranked } = SOIC.finish(items);
+    const col = (k) => 5 + FIELD_KEYS.indexOf(k);
+    const soicOut = {};
+    for (const x of items) {
+      const sc = scores.get(x.t); if (!sc) continue;
+      x.cells[col("soic")] = sc.total;
+      x.cells[col("soic_rank")] = sc.rank ?? null;
+      for (const [s, k] of [["Industry", "soic_industry"], ["Fundamental", "soic_fundamental"], ["Technical", "soic_technical"], ["Valuation", "soic_valuation"], ["Forensic", "soic_forensic"]]) x.cells[col(k)] = sc.sec[s];
+      soicOut[x.t] = { a: sc.A, v: sc.V, s: SOIC.SECTIONS.map((s) => sc.sec[s]), t: sc.total, r: sc.rank ?? null, fin: x.fin ? 1 : 0, g: sc.group };
+    }
+    fs.mkdirSync(path.join(ROOT, "public/data"), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, "public/data/soic.json"), JSON.stringify({ built: new Date().toISOString(), ranked, max: SOIC.MAX, rows: soicOut }));
+    const top = [...scores.entries()].filter(([, r]) => r.rank && r.rank <= 10).sort((a, b) => a[1].rank - b[1].rank).map(([t, r]) => `${t} ${r.total}`);
+    const sample = ["AAPL", "MSFT", "NVDA", "GOOGL", "WMT", "KO", "XOM", "TSLA"].filter((t) => scores.has(t)).map((t) => `${t} ${scores.get(t).total}`);
+    log(`SOIC: ${ranked} ranked of ${items.length}; top 10: ${top.join(", ")}; sample: ${sample.join(", ")}`);
+  } catch (e) { log("SOIC scoring failed:", e.message); }
   table.sort((a, b) => (b[5 + FIELD_KEYS.indexOf("mcap")] || 0) - (a[5 + FIELD_KEYS.indexOf("mcap")] || 0));
   log(`Rows: ${table.length}, failed: ${failures.length}, without price: ${noPrice.length}`);
 

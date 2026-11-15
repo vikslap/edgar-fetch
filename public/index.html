@@ -296,6 +296,15 @@ details.dq summary{cursor:pointer;list-style:none} details.dq summary::-webkit-d
 .dq-list li>b{width:18px;text-align:center;flex:none}
 .dq-list li.ok>b{color:#1baf7a} .dq-list li.warn>b{color:#d97706} .dq-list li.fail>b{color:#d92d20} .dq-list li.na{opacity:.75}
 .qflag{color:#d97706;cursor:help;font-size:12px}
+.soicb{color:var(--accent,#2a78d6);background:rgba(42,120,214,.1);border-color:rgba(42,120,214,.35)}
+.soic-top{display:flex;flex-wrap:wrap;gap:18px 32px;align-items:flex-end;margin:6px 0 14px}
+.soic-big{font-size:34px;font-weight:700;line-height:1}.soic-big small{font-size:15px;font-weight:500;color:var(--muted)}
+.soic-bars{display:grid;grid-template-columns:110px 1fr 74px;gap:6px 12px;align-items:center;max-width:620px;font-size:13px}
+.soic-bar{height:10px;border-radius:5px;background:var(--zebra);overflow:hidden}.soic-bar>i{display:block;height:100%;background:#2a78d6;border-radius:5px}
+.soic-bar.neg>i{background:#d92d20}
+table.soic{width:100%;table-layout:fixed;min-width:760px}table.soic th,table.soic td{white-space:normal;text-align:left;vertical-align:top;font-size:13px;position:static}table.soic th:nth-child(1){width:32%}table.soic th:nth-child(2){width:22%}table.soic th:nth-child(3){width:64px;text-align:right}table.soic td.pts{text-align:right;font-weight:600;white-space:nowrap}
+table.soic td.pts.pos{color:#159a6b}table.soic td.pts.neg{color:#d92d20}table.soic tr.sec td{font-weight:700;background:var(--zebra)}
+table.soic td.na{color:var(--muted);font-style:italic}
 .plwarn{position:sticky;left:0;max-width:min(760px,calc(100vw - 64px));margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#fff7ed;border:1px solid #f3c98b;color:#7c3a06;font-size:13px;line-height:1.45}   /* sticky name cell must stay opaque when scrolled */
 table.pl tr.child td{font-size:13px;color:var(--muted)}
 table.pl tr.child td:first-child{padding-left:26px}
@@ -387,6 +396,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
         <h1 id="coName"></h1>
         <div class="px" id="pxBlock"></div>
         <div class="co-btns">
+          <a id="soicBadge" class="dqb soicb" href="#sec-soic" hidden></a>
           <a id="dqBadge" class="dqb" href="#sec-checks" hidden></a>
           <button class="btn-up" id="starBtn" title="Add to your watchlist">☆ Watchlist</button>
           <button class="btn-up" id="exportBtn">
@@ -597,6 +607,7 @@ textarea{width:100%;min-height:320px;font:12.5px/1.45 var(--mono)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="core.js"></script>
 <script src="screen-core.js"></script>
+<script src="soic.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
