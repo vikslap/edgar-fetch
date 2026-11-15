@@ -452,6 +452,14 @@ async function main() {
     const top = [...scores.entries()].filter(([, r]) => r.rank && r.rank <= 10).sort((a, b) => a[1].rank - b[1].rank).map(([t, r]) => `${t} ${r.total}`);
     const sample = ["AAPL", "MSFT", "NVDA", "GOOGL", "WMT", "KO", "XOM", "TSLA"].filter((t) => scores.has(t)).map((t) => `${t} ${scores.get(t).total}`);
     log(`SOIC: ${ranked} ranked of ${items.length}; top 10: ${top.join(", ")}; sample: ${sample.join(", ")}`);
+    // readable answers for the test-set companies, saved with the build state so scoring can be reviewed
+    const readable = (t) => { const r = soicOut[t]; if (!r) return null;
+      return { total: r.t, rank: r.r, sections: Object.fromEntries(SOIC.SECTIONS.map((s, i) => [s, r.s[i]])), industry: r.g && r.g.label,
+        answers: SOIC.QUESTIONS.map((q, i) => `${q[2]}: ${r.a[i] == null ? "(no data)" : `${q[4][r.a[i]][0]} [${q[4][r.a[i]][1]}]`} | ${r.v[i]}`) }; };
+    fs.mkdirSync(path.join(ROOT, "state"), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, "state/soic_sample.json"), JSON.stringify(Object.fromEntries(
+      [...new Set(["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "WMT", "COST", "KO", "PG", "XOM", "TSLA", "NFLX", "JNJ", ...top.slice(0, 5).map((x) => x.split(" ")[0])])]
+        .map((t) => [t, readable(t)]).filter(([, v]) => v)), null, 1));
   } catch (e) { log("SOIC scoring failed:", e.message); }
   table.sort((a, b) => (b[5 + FIELD_KEYS.indexOf("mcap")] || 0) - (a[5 + FIELD_KEYS.indexOf("mcap")] || 0));
   log(`Rows: ${table.length}, failed: ${failures.length}, without price: ${noPrice.length}`);
