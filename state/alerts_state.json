@@ -54,6 +54,7 @@
    "CX",
    "DAR",
    "DGX",
+   "DLB",
    "DLTR",
    "DORM",
    "DPZ",
@@ -65,12 +66,9 @@
    "EQT",
    "ERO",
    "ESLT",
-   "FFIV",
    "FICO",
    "FIVE",
-   "FIVN",
    "FRPT",
-   "FRSH",
    "FTDR",
    "FTI",
    "GD",
@@ -177,7 +175,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-17"
+  "at": "2026-11-18"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -281,6 +279,7 @@
    "INFY",
    "INMD",
    "INVA",
+   "IPAR",
    "ITRN",
    "JAKK",
    "JFIN",
@@ -343,6 +342,7 @@
    "PLGO",
    "PLX",
    "PNRG",
+   "POWL",
    "PPBT",
    "PRI",
    "PSIX",
@@ -397,6 +397,7 @@
    "VINP",
    "VLO",
    "WDC",
+   "WSM",
    "WSO",
    "XNET",
    "XP",
@@ -412,7 +413,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-17"
+  "at": "2026-11-18"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -428,6 +429,7 @@
    "AEG",
    "AFG",
    "AG",
+   "AGNC",
    "AGX",
    "AIZ",
    "ALG",
@@ -439,6 +441,7 @@
    "AMPH",
    "AMTB",
    "AMTM",
+   "ANF",
    "ANIP",
    "AOS",
    "APA",
@@ -637,7 +640,6 @@
    "HOPE",
    "HOS",
    "HRMY",
-   "HRTG",
    "HSBC",
    "HST",
    "HTHT",
@@ -662,7 +664,6 @@
    "INVA",
    "INVX",
    "IPAR",
-   "IRS",
    "IRT",
    "IVZ",
    "JLL",
@@ -670,6 +671,8 @@
    "JXN",
    "KBH",
    "KC",
+   "KEP",
+   "KEY",
    "KFY",
    "KGC",
    "KMPR",
@@ -706,6 +709,7 @@
    "MMS",
    "MNDY",
    "MNSO",
+   "MQ",
    "MRP",
    "MRX",
    "MTG",
@@ -764,6 +768,7 @@
    "PLMR",
    "PNFP",
    "PODD",
+   "POWL",
    "PPC",
    "PR",
    "PRDO",
@@ -791,7 +796,6 @@
    "RNR",
    "RNST",
    "ROOT",
-   "RPD",
    "RRC",
    "RRX",
    "RSI",
@@ -805,7 +809,7 @@
    "SBS",
    "SCHW",
    "SE",
-   "SENEA",
+   "SEPN",
    "SEZL",
    "SF",
    "SFBS",
@@ -869,7 +873,6 @@
    "UMBF",
    "UPBD",
    "UPWK",
-   "UROY",
    "UTI",
    "UVE",
    "UVSP",
@@ -912,6 +915,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-17"
+  "at": "2026-11-18"
  }
 }
