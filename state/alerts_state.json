@@ -112,6 +112,7 @@
    "MTCH",
    "MTZ",
    "MU",
+   "MWA",
    "NDAQ",
    "NEM",
    "NTAP",
@@ -175,7 +176,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-18"
+  "at": "2026-11-19"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -187,6 +188,7 @@
    "AFG",
    "AGRZ",
    "AII",
+   "AIT",
    "ALH",
    "ALX",
    "AMPY",
@@ -279,7 +281,6 @@
    "INFY",
    "INMD",
    "INVA",
-   "IPAR",
    "ITRN",
    "JAKK",
    "JFIN",
@@ -342,7 +343,6 @@
    "PLGO",
    "PLX",
    "PNRG",
-   "POWL",
    "PPBT",
    "PRI",
    "PSIX",
@@ -370,7 +370,6 @@
    "SMCI",
    "SNA",
    "SOHU",
-   "SPB",
    "SQM",
    "SQNS",
    "SSD",
@@ -378,7 +377,6 @@
    "STRL",
    "TDC",
    "TGLS",
-   "TJX",
    "TORO",
    "TOYO",
    "TRMD",
@@ -397,7 +395,6 @@
    "VINP",
    "VLO",
    "WDC",
-   "WSM",
    "WSO",
    "XNET",
    "XP",
@@ -413,7 +410,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-18"
+  "at": "2026-11-19"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -432,6 +429,7 @@
    "AGNC",
    "AGX",
    "AIZ",
+   "ALB",
    "ALG",
    "ALL",
    "ALV",
@@ -441,7 +439,6 @@
    "AMPH",
    "AMTB",
    "AMTM",
-   "ANF",
    "ANIP",
    "AOS",
    "APA",
@@ -461,6 +458,7 @@
    "AU",
    "AUB",
    "AUPH",
+   "AVAL",
    "AX",
    "AZZ",
    "BANC",
@@ -545,7 +543,6 @@
    "DAVE",
    "DCOM",
    "DECK",
-   "DHI",
    "DINO",
    "DLO",
    "DMC",
@@ -595,6 +592,7 @@
    "FLOC",
    "FMBH",
    "FNF",
+   "FOR",
    "FRME",
    "FRSH",
    "FSBC",
@@ -666,6 +664,7 @@
    "IPAR",
    "IRT",
    "IVZ",
+   "JD",
    "JLL",
    "JOE",
    "JXN",
@@ -716,6 +715,7 @@
    "MU",
    "MUR",
    "NBHC",
+   "NBIX",
    "NEM",
    "NIC",
    "NICE",
@@ -740,7 +740,6 @@
    "ONB",
    "OPLN",
    "OPRA",
-   "OPY",
    "ORI",
    "OSBC",
    "OSCR",
@@ -796,6 +795,7 @@
    "RNR",
    "RNST",
    "ROOT",
+   "RPD",
    "RRC",
    "RRX",
    "RSI",
@@ -819,6 +819,7 @@
    "SHEL",
    "SIG",
    "SIGI",
+   "SII",
    "SKM",
    "SKWD",
    "SKY",
@@ -833,6 +834,7 @@
    "SNX",
    "SNY",
    "SRCE",
+   "SSRM",
    "STRA",
    "STT",
    "SVM",
@@ -915,6 +917,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-18"
+  "at": "2026-11-19"
  }
 }
