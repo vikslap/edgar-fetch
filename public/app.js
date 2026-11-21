@@ -843,6 +843,8 @@
     const rows = [
       { label: "Sales", vals: sales, key: "sales" },
       { label: isQ ? "YoY sales growth" : "Sales growth", vals: growth(sales, lag), f: "growth" },
+      { label: "Gross margin %", vals: get((c) => (c.sales && c.cogs ? ((c.sales - c.cogs) / c.sales) * 100 : null)), f: "pct", optional: true,
+        tip: "(Sales − cost of sales) ÷ sales. Blank when the company doesn't report a cost of sales (many service and software companies)." },
       { label: "Expenses", vals: get((c) => c.exp), strong: true, tg: "exp" },
       { label: "Cost of sales %", vals: pctOf((c) => c.cogs), f: "pct", child: "exp", tip: "Includes depreciation charged to cost of sales" },
       { label: "SG&A %", vals: pctOf((c) => c.sga), f: "pct", child: "exp" },
@@ -853,6 +855,11 @@
         tip: "US companies include depreciation inside cost of sales and SG&A. Operating Profit here is before depreciation (EBITDA), so it is taken back out: the rows above add up to Expenses ÷ Sales." },
       { label: "Operating Profit", vals: get((c) => c.ebitda), strong: true, tip: "Before depreciation (EBITDA), like screener.in. If depreciation isn't reported for a period, this is EBIT." },
       { label: "OPM %", vals: get((c) => (c.sales ? (c.ebitda / c.sales) * 100 : null)), f: "pct" },
+      { label: "Operating income (EBIT)", vals: get((c) => (c.dep ? c.ebit : null)), strong: true, tg: "ebit", optional: true,
+        tip: "After depreciation: the 'Operating income' line in the 10-K and on US sites like stockanalysis.com. Shown when depreciation is reported (otherwise Operating Profit above is already EBIT)." },
+      { label: "EBIT margin %", vals: get((c) => (c.sales && c.dep ? (c.ebit / c.sales) * 100 : null)), f: "pct", child: "ebit" },
+      { label: "Operating expenses excl. cost of sales", vals: get((c) => (c.sga || c.rnd || c.oopex ? c.sga + c.rnd + c.oopex : null)), child: "ebit",
+        tip: "SG&A + R&D + other operating costs: what US sites call 'Operating Expenses'." },
       { label: "Other Income", vals: get((c) => c.otherNet), tg: "oi" },
       { label: "Reported other income / expense", vals: get((c) => c.oi), child: "oi", key: "other_income" },
       ...OI_PARTS.map((k, j) => ({ label: "· " + OI_LABELS[j], vals: get((c) => c.oiParts[j]), child: "oi", key: k })),
@@ -873,6 +880,8 @@
       { label: isQ ? "YoY profit growth" : "Profit growth", vals: growth(np, lag), f: "growth" },
       { label: "EPS in $", vals: eps, f: "eps", tg: "eps" },
       { label: "Diluted shares (Mn)", vals: get((c) => c.sh), child: "eps", shares: true, key: "shares_diluted" },
+      { label: "Change in shares", vals: growth(get((c) => c.sh), lag), f: "growth", child: "eps", invert: true,
+        tip: "Negative = buybacks shrinking the share count (each share owns more); positive = dilution from stock pay or share issues." },
       { label: isQ ? "YoY EPS growth" : "EPS growth", vals: growth(eps, lag), f: "growth" },
     ];
     if (!isQ) rows.push({ label: "Dividend payout %", vals: get((c) => c.payout), f: "pct" });
@@ -896,11 +905,11 @@
       return `<th>${mon(ends[i])}${isQ ? "" : qflag("PROFIT & LOSS", ends[i])}${fp ? `<br><span class="fq">Q${fp.fq} FY${String(fp.fy).slice(2)}</span>` : ""}</th>`;
     }).join("");
     const fmtCell = (r, v) => {
-      if (r.f === "growth") return v == null ? "" : `<span class="${v < 0 ? "neg-t" : "pos-t"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+      if (r.f === "growth") return v == null ? "" : `<span class="${(v < 0) !== !!r.invert ? "neg-t" : "pos-t"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
       return cellFmt(v, r.f, r.shares);
     };
     // a row is worth showing only if it adds information
-    const hasData = (r) => !(r.vals.every((v) => v == null || v === 0) && (r.child || r.key === "depreciation")) &&
+    const hasData = (r) => !(r.vals.every((v) => v == null || v === 0) && (r.child || r.optional || r.key === "depreciation")) &&
       !(r.same && r.vals.every((v, k) => v == null || np[k] == null || Math.abs(v - np[k]) < 0.5));
     const tgWithKids = new Set(rows.filter((r) => r.child && hasData(r)).map((r) => r.child));
     let body = "";
