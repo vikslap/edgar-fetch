@@ -1,58 +1,58 @@
 {
- "built": "2026-11-21T16:55:15.131Z",
- "companies": 5199,
+ "built": "2026-11-24T20:20:50.105Z",
+ "companies": 5195,
  "checks": {
   "op_income": {
    "label": "Operating profit matches reported operating income",
-   "ok": 4015,
+   "ok": 4010,
    "warn": 0,
    "fail": 293,
-   "na": 891,
+   "na": 892,
    "pctOk": 93.2
   },
   "unplaced": {
    "label": "Little left unplaced between operating profit and pre-tax profit",
-   "ok": 2956,
-   "warn": 2243,
+   "ok": 2954,
+   "warn": 2241,
    "fail": 0,
    "na": 0,
    "pctOk": 56.9
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 4608,
-   "warn": 591,
+   "ok": 4603,
+   "warn": 592,
    "fail": 0,
    "na": 0,
    "pctOk": 88.6
   },
   "eps": {
    "label": "EPS matches reported EPS",
-   "ok": 3620,
-   "warn": 419,
+   "ok": 3616,
+   "warn": 418,
    "fail": 457,
-   "na": 703,
+   "na": 704,
    "pctOk": 80.5
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
-   "ok": 4997,
+   "ok": 4994,
    "warn": 0,
-   "fail": 121,
+   "fail": 120,
    "na": 81,
-   "pctOk": 97.6
+   "pctOk": 97.7
   },
   "bs_parts": {
    "label": "Listed balance-sheet lines fit inside their totals",
-   "ok": 5015,
-   "warn": 184,
+   "ok": 5012,
+   "warn": 183,
    "fail": 0,
    "na": 0,
    "pctOk": 96.5
   },
   "cash": {
    "label": "Cash flows explain the change in cash",
-   "ok": 3378,
+   "ok": 3374,
    "warn": 1460,
    "fail": 0,
    "na": 361,
@@ -60,23 +60,23 @@
   },
   "shares": {
    "label": "Share count has no big jumps",
-   "ok": 3843,
-   "warn": 1183,
+   "ok": 3839,
+   "warn": 1182,
    "fail": 0,
-   "na": 173,
+   "na": 174,
    "pctOk": 76.5
   },
   "coverage": {
    "label": "Key lines reported every year",
-   "ok": 4442,
-   "warn": 757,
+   "ok": 4440,
+   "warn": 755,
    "fail": 0,
    "na": 0,
-   "pctOk": 85.4
+   "pctOk": 85.5
   },
   "splits": {
    "label": "Stock splits adjusted",
-   "ok": 1578,
+   "ok": 1576,
    "warn": 0,
    "fail": 0,
    "na": 0,
@@ -160,7 +160,7 @@
     "ROP 2023 gap -646100 tag 646100",
     "FDS 2024 gap -265200 tag 265200",
     "SBFM 2021 gap -672 tag 672",
-    "EVO 2020 gap -70199 tag 70180",
+    "EVO 2020 gap -70174 tag 70154",
     "AMBO 2021 gap -2273 tag 2273"
    ]
   },
@@ -282,14 +282,14 @@
    "companies": 11,
    "sameSign": 0,
    "examples": [
-    "BBVA 2023 gap -13644120 tag 13644120",
+    "BBVA 2023 gap -13639147 tag 13639147",
     "BBAR 2022 gap -227457 tag 227457",
     "TLK 2022 gap -2552000 tag 2552000",
     "GGAL 2022 gap -291473 tag 291473",
     "BMA 2022 gap -1172196 tag 1172196",
     "VLRS 2022 gap -43689 tag 43689",
-    "GLDG 2021 gap -75802 tag 75802",
-    "IFS 2022 gap -627094 tag 627094"
+    "GLDG 2021 gap -76183 tag 76183",
+    "IFS 2022 gap -622112 tag 622112"
    ]
   },
   {
@@ -321,7 +321,7 @@
     "NHP 2023 gap -13799 tag 13799",
     "FTAI 2023 gap -31795 tag 31795",
     "SRG 2025 gap -4900 tag 4900",
-    "FTS 2023 gap -46726 tag 46726"
+    "FTS 2023 gap -46960 tag 46960"
    ]
   },
   {
@@ -395,7 +395,7 @@
     "EGO 2023 gap -14195 tag 14195",
     "EXK 2023 gap -10951 tag 10951",
     "GFS 2025 gap -48000 tag 48000",
-    "VZLA 2025 gap -11458 tag 11458",
+    "VZLA 2025 gap -11516 tag 11516",
     "DFSC 2019 gap 93 tag -93",
     "SLMT 2020 gap -23 tag 23",
     "TURB 2024 gap 559 tag -560"
@@ -422,13 +422,13 @@
    "companies": 7,
    "sameSign": 0,
    "examples": [
-    "PAC 2020 gap 17251 tag -17251",
+    "PAC 2020 gap 17020 tag -17020",
     "GAU 2025 gap -5669 tag 5669",
     "GPRK 2023 gap 16820 tag -16820",
     "VLRS 2020 gap -13601 tag 13601",
-    "VALN 2023 gap -6116 tag 6117",
-    "ONON 2023 gap 132569 tag -132689",
-    "TBBB 2022 gap -13829 tag 13829"
+    "VALN 2023 gap -6114 tag 6115",
+    "ONON 2023 gap 133282 tag -133401",
+    "TBBB 2022 gap -13644 tag 13644"
    ]
   },
   {
@@ -437,7 +437,7 @@
    "companies": 6,
    "sameSign": 6,
    "examples": [
-    "CNI 2023 gap -334055 tag -334055",
+    "CNI 2023 gap -335731 tag -335731",
     "CL 2023 gap 360000 tag 360000",
     "PKOH 2021 gap -9700 tag -9700",
     "LMT 2022 gap 971000 tag 971000",
@@ -509,9 +509,9 @@
    "examples": [
     "GIL 2023 gap 79670 tag -79670",
     "EQNR 2021 gap 2080000 tag -2080000",
-    "NMG 2022 gap -5493 tag 5493",
+    "NMG 2022 gap -5521 tag 5521",
     "AMBP 2023 gap 147000 tag -147000",
-    "CDRO 2022 gap -13675 tag 13675",
+    "CDRO 2022 gap -13670 tag 13670",
     "BTDR 2022 gap 4181 tag -4181"
    ]
   },
@@ -665,11 +665,11 @@
    "companies": 5,
    "sameSign": 1,
    "examples": [
-    "SIM 2024 gap -107538 tag 107538",
+    "SIM 2024 gap -106096 tag 106096",
     "PAM 2024 gap 121000 tag -121000",
-    "BSBR 2023 gap -410187 tag -410187",
-    "ABEV 2024 gap -785620 tag 785620",
-    "SNDL 2021 gap 5519 tag -5519"
+    "BSBR 2023 gap -409944 tag -409944",
+    "ABEV 2024 gap -785156 tag 785156",
+    "SNDL 2021 gap 5547 tag -5547"
    ]
   }
  ],
@@ -702,7 +702,7 @@
     ]
    },
    "1.8–10": {
-    "companies": 175,
+    "companies": 176,
     "examples": [
      "AEM ×4.88",
      "DOMH ×4.87",
@@ -715,7 +715,7 @@
     ]
    },
    "1.05–1.8": {
-    "companies": 257,
+    "companies": 256,
     "examples": [
      "ARTW ×1.07",
      "HRB ×1.05",
@@ -728,7 +728,7 @@
     ]
    },
    "0.55–0.95": {
-    "companies": 366,
+    "companies": 365,
     "examples": [
      "BRT ×0.924",
      "GCO ×0.748",
@@ -767,7 +767,7 @@
     ]
    },
    "1/500–1/10": {
-    "companies": 50,
+    "companies": 49,
     "examples": [
      "UMH ×0.0925",
      "SNN ×0.0210",
@@ -782,7 +782,7 @@
   },
   "shares": {
    "1.8–10": {
-    "companies": 683,
+    "companies": 682,
     "examples": [
      "AP ×1.92",
      "FWDI ×8.00",
@@ -795,7 +795,7 @@
     ]
    },
    "1/10–0.55": {
-    "companies": 85,
+    "companies": 86,
     "examples": [
      "AAME ×0.400",
      "DOMH ×0.342",
@@ -808,7 +808,7 @@
     ]
    },
    "10–500": {
-    "companies": 190,
+    "companies": 189,
     "examples": [
      "UAVS ×10.9",
      "USAU ×31.2",
@@ -863,11 +863,11 @@
  },
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4695,
+   "companiesWithGaps": 4692,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
-     474
+     473
     ],
     [
      "PaymentsToAcquireMarketableSecurities",
@@ -887,16 +887,16 @@
     ],
     [
      "MarketableSecuritiesUnrealizedGainLoss",
-     167
+     166
     ]
    ]
   },
   "buybacks": {
-   "companiesWithGaps": 4131,
+   "companiesWithGaps": 4127,
    "candidates": []
   },
   "dividends": {
-   "companiesWithGaps": 3789,
+   "companiesWithGaps": 3785,
    "candidates": [
     [
      "PaymentsOfDividendsPreferredStockAndPreferenceStock",
@@ -909,7 +909,7 @@
    ]
   },
   "lt_debt": {
-   "companiesWithGaps": 3676,
+   "companiesWithGaps": 3671,
    "candidates": [
     [
      "LongTermDebtCurrent",
@@ -938,7 +938,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3539,
+   "companiesWithGaps": 3536,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -967,7 +967,7 @@
    ]
   },
   "rnd": {
-   "companiesWithGaps": 3078,
+   "companiesWithGaps": 3077,
    "candidates": [
     [
      "DeferredTaxAssetsInProcessResearchAndDevelopment",
@@ -978,16 +978,16 @@
      30
     ],
     [
-     "EffectiveIncomeTaxRateReconciliationNondeductibleExpenseResearchAndDevelopment",
-     24
-    ],
-    [
      "ResearchAndDevelopmentExpenseSoftwareExcludingAcquiredInProcessCost",
      23
     ],
     [
+     "EffectiveIncomeTaxRateReconciliationNondeductibleExpenseResearchAndDevelopment",
+     23
+    ],
+    [
      "IncomeTaxReconciliationNondeductibleExpenseResearchAndDevelopment",
-     20
+     19
     ],
     [
      "OtherResearchAndDevelopmentExpense",
@@ -996,11 +996,11 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 2993,
+   "companiesWithGaps": 2989,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
-     303
+     302
     ],
     [
      "FinancingReceivableRecordedInvestmentCurrent",
@@ -1012,7 +1012,7 @@
     ],
     [
      "AccountsAndOtherReceivablesNetCurrent",
-     169
+     168
     ],
     [
      "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
@@ -1025,7 +1025,7 @@
    ]
   },
   "cogs": {
-   "companiesWithGaps": 2701,
+   "companiesWithGaps": 2700,
    "candidates": [
     [
      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
@@ -1041,7 +1041,7 @@
     ],
     [
      "CostOfGoodsAndServicesSoldDepreciation",
-     36
+     35
     ],
     [
      "CostOfServicesExcludingDepreciationDepletionAndAmortization",
@@ -1054,7 +1054,7 @@
    ]
   },
   "interest": {
-   "companiesWithGaps": 2291,
+   "companiesWithGaps": 2289,
    "candidates": [
     [
      "InterestExpenseOther",
@@ -1083,15 +1083,15 @@
    ]
   },
   "current_liabilities": {
-   "companiesWithGaps": 2047,
+   "companiesWithGaps": 2046,
    "candidates": []
   },
   "current_assets": {
-   "companiesWithGaps": 2032,
+   "companiesWithGaps": 2031,
    "candidates": []
   },
   "capex": {
-   "companiesWithGaps": 1550,
+   "companiesWithGaps": 1549,
    "candidates": []
   },
   "sbc": {
@@ -1099,11 +1099,11 @@
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
-     232
+     233
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
-     212
+     213
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
@@ -1119,7 +1119,7 @@
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
-     128
+     129
     ]
    ]
   },
@@ -1149,7 +1149,7 @@
    ]
   },
   "depreciation": {
-   "companiesWithGaps": 897,
+   "companiesWithGaps": 898,
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
@@ -1199,7 +1199,7 @@
    ]
   },
   "sga": {
-   "companiesWithGaps": 842,
+   "companiesWithGaps": 843,
    "candidates": [
     [
      "OtherGeneralAndAdministrativeExpense",
@@ -1228,15 +1228,15 @@
    ]
   },
   "cash": {
-   "companiesWithGaps": 294,
+   "companiesWithGaps": 293,
    "candidates": [
     [
      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsIncludingDisposalGroupAndDiscontinuedOperations",
-     140
+     139
     ],
     [
      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
-     128
+     127
     ],
     [
      "CashAndDueFromBanks",
@@ -1287,21 +1287,21 @@
   "CARR: op_income",
   "CHT: eps",
   "ALC: eps",
-  "MSTR: bs_balance",
-  "OKTA: eps",
   "MLM: op_income",
-  "TKO: bs_balance",
   "UMC: eps",
+  "OKTA: eps",
+  "MSTR: bs_balance",
+  "TKO: bs_balance",
   "NTAP: op_income",
   "PUK: eps",
-  "NBIS: bs_balance",
-  "CQP: eps",
-  "PBA: op_income",
   "ROIV: op_income",
+  "NBIS: bs_balance",
+  "PBA: op_income",
+  "CQP: eps",
   "RF: op_income",
-  "PFG: bs_balance",
   "HUBB: bs_balance",
-  "BEKE: eps"
+  "PFG: bs_balance",
+  "WIT: eps"
  ],
  "buildDiagnostics": {},
  "testSet": {
