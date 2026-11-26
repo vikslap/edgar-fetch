@@ -1,20 +1,20 @@
 {
- "built": "2026-11-25T19:25:37.024Z",
+ "built": "2026-11-26T19:09:45.897Z",
  "listed": 6041,
  "rows": 5195,
  "failed": 694,
- "prices": 7365,
+ "prices": 7374,
  "history": 6041,
  "factsSnaps": 5889,
  "companySnaps": 5889,
- "minutes": 12,
+ "minutes": 11,
  "dq": {
   "pctOk": {
    "op_income": 93.2,
    "bs_balance": 97.7,
    "eps": 80.5,
    "net_profit": 88.6,
-   "shares": 76.5
+   "shares": 76.4
   },
   "topCauses": [
    [

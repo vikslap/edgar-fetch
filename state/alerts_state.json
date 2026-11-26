@@ -69,6 +69,7 @@
    "FICO",
    "FIVE",
    "FRPT",
+   "FRSH",
    "FTDR",
    "FTI",
    "GD",
@@ -171,7 +172,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-25"
+  "at": "2026-11-26"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -391,7 +392,6 @@
    "VLO",
    "WDC",
    "WSM",
-   "WSO",
    "XNET",
    "XP",
    "XPEL",
@@ -406,7 +406,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-25"
+  "at": "2026-11-26"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -444,7 +444,6 @@
    "ARDT",
    "ARE",
    "ARES",
-   "ARHS",
    "ARR",
    "ARX",
    "ASB",
@@ -550,7 +549,6 @@
    "DVN",
    "DXC",
    "E",
-   "ED",
    "EDU",
    "EFOR",
    "EFSC",
@@ -571,11 +569,10 @@
    "ESNT",
    "ESQ",
    "ETOR",
+   "EVCM",
    "EVER",
    "EWBC",
-   "EXE",
    "EXEL",
-   "EXR",
    "EZPW",
    "F",
    "FAF",
@@ -602,7 +599,6 @@
    "GABC",
    "GBCI",
    "GCT",
-   "GDRX",
    "GGAL",
    "GIII",
    "GL",
@@ -684,7 +680,6 @@
    "LKQ",
    "LNTH",
    "LOB",
-   "LOPE",
    "LPG",
    "LPL",
    "LRN",
@@ -709,6 +704,7 @@
    "MQ",
    "MRP",
    "MRX",
+   "MT",
    "MTG",
    "MU",
    "MUR",
@@ -758,7 +754,6 @@
    "PFS",
    "PGR",
    "PHM",
-   "PINS",
    "PIPR",
    "PJT",
    "PLMR",
@@ -818,7 +813,6 @@
    "SII",
    "SKM",
    "SKWD",
-   "SKY",
    "SKYW",
    "SLDE",
    "SM",
@@ -857,7 +851,6 @@
    "TRMK",
    "TRV",
    "TS",
-   "TTAM",
    "TTD",
    "TTE",
    "UBER",
@@ -892,7 +885,6 @@
    "WF",
    "WHD",
    "WKC",
-   "WLDN",
    "WRB",
    "WSBC",
    "WSE",
@@ -915,6 +907,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-25"
+  "at": "2026-11-26"
  }
 }
