@@ -79,7 +79,7 @@
  },
  "NVDA": {
   "total": 113,
-  "rank": 888,
+  "rank": 885,
   "sections": {
    "Industry": 20,
    "Fundamental": 33,
@@ -118,7 +118,7 @@
  },
  "GOOGL": {
   "total": 98,
-  "rank": 1141,
+  "rank": 1139,
   "sections": {
    "Industry": 30,
    "Fundamental": 28,
@@ -196,7 +196,7 @@
  },
  "META": {
   "total": 108,
-  "rank": 985,
+  "rank": 982,
   "sections": {
    "Industry": 30,
    "Fundamental": 38,
@@ -391,7 +391,7 @@
  },
  "XOM": {
   "total": 130,
-  "rank": 646,
+  "rank": 645,
   "sections": {
    "Industry": 15,
    "Fundamental": 35,
@@ -430,7 +430,7 @@
  },
  "TSLA": {
   "total": 85,
-  "rank": 1346,
+  "rank": 1343,
   "sections": {
    "Industry": 10,
    "Fundamental": 20,
@@ -452,7 +452,7 @@
    "ADX (weekly): 0 to 20 [-5] | ADX 12.1",
    "RSI (weekly): Between 50 to 75 [10] | RSI 54.2",
    "Stage analysis: Stage 1 (accumulation) [0] | 30-week average up 0.1% in 5 weeks; price above it",
-   "Price-volume action: Neutral [0] | up-week volume 1.11x down-week volume; price -8% in 26 weeks",
+   "Price-volume action: Neutral [0] | up-week volume 1.12x down-week volume; price -8% in 26 weeks",
    "Secondary trend: Uptrend [10] | price vs 10-week average, average rising",
    "Primary trend: Sideways [5] | price vs 40-week average, average flat or mixed",
    "Resistance: Overhead supply in last 2 years [-5] | 20% below the 52-week high, 20% below the 10-year high",
@@ -469,7 +469,7 @@
  },
  "NFLX": {
   "total": 110,
-  "rank": 930,
+  "rank": 927,
   "sections": {
    "Industry": 35,
    "Fundamental": 35,
@@ -495,7 +495,7 @@
    "Secondary trend: Downtrend [0] | price vs 10-week average, average falling",
    "Primary trend: Downtrend [0] | price vs 40-week average, average falling",
    "Resistance: Long-term downtrend [-10] | 44% below the 52-week high, 55% below the 10-year high",
-   "V-stop (weekly): No [0] | stop at 67.77, price 60.93",
+   "V-stop (weekly): No [0] | stop at 67.78, price 60.93",
    "Profit growth: More than 20% [10] | net profit 34.7% a year over 3 years",
    "Stock history: Yes [0] | largest fall 75% in 10 years",
    "P/E above 50: No [5] | P/E 16.5",

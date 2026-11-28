@@ -172,7 +172,7 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-27"
+  "at": "2026-11-28"
  },
  "Quality at a fair price": {
   "query": "Average return on equity 5Years > 20 AND Debt to equity < 0.5 AND Price to earning < 25 AND Price to earning > 0",
@@ -191,7 +191,6 @@
    "ANF",
    "AOS",
    "APAM",
-   "AREC",
    "ASO",
    "ATAT",
    "ATLC",
@@ -406,7 +405,7 @@
    "ZJK",
    "ZTG"
   ],
-  "at": "2026-11-27"
+  "at": "2026-11-28"
  },
  "Cheap vs own DCF": {
   "query": "DCF upside > 30 AND Free cash flow last year > 0 AND Debt to equity < 1 AND Market Capitalization > 1000",
@@ -907,6 +906,6 @@
    "ZTO",
    "ZWS"
   ],
-  "at": "2026-11-27"
+  "at": "2026-11-28"
  }
 }

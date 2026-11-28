@@ -1,10 +1,10 @@
 {
- "built": "2026-11-27T19:06:40.020Z",
- "companies": 5195,
+ "built": "2026-11-28T17:41:32.244Z",
+ "companies": 5196,
  "checks": {
   "op_income": {
    "label": "Operating profit matches reported operating income",
-   "ok": 4010,
+   "ok": 4011,
    "warn": 0,
    "fail": 293,
    "na": 892,
@@ -12,7 +12,7 @@
   },
   "unplaced": {
    "label": "Little left unplaced between operating profit and pre-tax profit",
-   "ok": 2956,
+   "ok": 2957,
    "warn": 2239,
    "fail": 0,
    "na": 0,
@@ -20,7 +20,7 @@
   },
   "net_profit": {
    "label": "Net profit = pre-tax − tax ± discontinued ops − minority share",
-   "ok": 4604,
+   "ok": 4605,
    "warn": 591,
    "fail": 0,
    "na": 0,
@@ -28,15 +28,15 @@
   },
   "eps": {
    "label": "EPS matches reported EPS",
-   "ok": 3614,
-   "warn": 417,
+   "ok": 3613,
+   "warn": 418,
    "fail": 460,
-   "na": 704,
-   "pctOk": 80.5
+   "na": 705,
+   "pctOk": 80.4
   },
   "bs_balance": {
    "label": "Balance sheet balances (Assets = Liabilities + Temporary equity + Equity)",
-   "ok": 4993,
+   "ok": 4994,
    "warn": 0,
    "fail": 120,
    "na": 82,
@@ -44,7 +44,7 @@
   },
   "bs_parts": {
    "label": "Listed balance-sheet lines fit inside their totals",
-   "ok": 5012,
+   "ok": 5013,
    "warn": 183,
    "fail": 0,
    "na": 0,
@@ -55,7 +55,7 @@
    "ok": 3375,
    "warn": 1459,
    "fail": 0,
-   "na": 361,
+   "na": 362,
    "pctOk": 69.8
   },
   "shares": {
@@ -63,12 +63,12 @@
    "ok": 3838,
    "warn": 1183,
    "fail": 0,
-   "na": 174,
+   "na": 175,
    "pctOk": 76.4
   },
   "coverage": {
    "label": "Key lines reported every year",
-   "ok": 4440,
+   "ok": 4441,
    "warn": 755,
    "fail": 0,
    "na": 0,
@@ -160,7 +160,7 @@
     "ROP 2023 gap -646100 tag 646100",
     "FDS 2024 gap -265200 tag 265200",
     "SBFM 2021 gap -672 tag 672",
-    "EVO 2020 gap -69950 tag 69930",
+    "EVO 2020 gap -69969 tag 69949",
     "AMBO 2021 gap -2273 tag 2273"
    ]
   },
@@ -282,14 +282,14 @@
    "companies": 11,
    "sameSign": 0,
    "examples": [
-    "BBVA 2023 gap -13595635 tag 13595635",
+    "BBVA 2023 gap -13599365 tag 13599365",
     "BBAR 2022 gap -227457 tag 227457",
     "TLK 2022 gap -2552000 tag 2552000",
     "GGAL 2022 gap -291473 tag 291473",
     "BMA 2022 gap -1172196 tag 1172196",
     "VLRS 2022 gap -43689 tag 43689",
     "GLDG 2021 gap -76292 tag 76292",
-    "IFS 2022 gap -625578 tag 625578"
+    "IFS 2022 gap -624495 tag 624495"
    ]
   },
   {
@@ -422,13 +422,13 @@
    "companies": 7,
    "sameSign": 0,
    "examples": [
-    "PAC 2020 gap 16821 tag -16822",
+    "PAC 2020 gap 16855 tag -16855",
     "GAU 2025 gap -5669 tag 5669",
     "GPRK 2023 gap 16820 tag -16820",
     "VLRS 2020 gap -13601 tag 13601",
-    "VALN 2023 gap -6095 tag 6096",
-    "ONON 2023 gap 133081 tag -133201",
-    "TBBB 2022 gap -13485 tag 13485"
+    "VALN 2023 gap -6096 tag 6097",
+    "ONON 2023 gap 133182 tag -133301",
+    "TBBB 2022 gap -13511 tag 13511"
    ]
   },
   {
@@ -511,7 +511,7 @@
     "EQNR 2021 gap 2080000 tag -2080000",
     "NMG 2022 gap -5529 tag 5529",
     "AMBP 2023 gap 147000 tag -147000",
-    "CDRO 2022 gap -13626 tag 13626",
+    "CDRO 2022 gap -13630 tag 13630",
     "BTDR 2022 gap 4181 tag -4181"
    ]
   },
@@ -665,10 +665,10 @@
    "companies": 5,
    "sameSign": 1,
    "examples": [
-    "SIM 2024 gap -104860 tag 104860",
+    "SIM 2024 gap -105066 tag 105066",
     "PAM 2024 gap 121000 tag -121000",
-    "BSBR 2023 gap -438292 tag -438292",
-    "ABEV 2024 gap -839448 tag 839448",
+    "BSBR 2023 gap -435869 tag -435869",
+    "ABEV 2024 gap -834808 tag 834808",
     "SNDL 2021 gap 5555 tag -5555"
    ]
   }
@@ -863,7 +863,7 @@
  },
  "missingTags": {
   "st_investments": {
-   "companiesWithGaps": 4692,
+   "companiesWithGaps": 4693,
    "candidates": [
     [
      "ProceedsFromSaleAndMaturityOfMarketableSecurities",
@@ -871,7 +871,7 @@
     ],
     [
      "PaymentsToAcquireMarketableSecurities",
-     454
+     455
     ],
     [
      "PaymentsToAcquireShortTermInvestments",
@@ -892,11 +892,11 @@
    ]
   },
   "buybacks": {
-   "companiesWithGaps": 4127,
+   "companiesWithGaps": 4128,
    "candidates": []
   },
   "dividends": {
-   "companiesWithGaps": 3785,
+   "companiesWithGaps": 3786,
    "candidates": [
     [
      "PaymentsOfDividendsPreferredStockAndPreferenceStock",
@@ -938,7 +938,7 @@
    ]
   },
   "inventory": {
-   "companiesWithGaps": 3536,
+   "companiesWithGaps": 3537,
    "candidates": [
     [
      "InventoryWriteDown",
@@ -967,7 +967,7 @@
    ]
   },
   "rnd": {
-   "companiesWithGaps": 3077,
+   "companiesWithGaps": 3078,
    "candidates": [
     [
      "DeferredTaxAssetsInProcessResearchAndDevelopment",
@@ -996,7 +996,7 @@
    ]
   },
   "receivables": {
-   "companiesWithGaps": 2989,
+   "companiesWithGaps": 2990,
    "candidates": [
     [
      "AllowanceForDoubtfulAccountsReceivableCurrent",
@@ -1025,7 +1025,7 @@
    ]
   },
   "cogs": {
-   "companiesWithGaps": 2699,
+   "companiesWithGaps": 2700,
    "candidates": [
     [
      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
@@ -1054,11 +1054,11 @@
    ]
   },
   "interest": {
-   "companiesWithGaps": 2289,
+   "companiesWithGaps": 2290,
    "candidates": [
     [
      "InterestExpenseOther",
-     127
+     126
     ],
     [
      "InterestExpenseRelatedParty",
@@ -1091,7 +1091,7 @@
    "candidates": []
   },
   "capex": {
-   "companiesWithGaps": 1549,
+   "companiesWithGaps": 1550,
    "candidates": []
   },
   "sbc": {
@@ -1099,27 +1099,27 @@
    "candidates": [
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
-     233
+     232
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
-     213
+     212
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
-     151
+     150
     ],
     [
      "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsExercisesInPeriodWeightedAverageExercisePrice",
-     146
+     145
     ],
     [
      "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsGrantsInPeriodWeightedAverageExercisePrice",
-     134
+     133
     ],
     [
      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
-     129
+     128
     ]
    ]
   },
@@ -1149,7 +1149,7 @@
    ]
   },
   "depreciation": {
-   "companiesWithGaps": 896,
+   "companiesWithGaps": 897,
    "candidates": [
     [
      "FiniteLivedIntangibleAssetsAccumulatedAmortization",
@@ -1199,7 +1199,7 @@
    ]
   },
   "sga": {
-   "companiesWithGaps": 843,
+   "companiesWithGaps": 844,
    "candidates": [
     [
      "OtherGeneralAndAdministrativeExpense",
